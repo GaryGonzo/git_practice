@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/fonts/barlow-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 500;
+  src: url("/fonts/barlow-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 600;
+  src: url("/fonts/barlow-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 700;
+  src: url("/fonts/barlow-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/fonts/barlow-condensed-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 500;
+  src: url("/fonts/barlow-condensed-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 600;
+  src: url("/fonts/barlow-condensed-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 700;
+  src: url("/fonts/barlow-condensed-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Bebas Neue";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/fonts/bebas-neue-400.woff2") format("woff2");
+}
+
+@theme {
+  --font-display: "Bebas Neue", sans-serif;
+  --font-label: "Barlow Condensed", sans-serif;
+  --font-body: "Barlow", sans-serif;
+
+  --color-driver: #185fa5;
+  --color-irons: #3b6d11;
+  --color-wedges: #1d9e75;
+  --color-putter: #ba7517;
+}
+
+body {
+  font-family: var(--font-body);
+}

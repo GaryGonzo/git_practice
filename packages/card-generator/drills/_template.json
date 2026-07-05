@@ -1,0 +1,27 @@
+{
+  "id": "drill-slug",
+  "name": "Drill Name",
+  "category": "driver",
+  "weekVariant": null,
+  "setup": {
+    "equipment": [
+      "Equipment item 1",
+      "Equipment item 2"
+    ],
+    "description": "One or two sentences describing how to set up the drill."
+  },
+  "rules": {
+    "description": "One or two sentences describing how the drill is played.",
+    "scoring": [
+      "Scoring rule 1",
+      "Scoring rule 2"
+    ]
+  },
+  "targets": {
+    "scratch": "value",
+    "low": "value",
+    "mid": "value",
+    "high": "value"
+  },
+  "caption": "Caption copy here. #golfable #golftok #golfpractice #loweryourhandicap"
+}

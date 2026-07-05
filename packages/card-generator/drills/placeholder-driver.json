@@ -1,0 +1,20 @@
+{
+  "id": "placeholder-driver",
+  "name": "Placeholder Drill",
+  "category": "driver",
+  "setup": {
+    "equipment": ["Driver", "5 golf balls", "2 alignment sticks"],
+    "description": "Placeholder setup copy. Describe the tee, target, and boundary markers here."
+  },
+  "rules": {
+    "description": "Placeholder rules copy. Describe how each practice shot is played and what counts as a make.",
+    "scoring": ["Placeholder scoring rule one", "Placeholder scoring rule two", "Placeholder scoring rule three"]
+  },
+  "targets": {
+    "scratch": "9/10",
+    "low": "7/10",
+    "mid": "5/10",
+    "high": "3/10"
+  },
+  "caption": "Placeholder caption copy. #golfable #golftok #golfpractice #loweryourhandicap"
+}

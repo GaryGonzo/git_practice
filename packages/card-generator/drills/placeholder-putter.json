@@ -1,0 +1,20 @@
+{
+  "id": "placeholder-putter",
+  "name": "Placeholder Drill",
+  "category": "putter",
+  "setup": {
+    "equipment": ["Putter", "5 golf balls", "2 tees or gate markers"],
+    "description": "Placeholder setup copy. Describe the gate width and distance from the hole here."
+  },
+  "rules": {
+    "description": "Placeholder rules copy. Describe how each practice putt is played and what counts as a make.",
+    "scoring": ["Placeholder scoring rule one", "Placeholder scoring rule two", "Placeholder scoring rule three"]
+  },
+  "targets": {
+    "scratch": "9/10",
+    "low": "7/10",
+    "mid": "5/10",
+    "high": "3/10"
+  },
+  "caption": "Placeholder caption copy. #golfable #golftok #golfpractice #loweryourhandicap"
+}

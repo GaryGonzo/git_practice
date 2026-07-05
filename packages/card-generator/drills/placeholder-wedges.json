@@ -1,0 +1,20 @@
+{
+  "id": "placeholder-wedges",
+  "name": "Placeholder Drill",
+  "category": "wedges",
+  "setup": {
+    "equipment": ["Sand wedge", "5 golf balls", "Clock-face distance markers"],
+    "description": "Placeholder setup copy. Describe the distances and target zones here."
+  },
+  "rules": {
+    "description": "Placeholder rules copy. Describe how each practice shot is played and what counts as a make.",
+    "scoring": ["Placeholder scoring rule one", "Placeholder scoring rule two", "Placeholder scoring rule three"]
+  },
+  "targets": {
+    "scratch": "8/10",
+    "low": "6/10",
+    "mid": "4/10",
+    "high": "2/10"
+  },
+  "caption": "Placeholder caption copy. #golfable #golftok #golfpractice #loweryourhandicap"
+}
