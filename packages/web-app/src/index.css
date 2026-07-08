@@ -64,6 +64,9 @@
   --color-irons: #3b6d11;
   --color-wedges: #1d9e75;
   --color-putter: #ba7517;
+
+  --color-brand: #1f4d36;
+  --color-brand-dark: #14201b;
 }
 
 body {
