@@ -1,0 +1,20 @@
+{
+  "id": "the-approach",
+  "name": "The Approach",
+  "category": "irons",
+  "setup": {
+    "equipment": ["Mid-iron", "10 golf balls"],
+    "description": "From 130 yards, pick a green with a visible flag. Hit 10 approach shots at the pin."
+  },
+  "rules": {
+    "description": "Play 10 approach shots from 130 yards. Each ball is judged on where it finishes, not how it looked getting there.",
+    "scoring": ["1 point per ball that finishes on the green", "10 balls total"]
+  },
+  "targets": {
+    "scratch": "8/10",
+    "low": "6/10",
+    "mid": "4/10",
+    "high": "2/10"
+  },
+  "caption": "130 yards, one number that matters: how many found the green. #golfable #golftok #golfpractice #loweryourhandicap"
+}

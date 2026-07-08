@@ -1,0 +1,20 @@
+{
+  "id": "the-gate",
+  "name": "The Gate",
+  "category": "putter",
+  "setup": {
+    "equipment": ["Putter", "2 tees", "10 golf balls"],
+    "description": "Push two tees into the green just wider than your putter head, a few inches in front of the ball, forming a gate. Putt 10 balls from 6 feet."
+  },
+  "rules": {
+    "description": "Play 10 putts from 6 feet, each one required to pass cleanly through the gate on its way to the hole.",
+    "scoring": ["1 point per made putt that passes through the gate without touching the tees", "10 putts total"]
+  },
+  "targets": {
+    "scratch": "9/10",
+    "low": "7/10",
+    "mid": "5/10",
+    "high": "3/10"
+  },
+  "caption": "If it clips a tee, it doesn't count — even if it goes in. #golfable #golftok #golfpractice #loweryourhandicap"
+}

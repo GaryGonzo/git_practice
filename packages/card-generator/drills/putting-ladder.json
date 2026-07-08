@@ -1,0 +1,20 @@
+{
+  "id": "putting-ladder",
+  "name": "Putting Ladder",
+  "category": "putter",
+  "setup": {
+    "equipment": ["Putter", "8 golf balls", "Tees or markers at 3, 6, 9, and 12 feet"],
+    "description": "Place two balls at each distance: 3, 6, 9, and 12 feet from the hole."
+  },
+  "rules": {
+    "description": "Putt out both balls at 3 feet before moving to 6, then 9, then 12. Work up the ladder in order.",
+    "scoring": ["1 point per made putt", "8 putts total across the 4 distances"]
+  },
+  "targets": {
+    "scratch": "7/8",
+    "low": "5/8",
+    "mid": "3/8",
+    "high": "2/8"
+  },
+  "caption": "3, 6, 9, 12 — the ladder doesn't care how good yesterday's round was. #golfable #golftok #golfpractice #loweryourhandicap"
+}

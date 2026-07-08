@@ -1,0 +1,20 @@
+{
+  "id": "par-3-simulator",
+  "name": "Par 3 Simulator",
+  "category": "irons",
+  "setup": {
+    "equipment": ["Iron of your choice", "9 golf balls"],
+    "description": "Pick a target 150-180 yards out. Play 9 balls, one at a time, as if each were its own par 3 hole."
+  },
+  "rules": {
+    "description": "Play 9 balls to the same target, treating each shot like a fresh hole. Reset your routine between every ball.",
+    "scoring": ["1 point per ball that finishes on the green", "9 balls total"]
+  },
+  "targets": {
+    "scratch": "7/9",
+    "low": "5/9",
+    "mid": "3/9",
+    "high": "1/9"
+  },
+  "caption": "Nine holes, one club, zero mulligans. Play it like it counts. #golfable #golftok #golfpractice #loweryourhandicap"
+}

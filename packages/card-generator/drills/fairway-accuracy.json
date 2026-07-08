@@ -1,0 +1,20 @@
+{
+  "id": "fairway-accuracy",
+  "name": "Fairway Accuracy",
+  "category": "irons",
+  "setup": {
+    "equipment": ["Mid-iron", "10 golf balls", "20-yard-wide target zone (tees or alignment sticks)"],
+    "description": "Mark a 20-yard-wide zone 150-170 yards out. Hit 10 iron shots aiming to land inside it."
+  },
+  "rules": {
+    "description": "Play 10 shots at the marked zone. Distance doesn't matter here — only whether the ball lands inside the width markers.",
+    "scoring": ["1 point per ball landing inside the zone", "10 balls total"]
+  },
+  "targets": {
+    "scratch": "7/10",
+    "low": "5/10",
+    "mid": "3/10",
+    "high": "1/10"
+  },
+  "caption": "Forget the pin — today it's about the width of the miss. #golfable #golftok #golfpractice #loweryourhandicap"
+}

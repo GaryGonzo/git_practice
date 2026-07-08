@@ -1,0 +1,20 @@
+{
+  "id": "the-clock",
+  "name": "The Clock",
+  "category": "wedges",
+  "setup": {
+    "equipment": ["Sand wedge", "8 golf balls", "Distance markers at 20, 40, 60, and 80 yards"],
+    "description": "Set up four target zones at 20, 40, 60, and 80 yards, arranged like numbers on a clock face. Hit two balls to each distance, working around the clock."
+  },
+  "rules": {
+    "description": "Play each distance in order, two balls per distance. A ball counts as a make if it finishes inside a 6-foot circle around the target.",
+    "scoring": ["1 point per ball inside 6 feet", "8 balls total across the 4 distances"]
+  },
+  "targets": {
+    "scratch": "7/8",
+    "low": "5/8",
+    "mid": "4/8",
+    "high": "2/8"
+  },
+  "caption": "Four distances, eight balls, one clock to beat. #golfable #golftok #golfpractice #loweryourhandicap"
+}

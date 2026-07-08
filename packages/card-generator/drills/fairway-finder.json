@@ -1,0 +1,20 @@
+{
+  "id": "fairway-finder",
+  "name": "Fairway Finder",
+  "category": "driver",
+  "setup": {
+    "equipment": ["Driver", "10 golf balls"],
+    "description": "Pick a hole with a fairway you can see the width of. Hit 10 drives, aiming to find the short grass every time."
+  },
+  "rules": {
+    "description": "Play 10 tee shots with your driver. No mulligans, no provisional re-hits — the first swing counts.",
+    "scoring": ["1 point per drive that finishes in the fairway", "Rough, bunkers, and hazards don't count", "10 drives total"]
+  },
+  "targets": {
+    "scratch": "8/10",
+    "low": "6/10",
+    "mid": "4/10",
+    "high": "2/10"
+  },
+  "caption": "Fairways win golf tournaments. Ten drives, no excuses — how many did you find today? #golfable #golftok #golfpractice #loweryourhandicap"
+}
