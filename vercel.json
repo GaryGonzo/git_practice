@@ -1,5 +1,6 @@
 {
   "installCommand": "npm install",
   "buildCommand": "npm run build --workspace=@golfable/web-app",
-  "outputDirectory": "packages/web-app/dist"
+  "outputDirectory": "packages/web-app/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
