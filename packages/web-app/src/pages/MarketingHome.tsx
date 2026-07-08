@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   SKILL_CATEGORIES,
   CATEGORY_INFO,
@@ -80,9 +81,9 @@ export function MarketingHome() {
       <div className="bg-brand-dark px-6 py-2 text-center">
         <p className="font-label text-gold text-xs font-semibold tracking-wide whitespace-nowrap sm:text-sm">
           100 FOUNDER SPOTS — FREE FOREVER.{" "}
-          <a href="#join" className="underline underline-offset-2">
+          <Link to="/signup" className="underline underline-offset-2">
             Claim yours
-          </a>
+          </Link>
         </p>
       </div>
 
@@ -92,20 +93,18 @@ export function MarketingHome() {
           <span className="font-display text-2xl tracking-wide">GOLFABLE</span>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            disabled
-            title="Accounts aren't live yet — join the founder list below"
-            className="font-label rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-400"
+          <Link
+            to="/login"
+            className="font-label rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-600"
           >
             Log In
-          </button>
-          <a
-            href="#join"
+          </Link>
+          <Link
+            to="/signup"
             className="font-label rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
           >
             Join Free
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -130,12 +129,12 @@ export function MarketingHome() {
               Golfable is the CrossFit of golf skills — one structured drill, shared by everyone
               training that day, scored against your handicap so the challenge is actually yours.
             </p>
-            <a
-              href="#join"
+            <Link
+              to="/signup"
               className="font-label bg-brand mt-8 inline-block rounded-md px-6 py-3 text-sm font-semibold text-white"
             >
               Join free — no card required
-            </a>
+            </Link>
           </div>
         </section>
 
