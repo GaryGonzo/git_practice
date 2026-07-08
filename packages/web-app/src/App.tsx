@@ -77,17 +77,36 @@ function App() {
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
+      <div className="bg-brand-dark px-6 py-2 text-center">
+        <p className="font-label text-gold text-xs font-semibold tracking-wide sm:text-sm">
+          FOUNDER OFFER — the first 100 Golfable accounts are free, forever.{" "}
+          <a href="#join" className="underline underline-offset-2">
+            Claim your spot
+          </a>
+        </p>
+      </div>
+
       <header className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
         <div className="flex items-center gap-2.5">
           <GolfableMark className="h-8 w-8" />
           <span className="font-display text-2xl tracking-wide">GOLFABLE</span>
         </div>
-        <a
-          href="#join"
-          className="font-label rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
-        >
-          Join Free
-        </a>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled
+            title="Accounts aren't live yet — join the founder list below"
+            className="font-label rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-400"
+          >
+            Log In
+          </button>
+          <a
+            href="#join"
+            className="font-label rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Join Free
+          </a>
+        </div>
       </header>
 
       <main>
