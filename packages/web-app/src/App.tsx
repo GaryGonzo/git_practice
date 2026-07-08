@@ -78,10 +78,10 @@ function App() {
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
       <div className="bg-brand-dark px-6 py-2 text-center">
-        <p className="font-label text-gold text-xs font-semibold tracking-wide sm:text-sm">
-          FOUNDER OFFER — the first 100 Golfable accounts are free, forever.{" "}
+        <p className="font-label text-gold text-xs font-semibold tracking-wide whitespace-nowrap sm:text-sm">
+          100 FOUNDER SPOTS — FREE FOREVER.{" "}
           <a href="#join" className="underline underline-offset-2">
-            Claim your spot
+            Claim yours
           </a>
         </p>
       </div>
