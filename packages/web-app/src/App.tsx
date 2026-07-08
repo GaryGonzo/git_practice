@@ -6,6 +6,7 @@ import {
   TIER_INFO,
   CAPTION_HASHTAGS,
 } from "@golfable/shared";
+import { GolfableMark } from "./components/GolfableMark";
 
 const CATEGORY_BG: Record<string, string> = {
   driver: "bg-driver",
@@ -63,7 +64,10 @@ function App() {
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
       <header className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
-        <span className="font-display text-2xl tracking-wide">GOLFABLE</span>
+        <div className="flex items-center gap-2.5">
+          <GolfableMark className="h-8 w-8" />
+          <span className="font-display text-2xl tracking-wide">GOLFABLE</span>
+        </div>
         <a
           href="#join"
           className="font-label rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
