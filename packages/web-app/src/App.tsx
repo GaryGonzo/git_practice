@@ -110,22 +110,33 @@ function App() {
       </header>
 
       <main>
-        <section className="px-6 py-20 text-center">
-          <h1 className="font-display text-5xl tracking-wide sm:text-6xl">
-            A Golfable a day
-            <br />
-            keeps the <span className="text-brand">yips away</span>
-          </h1>
-          <p className="font-body mx-auto mt-4 max-w-xl text-lg text-neutral-600">
-            Golfable is the CrossFit of golf skills — one structured drill, shared by everyone training
-            that day, scored against your handicap so the challenge is actually yours.
-          </p>
-          <a
-            href="#join"
-            className="font-label bg-brand mt-8 inline-block rounded-md px-6 py-3 text-sm font-semibold text-white"
-          >
-            Join free — no card required
-          </a>
+        <section className="relative overflow-hidden px-6 py-24 text-center sm:py-32">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: "url(/hero-course.png)",
+              backgroundSize: "cover",
+              backgroundPosition: "center 60%",
+            }}
+          />
+          <div className="absolute inset-0 bg-white/55" />
+          <div className="relative">
+            <h1 className="font-display text-5xl tracking-wide sm:text-6xl">
+              A Golfable a day
+              <br />
+              keeps the <span className="text-brand">yips away</span>
+            </h1>
+            <p className="font-body mx-auto mt-4 max-w-xl text-lg text-neutral-700">
+              Golfable is the CrossFit of golf skills — one structured drill, shared by everyone
+              training that day, scored against your handicap so the challenge is actually yours.
+            </p>
+            <a
+              href="#join"
+              className="font-label bg-brand mt-8 inline-block rounded-md px-6 py-3 text-sm font-semibold text-white"
+            >
+              Join free — no card required
+            </a>
+          </div>
         </section>
 
         <section className="px-6 py-16">
