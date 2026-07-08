@@ -22,6 +22,20 @@ const CATEGORY_TEXT: Record<string, string> = {
   putter: "text-putter",
 };
 
+const TIER_BORDER: Record<string, string> = {
+  scratch: "border-tier-scratch",
+  low: "border-tier-low",
+  mid: "border-tier-mid",
+  high: "border-tier-high",
+};
+
+const TIER_TEXT: Record<string, string> = {
+  scratch: "text-tier-scratch",
+  low: "text-tier-low",
+  mid: "text-tier-mid",
+  high: "text-tier-high",
+};
+
 const HOW_IT_WORKS = [
   {
     step: "1",
@@ -145,7 +159,7 @@ function App() {
         <section className="bg-brand px-6 py-16 text-white">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
             <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-white/15">
-              <TrophyIcon className="h-7 w-7 text-white" />
+              <TrophyIcon className="text-gold h-7 w-7" />
             </div>
             <div>
               <h2 className="font-display text-2xl tracking-wide">Today's leaderboard</h2>
@@ -166,9 +180,14 @@ function App() {
               {HANDICAP_TIERS.map((tier) => {
                 const info = TIER_INFO[tier];
                 return (
-                  <div key={tier} className="rounded-lg bg-white p-3 text-center border border-neutral-200">
-                    <div className="font-label font-semibold">{info.label}</div>
-                    <div className="font-label text-xs text-neutral-500">{info.sublabel}</div>
+                  <div
+                    key={tier}
+                    className={`rounded-lg bg-white p-5 text-center border-2 ${TIER_BORDER[tier]}`}
+                  >
+                    <div className={`font-display text-3xl tracking-wide ${TIER_TEXT[tier]}`}>
+                      {info.label}
+                    </div>
+                    <div className="font-label mt-1 text-sm text-neutral-500">{info.sublabel}</div>
                   </div>
                 );
               })}

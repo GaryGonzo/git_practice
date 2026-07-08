@@ -67,6 +67,12 @@
 
   --color-brand: #1f4d36;
   --color-brand-dark: #14201b;
+  --color-gold: #c6a64b;
+
+  --color-tier-scratch: #c6a64b;
+  --color-tier-low: #aab2ba;
+  --color-tier-mid: #b07a4e;
+  --color-tier-high: #707a85;
 }
 
 body {
