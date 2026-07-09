@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
+import { JUST_LOGGED_IN_KEY } from "../../lib/sessionFlags";
 
 export function LoginScreen() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export function LoginScreen() {
       setError(signInError.message);
       return;
     }
+    sessionStorage.setItem(JUST_LOGGED_IN_KEY, "1");
     navigate("/app");
   }
 

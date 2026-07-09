@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../lib/AuthProvider";
 import { updateProfile } from "../lib/golfableApi";
+import { JUST_LOGGED_IN_KEY } from "../lib/sessionFlags";
 import { WelcomeWalkthrough } from "./WelcomeWalkthrough";
+import { WelcomeBackModal } from "./WelcomeBackModal";
 
 const NAV_ITEMS = [
   { to: "/app", label: "Today", end: true, icon: TodayIcon },
@@ -54,6 +57,14 @@ export function ProfileIcon({ className }: { className?: string }) {
 
 export function AppShell() {
   const { profile, refreshProfile } = useAuth();
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem(JUST_LOGGED_IN_KEY)) {
+      sessionStorage.removeItem(JUST_LOGGED_IN_KEY);
+      setShowWelcomeBack(true);
+    }
+  }, []);
 
   async function dismissWalkthrough() {
     if (!profile) return;
@@ -63,7 +74,11 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-16">
-      {profile && !profile.has_seen_walkthrough && <WelcomeWalkthrough onDone={dismissWalkthrough} />}
+      {profile && !profile.has_seen_walkthrough ? (
+        <WelcomeWalkthrough onDone={dismissWalkthrough} />
+      ) : (
+        showWelcomeBack && <WelcomeBackModal onDismiss={() => setShowWelcomeBack(false)} />
+      )}
       <Outlet />
       <nav className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-md">
