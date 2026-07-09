@@ -8,18 +8,29 @@ insert into drills (
   target_scratch, target_low, target_mid, target_high,
   max_score
 ) values (
-  'the-clock',
-  'The Clock',
+  'pitch-and-chip',
+  'Pitch & Chip',
   'wedges',
-  'Set up four target zones at 20, 40, 60, and 80 yards, arranged like numbers on a clock face. Hit two balls to each distance, working around the clock.',
-  array['Sand wedge', '8 golf balls', 'Distance markers at 20, 40, 60, and 80 yards'],
-  'Play each distance in order, two balls per distance. A ball counts as a make if it finishes inside a 6-foot circle around the target.',
-  array['1 point per ball inside 6 feet', 'Bonus point for any ball inside 3 feet', '8 balls total across the 4 distances'],
-  '7/8', '5/8', '4/8', '2/8',
-  8
+  'Pick one wedge and two greenside holes near each other: one to pitch to (a shot that spends more time in the air than on the ground) and one to chip to (a shot that rolls out more than it flies). Hit 5 shots at the pitch hole, then 5 at the chip hole.',
+  array['Wedge', '10 golf balls'],
+  'Play 5 shots to the pitch hole, then 5 to the chip hole — 10 shots total, practicing two different short-game techniques with the same club.',
+  array['2 points for a holed shot', '1 point for a shot left inside a tap-in (about 1 foot)', '-1 point for a shot finishing farther than 4 feet away', '5 shots per target, 10 shots total'],
+  '8/20', '7/20', '6/20', '4/20',
+  20
 )
-on conflict (id) do nothing;
+on conflict (id) do update set
+  name = excluded.name,
+  category = excluded.category,
+  setup_description = excluded.setup_description,
+  setup_equipment = excluded.setup_equipment,
+  rules_description = excluded.rules_description,
+  rules_scoring = excluded.rules_scoring,
+  target_scratch = excluded.target_scratch,
+  target_low = excluded.target_low,
+  target_mid = excluded.target_mid,
+  target_high = excluded.target_high,
+  max_score = excluded.max_score;
 
 insert into daily_golfable (date, drill_id)
-values (current_date, 'the-clock')
+values (current_date, 'pitch-and-chip')
 on conflict (date) do update set drill_id = excluded.drill_id;

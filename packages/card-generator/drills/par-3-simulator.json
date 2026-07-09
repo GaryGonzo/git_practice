@@ -4,17 +4,17 @@
   "category": "irons",
   "setup": {
     "equipment": ["Iron of your choice", "9 golf balls"],
-    "description": "Pick a target 150-180 yards out. Play 9 balls, one at a time, as if each were its own par 3 hole."
+    "description": "Play from your tier's yardage range: 80-120 yards (High), 120-150 yards (Mid), 135-165 yards (Low), or 150-180 yards (Scratch+). Play 9 balls, one at a time, as if each were its own par 3 hole — pick a new distance and target inside your range every shot."
   },
   "rules": {
-    "description": "Play 9 balls to the same target, treating each shot like a fresh hole. Reset your routine between every ball.",
-    "scoring": ["1 point per ball that finishes on the green", "9 balls total"]
+    "description": "Play 9 balls, treating each shot like a fresh hole at a new yardage inside your tier's range. Reset your routine between every ball.",
+    "scoring": ["1 point per ball that finishes on the green", "Change the distance and target within your tier's range every shot", "9 balls total"]
   },
   "targets": {
     "scratch": "7/9",
-    "low": "5/9",
-    "mid": "3/9",
-    "high": "1/9"
+    "low": "7/9",
+    "mid": "5/9",
+    "high": "3/9"
   },
   "caption": "Nine holes, one club, zero mulligans. Play it like it counts. #golfable #golftok #golfpractice #loweryourhandicap"
 }

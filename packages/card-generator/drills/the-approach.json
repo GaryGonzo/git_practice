@@ -3,18 +3,18 @@
   "name": "The Approach",
   "category": "irons",
   "setup": {
-    "equipment": ["Mid-iron", "10 golf balls"],
-    "description": "From 130 yards, pick a green with a visible flag. Hit 10 approach shots at the pin."
+    "equipment": ["Iron of your choice", "10 golf balls"],
+    "description": "Pick a green with a visible flag and play from your tier's distance: 100 yards (High), 125 yards (Mid), 150 yards (Low), or 165 yards (Scratch+). Hit 10 approach shots at the pin."
   },
   "rules": {
-    "description": "Play 10 approach shots from 130 yards. Each ball is judged on where it finishes, not how it looked getting there.",
-    "scoring": ["1 point per ball that finishes on the green", "10 balls total"]
+    "description": "Play 3 full rounds of 10 approach shots from your tier's distance — record your best round. Each ball is judged on where it finishes, not how it looked getting there.",
+    "scoring": ["1 point per ball that finishes on the green", "Play 3 rounds of 10 balls; your best round counts", "10 balls per round"]
   },
   "targets": {
-    "scratch": "8/10",
+    "scratch": "7/10",
     "low": "6/10",
-    "mid": "4/10",
-    "high": "2/10"
+    "mid": "5/10",
+    "high": "3/10"
   },
-  "caption": "130 yards, one number that matters: how many found the green. #golfable #golftok #golfpractice #loweryourhandicap"
+  "caption": "Same swing, different number for every tier. Best of 3 rounds — how many found the green? #golfable #golftok #golfpractice #loweryourhandicap"
 }

@@ -1,0 +1,20 @@
+{
+  "id": "pitch-and-chip",
+  "name": "Pitch & Chip",
+  "category": "wedges",
+  "setup": {
+    "equipment": ["Wedge", "10 golf balls"],
+    "description": "Pick one wedge and two greenside holes near each other: one to pitch to (a shot that spends more time in the air than on the ground) and one to chip to (a shot that rolls out more than it flies). Hit 5 shots at the pitch hole, then 5 at the chip hole."
+  },
+  "rules": {
+    "description": "Play 5 shots to the pitch hole, then 5 to the chip hole — 10 shots total, practicing two different short-game techniques with the same club.",
+    "scoring": ["2 points for a holed shot", "1 point for a shot left inside a tap-in (about 1 foot)", "-1 point for a shot finishing farther than 4 feet away", "5 shots per target, 10 shots total"]
+  },
+  "targets": {
+    "scratch": "8/20",
+    "low": "7/20",
+    "mid": "6/20",
+    "high": "4/20"
+  },
+  "caption": "Pitch it high, chip it low — same club, two totally different shots. #golfable #golftok #golfpractice #loweryourhandicap"
+}

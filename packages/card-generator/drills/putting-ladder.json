@@ -3,18 +3,18 @@
   "name": "Putting Ladder",
   "category": "putter",
   "setup": {
-    "equipment": ["Putter", "8 golf balls", "Tees or markers at 3, 6, 9, and 12 feet"],
-    "description": "Place two balls at each distance: 3, 6, 9, and 12 feet from the hole."
+    "equipment": ["Putter", "10 golf balls", "2 tees"],
+    "description": "Push two tees into the green 10 feet apart to mark a landing window. Putt from 10 feet behind the first tee. Your first ball should just clear the first tee — after that, every ball needs to land inside the window and finish farther than the one before it."
   },
   "rules": {
-    "description": "Putt out both balls at 3 feet before moving to 6, then 9, then 12. Work up the ladder in order.",
-    "scoring": ["1 point per made putt", "8 putts total across the 4 distances"]
+    "description": "Putt one ball at a time. Each ball only scores if it lands inside the window and beats the distance of your previous ball. Play 10 balls.",
+    "scoring": ["1 point per ball that lands inside the window and finishes farther than the previous ball", "10 balls total"]
   },
   "targets": {
-    "scratch": "7/8",
-    "low": "5/8",
-    "mid": "3/8",
-    "high": "2/8"
+    "scratch": "10/10",
+    "low": "8/10",
+    "mid": "6/10",
+    "high": "4/10"
   },
-  "caption": "3, 6, 9, 12 — the ladder doesn't care how good yesterday's round was. #golfable #golftok #golfpractice #loweryourhandicap"
+  "caption": "Every putt has to beat the one before it — how far can you push the ladder? #golfable #golftok #golfpractice #loweryourhandicap"
 }

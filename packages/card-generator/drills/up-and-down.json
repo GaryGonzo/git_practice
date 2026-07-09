@@ -3,18 +3,18 @@
   "name": "Up and Down",
   "category": "wedges",
   "setup": {
-    "equipment": ["Wedge", "Putter", "10 golf balls"],
-    "description": "Drop 10 balls just off the green in a mix of lies — rough, fringe, light rough. From each, chip or pitch it on, then putt out."
+    "equipment": ["Wedge", "Putter", "5 golf balls"],
+    "description": "Drop 5 balls just off the green in a mix of lies — rough, fringe, light rough. From each, chip or pitch it on, then putt out. Play 3 rounds and record your best round."
   },
   "rules": {
     "description": "Play each ball as its own up-and-down: one short-game shot to get on, then finish it out on the green.",
-    "scoring": ["1 point for every ball holed in 2 total strokes or fewer", "10 balls total"]
+    "scoring": ["2 points for a chip holed directly", "1 point for a chip followed by a holed putt (up-and-down)", "-1 point if you need more than one putt after the chip", "Play 3 rounds of 5 balls; record your best round"]
   },
   "targets": {
-    "scratch": "7/10",
-    "low": "5/10",
-    "mid": "3/10",
+    "scratch": "3/10",
+    "low": "2/10",
+    "mid": "2/10",
     "high": "1/10"
   },
-  "caption": "The shot that saves rounds. Ten lies, ten chances to get up and down. #golfable #golftok #golfpractice #loweryourhandicap"
+  "caption": "The shot that saves rounds — hole it, save it, or lose a point. Five lies, best of 3 rounds. #golfable #golftok #golfpractice #loweryourhandicap"
 }

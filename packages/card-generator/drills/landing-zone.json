@@ -4,11 +4,11 @@
   "category": "wedges",
   "setup": {
     "equipment": ["Wedge", "9 golf balls", "3 target circles (10-foot radius) at 30, 50, and 70 yards"],
-    "description": "Set up three 10-foot landing circles at 30, 50, and 70 yards. Hit 3 balls to each distance."
+    "description": "Find three targets on the driving range: 30, 50, and 70 yards out. Imagine a 10-foot circle landing zone around each one. Hit 3 balls to each distance, across 3 rounds — record your best score."
   },
   "rules": {
     "description": "Play 3 balls per distance, starting at 30 yards and working out to 70. A ball counts if it lands inside the circle.",
-    "scoring": ["1 point per ball landing inside its circle", "9 balls total across the 3 distances"]
+    "scoring": ["1 point per ball landing inside its circle", "Play 3 rounds; record your best score", "9 balls per round across the 3 distances"]
   },
   "targets": {
     "scratch": "7/9",

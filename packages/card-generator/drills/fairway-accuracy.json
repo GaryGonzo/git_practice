@@ -3,12 +3,12 @@
   "name": "Fairway Accuracy",
   "category": "irons",
   "setup": {
-    "equipment": ["Mid-iron", "10 golf balls", "20-yard-wide target zone (tees or alignment sticks)"],
+    "equipment": ["Mid-iron", "10 golf balls", "20-yard-wide target zone"],
     "description": "Mark a 20-yard-wide zone 150-170 yards out. Hit 10 iron shots aiming to land inside it."
   },
   "rules": {
-    "description": "Play 10 shots at the marked zone. Distance doesn't matter here — only whether the ball lands inside the width markers.",
-    "scoring": ["1 point per ball landing inside the zone", "10 balls total"]
+    "description": "Play 3 rounds of 10 shots at the marked zone — record your best round of the 3. Distance doesn't matter here — only whether the ball lands inside the width markers.",
+    "scoring": ["1 point per ball landing inside the zone", "Play 3 rounds; record your best round of the 3", "10 balls per round"]
   },
   "targets": {
     "scratch": "7/10",

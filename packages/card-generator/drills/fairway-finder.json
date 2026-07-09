@@ -4,7 +4,7 @@
   "category": "driver",
   "setup": {
     "equipment": ["Driver", "10 golf balls"],
-    "description": "Pick a hole with a fairway you can see the width of. Hit 10 drives, aiming to find the short grass every time."
+    "description": "On the driving range, mark out an imaginary fairway that's 30 yards wide. Hit 10 drives, aiming to find the short grass every time."
   },
   "rules": {
     "description": "Play 10 tee shots with your driver. No mulligans, no provisional re-hits — the first swing counts.",
