@@ -397,8 +397,8 @@ export function MarketingHome() {
 
       <header className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
         <div className="flex items-center gap-2.5">
-          <GolfableMark className="h-8 w-8" />
-          <span className="font-display text-2xl tracking-wide">GOLFABLE</span>
+          <GolfableMark className="h-9 w-9" />
+          <span className="font-display text-brand text-3xl tracking-wide">GOLFABLE</span>
         </div>
         <div className="flex items-center gap-3">
           <Link
