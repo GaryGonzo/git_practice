@@ -39,7 +39,15 @@ export function TikTokEmbed({ url }: TikTokEmbedProps) {
       data-video-id={videoId}
       style={{ maxWidth: "325px", minWidth: "260px", margin: 0 }}
     >
-      <section />
+      {/* Real fallback link to this exact post -- shown until (or unless)
+          embed.js hydrates the blockquote into a player. Without it, a slow
+          or failed hydration leaves an empty box with no way to reach the
+          right video. */}
+      <section>
+        <a target="_blank" rel="noopener noreferrer" href={url}>
+          View this Golfable on TikTok
+        </a>
+      </section>
     </blockquote>
   );
 }

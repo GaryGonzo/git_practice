@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import type { Drill } from "@golfable/shared";
 import { TIER_INFO } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
+import { ScoreCelebration } from "../../components/ScoreCelebration";
 import { useAuth } from "../../lib/AuthProvider";
 import {
   getDrillForDate,
@@ -48,6 +49,7 @@ export function TodayScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [celebrating, setCelebrating] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -96,6 +98,7 @@ export function TodayScreen() {
       setSubmittedScore(value);
       setSessionsThisWeek((n) => n + 1);
       setLeaderboard(board);
+      setCelebrating(true);
     } catch {
       setSubmitError("Couldn't save your score -- check your connection and try again.");
     } finally {
@@ -141,6 +144,9 @@ export function TodayScreen() {
 
   return (
     <div className="pb-24">
+      {celebrating && (
+        <ScoreCelebration firstName={profile.first_name} onDone={() => setCelebrating(false)} />
+      )}
       {backLink}
       <DrillFreshView
         drill={drill}

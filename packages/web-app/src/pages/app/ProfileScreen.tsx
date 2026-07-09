@@ -5,6 +5,14 @@ import { useAuth } from "../../lib/AuthProvider";
 import { updateProfile } from "../../lib/golfableApi";
 import { TikTokEmbed } from "../../components/TikTokEmbed";
 
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.77l-.44 2.89h-2.33v6.99A10 10 0 0 0 22 12Z" />
+    </svg>
+  );
+}
+
 const SURPRISES = [
   "Your handicap doesn't care about your ego. Neither does the ball.",
   "Somewhere right now, someone is three-putting from four feet. You are not alone.",
@@ -294,6 +302,25 @@ export function ProfileScreen() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+          Join the Community
+        </h2>
+        <p className="font-body mb-3 text-sm text-neutral-600">
+          Join the Golfable community on Facebook. Share your scores. See what other golfers are up to. Get
+          special tips and insights and more.
+        </p>
+        <a
+          href="https://www.facebook.com/groups/golfable"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-label inline-flex items-center gap-2 rounded-md bg-[#1877F2] px-4 py-2 text-sm font-semibold text-white"
+        >
+          <FacebookIcon className="h-4 w-4" />
+          Join our Facebook Group
+        </a>
       </div>
     </div>
   );
