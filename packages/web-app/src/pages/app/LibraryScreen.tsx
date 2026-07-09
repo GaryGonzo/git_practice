@@ -11,6 +11,12 @@ import {
   type GolfableCalendarEntry,
 } from "../../lib/golfableApi";
 
+// Cap the Upcoming list at a short, scannable preview -- even once the
+// content calendar is planned out a month or two ahead, the list view
+// stays useful instead of scrolling forever. The Calendar view has no
+// such cap since it's already naturally bounded to one month at a time.
+const UPCOMING_LIST_LIMIT = 6;
+
 const CATEGORY_BG: Record<string, string> = {
   driver: "bg-driver",
   irons: "bg-irons",
@@ -265,7 +271,7 @@ export function LibraryScreen() {
               <p className="font-body text-sm text-neutral-500">Nothing scheduled yet.</p>
             ) : (
               <div className="space-y-2">
-                {upcoming.map((entry) => (
+                {upcoming.slice(0, UPCOMING_LIST_LIMIT).map((entry) => (
                   <UpcomingRow key={entry.date} entry={entry} />
                 ))}
               </div>
