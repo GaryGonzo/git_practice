@@ -126,3 +126,10 @@ begin
     (monday_b + 4, 'pitch-and-chip')
   on conflict (date) do update set drill_id = excluded.drill_id;
 end $$;
+
+-- The Clock was replaced by Pitch & Chip (renamed id). Drop the old row
+-- once nothing references it; harmless no-op if it was never seeded.
+delete from drills
+where id = 'the-clock'
+  and not exists (select 1 from scores where scores.drill_id = 'the-clock')
+  and not exists (select 1 from daily_golfable where daily_golfable.drill_id = 'the-clock');
