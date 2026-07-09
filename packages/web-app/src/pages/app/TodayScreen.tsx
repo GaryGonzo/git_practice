@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Drill } from "@golfable/shared";
-import { CATEGORY_INFO, TIER_INFO } from "@golfable/shared";
-import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
-import { DrillHeroImage } from "../../components/DrillHeroImage";
+import { TIER_INFO } from "@golfable/shared";
+import { DrillFreshView } from "../../components/DrillFreshView";
 import { useAuth } from "../../lib/AuthProvider";
 import {
   getTodaysDrill,
@@ -13,34 +12,6 @@ import {
   getTierLeaderboard,
   type LeaderboardEntry,
 } from "../../lib/golfableApi";
-
-const CATEGORY_BG: Record<string, string> = {
-  driver: "bg-driver",
-  irons: "bg-irons",
-  wedges: "bg-wedges",
-  putter: "bg-putter",
-};
-
-const CATEGORY_TEXT: Record<string, string> = {
-  driver: "text-driver",
-  irons: "text-irons",
-  wedges: "text-wedges",
-  putter: "text-putter",
-};
-
-const TIER_TEXT: Record<string, string> = {
-  scratch: "text-tier-scratch",
-  low: "text-tier-low",
-  mid: "text-tier-mid",
-  high: "text-tier-high",
-};
-
-const TIER_BORDER: Record<string, string> = {
-  scratch: "border-tier-scratch",
-  low: "border-tier-low",
-  mid: "border-tier-mid",
-  high: "border-tier-high",
-};
 
 function TrophyIcon({ className }: { className?: string }) {
   return (
@@ -132,134 +103,65 @@ export function TodayScreen() {
     );
   }
 
-  const category = CATEGORY_INFO[drill.category];
   const tierTarget = drill.targets[profile.tier];
   const tierInfo = TIER_INFO[profile.tier];
   const rank = leaderboard.findIndex((entry) => entry.username === profile.username) + 1;
 
+  if (submittedScore === null) {
+    return (
+      <div className="pb-24">
+        <DrillFreshView
+          drill={drill}
+          tier={profile.tier}
+          maxScore={maxScore}
+          weeklyGoal={profile.weekly_goal}
+          sessionsThisWeek={sessionsThisWeek}
+          scoreInput={scoreInput}
+          onScoreInputChange={setScoreInput}
+          onSubmit={handleSubmit}
+          submitting={submitting}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-            Today's Golfable
-          </p>
-          <p className="font-body text-sm text-neutral-500">Everyone trains this one today</p>
-        </div>
-        <WeeklyGoalRing completed={sessionsThisWeek} goal={profile.weekly_goal} size={64} />
-      </div>
-
-      <DrillHeroImage drillId={drill.id} alt={drill.name} />
-
-      <div className="mb-4 flex items-center gap-2.5">
-        <div
-          className={`font-display flex h-9 w-9 items-center justify-center rounded-full text-base text-white ${CATEGORY_BG[drill.category]}`}
-        >
-          {category.badge}
-        </div>
-        <div>
-          <p className={`font-label text-xs font-semibold tracking-wide uppercase ${CATEGORY_TEXT[drill.category]}`}>
-            {category.label}
-          </p>
-          <h1 className="font-display text-2xl tracking-wide">{drill.name}</h1>
-        </div>
-      </div>
-
-      <div className="mb-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label mb-1 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Setup
+    <div className="mx-auto max-w-md space-y-3 px-4 pt-6 pb-24">
+      <div className="bg-brand rounded-lg p-5 text-center text-white">
+        <p className="font-label text-xs font-semibold tracking-widest text-white/70 uppercase">
+          You scored
         </p>
-        <p className="font-body mb-2 text-sm text-neutral-700">{drill.setup.description}</p>
-        <ul className="font-body list-inside list-disc text-sm text-neutral-600">
-          {drill.setup.equipment.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="mb-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label mb-1 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Rules &amp; Scoring
+        <p className="font-display text-5xl">
+          {submittedScore}/{maxScore}
         </p>
-        <p className="font-body mb-2 text-sm text-neutral-700">{drill.rules.description}</p>
-        <ul className="font-body list-inside list-disc text-sm text-neutral-600">
-          {drill.rules.scoring.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className={`mb-6 rounded-lg border-2 bg-white p-4 ${TIER_BORDER[profile.tier]}`}>
-        <p className="font-label mb-1 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Your Target &middot; {tierInfo.label}
-        </p>
-        <p className={`font-display text-4xl ${TIER_TEXT[profile.tier]}`}>{tierTarget}</p>
-      </div>
-
-      {submittedScore === null ? (
-        <form onSubmit={handleSubmit} className="rounded-lg border border-neutral-200 bg-white p-4">
-          <label className="font-label mb-2 block text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-            Log your score
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min={0}
-              max={maxScore}
-              required
-              value={scoreInput}
-              onChange={(event) => setScoreInput(event.target.value)}
-              placeholder={`0-${maxScore}`}
-              className="font-body flex-1 rounded-md border border-neutral-300 px-3 py-2"
-            />
-            <button
-              type="submit"
-              disabled={submitting}
-              className="font-label bg-brand rounded-md px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {submitting ? "Saving…" : "Submit"}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="space-y-3">
-          <div className="bg-brand rounded-lg p-5 text-center text-white">
-            <p className="font-label text-xs font-semibold tracking-widest text-white/70 uppercase">
-              You scored
-            </p>
-            <p className="font-display text-5xl">
-              {submittedScore}/{maxScore}
-            </p>
-            <p className="font-body mt-1 text-sm text-white/80">
-              {submittedScore >= Number(tierTarget.split("/")[0])
-                ? `Target hit — ${tierInfo.label} target was ${tierTarget}`
-                : `Target was ${tierTarget} — keep after it`}
-              {lastAttempt !== null && (
-                <>
-                  {" · "}
-                  {submittedScore > lastAttempt
-                    ? `up from ${lastAttempt} last time`
-                    : submittedScore < lastAttempt
-                      ? `down from ${lastAttempt} last time`
-                      : `same as last time`}
-                </>
-              )}
-            </p>
-          </div>
-
-          {rank > 0 && (
-            <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
-              <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-full">
-                <TrophyIcon className="text-gold h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-display text-lg tracking-wide">
-                  You're #{rank} in {tierInfo.label} today
-                </p>
-                <p className="font-body text-xs text-neutral-500">Resets tomorrow with the next Golfable</p>
-              </div>
-            </div>
+        <p className="font-body mt-1 text-sm text-white/80">
+          {submittedScore >= Number(tierTarget.split("/")[0])
+            ? `Target hit — ${tierInfo.label} target was ${tierTarget}`
+            : `Target was ${tierTarget} — keep after it`}
+          {lastAttempt !== null && (
+            <>
+              {" · "}
+              {submittedScore > lastAttempt
+                ? `up from ${lastAttempt} last time`
+                : submittedScore < lastAttempt
+                  ? `down from ${lastAttempt} last time`
+                  : `same as last time`}
+            </>
           )}
+        </p>
+      </div>
+
+      {rank > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-full">
+            <TrophyIcon className="text-gold h-6 w-6" />
+          </div>
+          <div>
+            <p className="font-display text-lg tracking-wide">
+              You're #{rank} in {tierInfo.label} today
+            </p>
+            <p className="font-body text-xs text-neutral-500">Resets tomorrow with the next Golfable</p>
+          </div>
         </div>
       )}
     </div>

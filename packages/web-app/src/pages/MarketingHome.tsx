@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import type { Drill } from "@golfable/shared";
 import {
   SKILL_CATEGORIES,
   CATEGORY_INFO,
@@ -8,6 +9,7 @@ import {
   CAPTION_HASHTAGS,
 } from "@golfable/shared";
 import { GolfableMark } from "../components/GolfableMark";
+import { DrillFreshView } from "../components/DrillFreshView";
 
 const CATEGORY_BG: Record<string, string> = {
   driver: "bg-driver",
@@ -37,24 +39,51 @@ const TIER_TEXT: Record<string, string> = {
   high: "text-tier-high",
 };
 
-const SNEAK_PEEK_DRILLS = [
+const SNEAK_PEEK_DRILLS: { drill: Drill; maxScore: number }[] = [
   {
-    id: "fairway-finder",
-    category: "driver" as const,
-    name: "Fairway Finder",
-    setup:
-      "Pick a hole with a fairway you can see the width of. Hit 10 drives, aiming to find the short grass every time.",
-    tier: "mid" as const,
-    target: "4/10",
+    drill: {
+      id: "fairway-finder",
+      name: "Fairway Finder",
+      category: "driver",
+      setup: {
+        equipment: ["Driver", "10 golf balls"],
+        description:
+          "Pick a hole with a fairway you can see the width of. Hit 10 drives, aiming to find the short grass every time.",
+      },
+      rules: {
+        description:
+          "Play 10 tee shots with your driver. No mulligans, no provisional re-hits — the first swing counts.",
+        scoring: [
+          "1 point per drive that finishes in the fairway",
+          "Rough, bunkers, and hazards don't count",
+          "10 drives total",
+        ],
+      },
+      targets: { scratch: "8/10", low: "6/10", mid: "4/10", high: "2/10" },
+    },
+    maxScore: 10,
   },
   {
-    id: "the-gate",
-    category: "putter" as const,
-    name: "The Gate",
-    setup:
-      "Push two tees into the green just wider than your putter head, forming a gate. Putt 10 balls from 6 feet.",
-    tier: "mid" as const,
-    target: "5/10",
+    drill: {
+      id: "the-gate",
+      name: "The Gate",
+      category: "putter",
+      setup: {
+        equipment: ["Putter", "2 tees", "10 golf balls"],
+        description:
+          "Push two tees into the green just wider than your putter head, a few inches in front of the ball, forming a gate. Putt 10 balls from 6 feet.",
+      },
+      rules: {
+        description:
+          "Play 10 putts from 6 feet, each one required to pass cleanly through the gate on its way to the hole.",
+        scoring: [
+          "1 point per made putt that passes through the gate without touching the tees",
+          "10 putts total",
+        ],
+      },
+      targets: { scratch: "9/10", low: "7/10", mid: "5/10", high: "3/10" },
+    },
+    maxScore: 10,
   },
 ];
 
@@ -222,44 +251,30 @@ export function MarketingHome() {
               A Peek Inside the App
             </h2>
             <p className="font-body mx-auto mt-2 max-w-xl text-center text-sm text-neutral-600">
-              Two real Golfables, shown exactly how they'd land on your Today screen.
+              Two real Golfables, shown exactly how they'd land on your Today screen the moment you open
+              the app.
             </p>
-            <div className="mt-6 grid gap-5 sm:grid-cols-2">
-              {SNEAK_PEEK_DRILLS.map((drill) => {
-                const drillTierInfo = TIER_INFO[drill.tier];
-                return (
-                  <div
-                    key={drill.id}
-                    className="rounded-2xl border-2 border-neutral-900/10 bg-white p-5 shadow-sm"
-                  >
-                    <p className="font-label text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
-                      Today's Golfable
-                    </p>
-                    <div className="mt-2 flex items-center gap-2.5">
-                      <div
-                        className={`font-display flex h-9 w-9 items-center justify-center rounded-full text-base text-white ${CATEGORY_BG[drill.category]}`}
-                      >
-                        {CATEGORY_INFO[drill.category].badge}
-                      </div>
-                      <div>
-                        <p
-                          className={`font-label text-xs font-semibold tracking-wide uppercase ${CATEGORY_TEXT[drill.category]}`}
-                        >
-                          {CATEGORY_INFO[drill.category].label}
-                        </p>
-                        <h3 className="font-display text-xl tracking-wide">{drill.name}</h3>
-                      </div>
-                    </div>
-                    <p className="font-body mt-3 text-sm text-neutral-600">{drill.setup}</p>
-                    <div className={`mt-4 rounded-lg border-2 bg-neutral-50 p-3 ${TIER_BORDER[drill.tier]}`}>
-                      <p className="font-label text-[10px] font-semibold tracking-widest text-neutral-500 uppercase">
-                        Your Target &middot; {drillTierInfo.label}
-                      </p>
-                      <p className={`font-display text-2xl ${TIER_TEXT[drill.tier]}`}>{drill.target}</p>
-                    </div>
+            <div className="mt-8 grid justify-items-center gap-10 sm:grid-cols-2">
+              {SNEAK_PEEK_DRILLS.map(({ drill, maxScore }) => (
+                <div
+                  key={drill.id}
+                  className="w-full max-w-[300px] rounded-[2.25rem] bg-neutral-900 p-2.5 shadow-xl"
+                >
+                  <div className="flex justify-center pt-1 pb-1.5">
+                    <div className="h-1.5 w-16 rounded-full bg-neutral-700" />
                   </div>
-                );
-              })}
+                  <div className="max-h-[600px] overflow-y-auto rounded-[1.75rem] bg-neutral-50">
+                    <DrillFreshView
+                      drill={drill}
+                      tier="mid"
+                      maxScore={maxScore}
+                      weeklyGoal={4}
+                      sessionsThisWeek={2}
+                      interactive={false}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
