@@ -64,7 +64,7 @@ insert into drills (
     'Drop 5 balls just off the green in a mix of lies — rough, fringe, light rough. From each, chip or pitch it on, then putt out. Play 3 rounds and record your best round.',
     array['Wedge', 'Putter', '5 golf balls'],
     'Play each ball as its own up-and-down: one short-game shot to get on, then finish it out on the green.',
-    array['2 points for a chip holed directly', '1 point for a chip followed by a holed putt (up-and-down)', '-1 point if you need more than one putt after the chip', 'Play 3 rounds of 5 balls; record your best round'],
+    array['2 points for a chip holed directly', '1 point for a chip followed by a holed putt (up-and-down)', '-1 point if you need more than one putt after the chip', '0 is the lowest you can log — if your round nets below zero, record a 0', 'Play 3 rounds of 5 balls; record your best round'],
     '3/10', '2/10', '2/10', '1/10', 10
   ),
   (
@@ -72,7 +72,7 @@ insert into drills (
     'Pick one wedge and two greenside holes near each other: one to pitch to (a shot that spends more time in the air than on the ground) and one to chip to (a shot that rolls out more than it flies). Hit 5 shots at the pitch hole, then 5 at the chip hole.',
     array['Wedge', '10 golf balls'],
     'Play 5 shots to the pitch hole, then 5 to the chip hole — 10 shots total, practicing two different short-game techniques with the same club.',
-    array['2 points for a holed shot', '1 point for a shot left inside a tap-in (about 1 foot)', '-1 point for a shot finishing farther than 4 feet away', '5 shots per target, 10 shots total'],
+    array['2 points for a holed shot', '1 point for a shot left inside a tap-in (about 1 foot)', '-1 point for a shot finishing farther than 4 feet away', '0 is the lowest you can log — if your round nets below zero, record a 0', '5 shots per target, 10 shots total'],
     '8/20', '7/20', '6/20', '4/20', 20
   ),
   (

@@ -8,7 +8,7 @@
   },
   "rules": {
     "description": "Play 5 shots to the pitch hole, then 5 to the chip hole — 10 shots total, practicing two different short-game techniques with the same club.",
-    "scoring": ["2 points for a holed shot", "1 point for a shot left inside a tap-in (about 1 foot)", "-1 point for a shot finishing farther than 4 feet away", "5 shots per target, 10 shots total"]
+    "scoring": ["2 points for a holed shot", "1 point for a shot left inside a tap-in (about 1 foot)", "-1 point for a shot finishing farther than 4 feet away", "0 is the lowest you can log — if your round nets below zero, record a 0", "5 shots per target, 10 shots total"]
   },
   "targets": {
     "scratch": "8/20",

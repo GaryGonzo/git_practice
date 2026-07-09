@@ -8,7 +8,7 @@
   },
   "rules": {
     "description": "Play each ball as its own up-and-down: one short-game shot to get on, then finish it out on the green.",
-    "scoring": ["2 points for a chip holed directly", "1 point for a chip followed by a holed putt (up-and-down)", "-1 point if you need more than one putt after the chip", "Play 3 rounds of 5 balls; record your best round"]
+    "scoring": ["2 points for a chip holed directly", "1 point for a chip followed by a holed putt (up-and-down)", "-1 point if you need more than one putt after the chip", "0 is the lowest you can log — if your round nets below zero, record a 0", "Play 3 rounds of 5 balls; record your best round"]
   },
   "targets": {
     "scratch": "3/10",
