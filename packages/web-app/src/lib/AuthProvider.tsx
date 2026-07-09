@@ -9,6 +9,7 @@ export interface Profile {
   tier: HandicapTier;
   weekly_goal: number;
   created_at: string;
+  marketing_opt_in: boolean;
 }
 
 interface AuthState {

@@ -11,6 +11,7 @@ export function SignupScreen() {
   const [username, setUsername] = useState("");
   const [tier, setTier] = useState<HandicapTier>("mid");
   const [weeklyGoal, setWeeklyGoal] = useState(4);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -28,7 +29,7 @@ export function SignupScreen() {
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username, tier, weekly_goal: weeklyGoal } },
+      options: { data: { username, tier, weekly_goal: weeklyGoal, marketing_opt_in: marketingOptIn } },
     });
 
     setSubmitting(false);
@@ -133,6 +134,16 @@ export function SignupScreen() {
             ))}
           </div>
         </div>
+
+        <label className="font-body flex items-start gap-2 text-sm text-neutral-600">
+          <input
+            type="checkbox"
+            checked={marketingOptIn}
+            onChange={(e) => setMarketingOptIn(e.target.checked)}
+            className="mt-0.5"
+          />
+          Send me updates, alerts, and occasional emails from Golfable
+        </label>
 
         {error && <p className="font-body text-sm text-red-600">{error}</p>}
 
