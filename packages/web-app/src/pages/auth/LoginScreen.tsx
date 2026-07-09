@@ -1,14 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
+import { useAuth } from "../../lib/AuthProvider";
 import { JUST_LOGGED_IN_KEY } from "../../lib/sessionFlags";
 
 export function LoginScreen() {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Clicking the email verification link lands here with a session already
+  // established (supabase-js picks the tokens up from the URL) -- carry
+  // straight into the app instead of showing a login form to someone who's
+  // already signed in.
+  useEffect(() => {
+    if (session) {
+      sessionStorage.setItem(JUST_LOGGED_IN_KEY, "1");
+      navigate("/app");
+    }
+  }, [session, navigate]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

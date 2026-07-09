@@ -136,7 +136,7 @@ export function TodayScreen() {
     );
   }
 
-  const rank = leaderboard.findIndex((entry) => entry.username === profile.username) + 1;
+  const rank = leaderboard.findIndex((entry) => entry.userId === profile.id) + 1;
   const tierLabel = TIER_INFO[profile.tier].label;
 
   return (

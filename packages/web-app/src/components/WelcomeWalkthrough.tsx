@@ -32,7 +32,7 @@ const STEPS: WalkthroughStep[] = [
   {
     icon: ProfileIcon,
     title: "Make It Yours",
-    body: "Adjust your tier, weekly goal, and username anytime from your Profile.",
+    body: "Adjust your tier, weekly goal, and name anytime from your Profile.",
   },
 ];
 

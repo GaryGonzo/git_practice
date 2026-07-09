@@ -77,7 +77,10 @@ export function AppShell() {
       {profile && !profile.has_seen_walkthrough ? (
         <WelcomeWalkthrough onDone={dismissWalkthrough} />
       ) : (
-        showWelcomeBack && <WelcomeBackModal onDismiss={() => setShowWelcomeBack(false)} />
+        profile &&
+        showWelcomeBack && (
+          <WelcomeBackModal firstName={profile.first_name} onDismiss={() => setShowWelcomeBack(false)} />
+        )
       )}
       <Outlet />
       <nav className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white">

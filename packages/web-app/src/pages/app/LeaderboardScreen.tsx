@@ -92,10 +92,10 @@ export function LeaderboardScreen() {
           <div className="space-y-2">
             {entries.map((entry, i) => {
               const rank = i + 1;
-              const isMe = entry.username === profile?.username;
+              const isMe = entry.userId === profile?.id;
               return (
                 <div
-                  key={entry.username}
+                  key={entry.userId}
                   className={`flex items-center gap-3 rounded-lg border p-3.5 ${
                     isMe ? "border-brand bg-brand/5" : "border-neutral-200 bg-white"
                   }`}
@@ -108,7 +108,7 @@ export function LeaderboardScreen() {
                     {rank}
                   </div>
                   <p className="font-label min-w-0 flex-1 truncate text-sm font-semibold">
-                    {entry.username}
+                    {entry.firstName}
                     {isMe && <span className="text-brand"> (you)</span>}
                   </p>
                   <span className={`font-label flex-none rounded-full px-3 py-1 text-sm font-semibold ${TIER_TEXT[tier]} bg-neutral-100`}>

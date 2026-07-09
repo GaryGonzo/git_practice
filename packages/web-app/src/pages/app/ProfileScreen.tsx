@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
-import { isUsernameTaken, updateProfile } from "../../lib/golfableApi";
+import { updateProfile } from "../../lib/golfableApi";
 import { TikTokEmbed } from "../../components/TikTokEmbed";
 
 const SURPRISES = [
@@ -42,7 +42,8 @@ export function ProfileScreen() {
   const navigate = useNavigate();
 
   const [editing, setEditing] = useState(false);
-  const [username, setUsername] = useState(profile?.username ?? "");
+  const [firstName, setFirstName] = useState(profile?.first_name ?? "");
+  const [lastName, setLastName] = useState(profile?.last_name ?? "");
   const [tier, setTier] = useState<HandicapTier>(profile?.tier ?? "mid");
   const [weeklyGoal, setWeeklyGoal] = useState(profile?.weekly_goal ?? 4);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +54,8 @@ export function ProfileScreen() {
   const tierInfo = TIER_INFO[profile.tier];
 
   function startEditing() {
-    setUsername(profile!.username);
+    setFirstName(profile!.first_name);
+    setLastName(profile!.last_name);
     setTier(profile!.tier);
     setWeeklyGoal(profile!.weekly_goal);
     setError(null);
@@ -64,21 +66,16 @@ export function ProfileScreen() {
     event.preventDefault();
     setError(null);
 
-    const trimmed = username.trim();
-    if (trimmed.length < 3) {
-      setError("Username needs to be at least 3 characters.");
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+    if (!trimmedFirst || !trimmedLast) {
+      setError("First and last name are both required.");
       return;
     }
 
     setSaving(true);
-    if (trimmed.toLowerCase() !== profile!.username.toLowerCase() && (await isUsernameTaken(trimmed, profile!.id))) {
-      setSaving(false);
-      setError("That username is already taken -- try another.");
-      return;
-    }
-
     try {
-      await updateProfile(profile!.id, { username: trimmed, tier, weekly_goal: weeklyGoal });
+      await updateProfile(profile!.id, { first_name: trimmedFirst, last_name: trimmedLast, tier, weekly_goal: weeklyGoal });
       await refreshProfile();
       setEditing(false);
     } catch (err) {
@@ -103,18 +100,31 @@ export function ProfileScreen() {
         <h1 className="font-display text-2xl tracking-wide">Edit Profile</h1>
 
         <form onSubmit={handleSave} className="mt-4 space-y-4">
-          <div>
-            <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-              Username
-            </label>
-            <input
-              type="text"
-              required
-              minLength={3}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                First name
+              </label>
+              <input
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                Last name
+              </label>
+              <input
+                type="text"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+              />
+            </div>
           </div>
 
           <div>
@@ -185,9 +195,11 @@ export function ProfileScreen() {
       <h1 className="font-display text-2xl tracking-wide">Profile</h1>
       <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
         <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Username
+          Name
         </p>
-        <p className="font-display text-xl">{profile.username}</p>
+        <p className="font-display text-xl">
+          {profile.first_name} {profile.last_name}
+        </p>
       </div>
       <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
         <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">

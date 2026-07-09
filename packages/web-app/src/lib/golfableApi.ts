@@ -123,7 +123,8 @@ export async function submitScore(userId: string, drillId: string, score: number
 }
 
 export interface LeaderboardEntry {
-  username: string;
+  userId: string;
+  firstName: string;
   score: number;
 }
 
@@ -134,7 +135,7 @@ export async function getTierLeaderboard(
 ): Promise<LeaderboardEntry[]> {
   const { data } = await supabase
     .from("scores")
-    .select("score, profiles!inner(username, tier)")
+    .select("user_id, score, profiles!inner(first_name, tier)")
     .eq("drill_id", drillId)
     .eq("date", date)
     .eq("profiles.tier", tier)
@@ -143,7 +144,7 @@ export async function getTierLeaderboard(
   if (!data) return [];
   return data.map((row) => {
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-    return { username: profile.username as string, score: row.score as number };
+    return { userId: row.user_id as string, firstName: profile.first_name as string, score: row.score as number };
   });
 }
 
@@ -210,17 +211,9 @@ export async function getUpcomingGolfables(): Promise<GolfableCalendarEntry[]> {
   return entries;
 }
 
-// Case-insensitive availability check, used both at signup and when editing
-// a username later. profiles are publicly readable, so this works pre-auth.
-export async function isUsernameTaken(username: string, excludeUserId?: string): Promise<boolean> {
-  let query = supabase.from("profiles").select("id").ilike("username", username);
-  if (excludeUserId) query = query.neq("id", excludeUserId);
-  const { data } = await query.limit(1);
-  return (data?.length ?? 0) > 0;
-}
-
 export interface ProfileUpdate {
-  username?: string;
+  first_name?: string;
+  last_name?: string;
   tier?: HandicapTier;
   weekly_goal?: number;
   has_seen_walkthrough?: boolean;

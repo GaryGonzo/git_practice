@@ -5,7 +5,8 @@ import { supabase } from "./supabaseClient";
 
 export interface Profile {
   id: string;
-  username: string;
+  first_name: string;
+  last_name: string;
   tier: HandicapTier;
   weekly_goal: number;
   created_at: string;
