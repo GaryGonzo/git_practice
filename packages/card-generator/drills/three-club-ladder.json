@@ -1,0 +1,20 @@
+{
+  "id": "three-club-ladder",
+  "name": "Three Club Ladder",
+  "category": "irons",
+  "setup": {
+    "equipment": ["Short iron", "Mid iron", "Long iron", "9 golf balls"],
+    "description": "Pick three targets at increasing distances within your iron range -- short, mid, and long. Hit 3 balls to each, using the club that matches."
+  },
+  "rules": {
+    "description": "Play 3 balls at each distance, working from short to long. Switch clubs as the distance increases.",
+    "scoring": ["1 point per ball that finishes on the green", "9 balls total across the 3 distances"]
+  },
+  "targets": {
+    "scratch": "7/9",
+    "low": "5/9",
+    "mid": "3/9",
+    "high": "1/9"
+  },
+  "caption": "Three distances, three clubs, one routine to repeat nine times. #golfable #golftok #golfpractice #loweryourhandicap"
+}

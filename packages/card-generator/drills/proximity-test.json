@@ -1,0 +1,20 @@
+{
+  "id": "proximity-test",
+  "name": "Proximity Test",
+  "category": "irons",
+  "setup": {
+    "equipment": ["Iron of your choice", "10 golf balls"],
+    "description": "Pick a green with a visible flag at a comfortable iron distance. Hit 10 approach shots, judging each one by how close it finishes."
+  },
+  "rules": {
+    "description": "Play 10 approach shots at the same target. Each ball is scored by proximity to the pin, not just whether it's on the green.",
+    "scoring": ["2 points if the ball finishes within 15 feet of the pin", "1 point if it's on the green but outside 15 feet", "0 points if it misses the green", "10 balls total"]
+  },
+  "targets": {
+    "scratch": "12/20",
+    "low": "9/20",
+    "mid": "6/20",
+    "high": "3/20"
+  },
+  "caption": "On the green isn't good enough today -- it's all about proximity. #golfable #golftok #golfpractice #loweryourhandicap"
+}

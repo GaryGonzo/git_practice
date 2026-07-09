@@ -1,0 +1,20 @@
+{
+  "id": "around-the-world",
+  "name": "Around the World",
+  "category": "putter",
+  "setup": {
+    "equipment": ["Putter", "8 golf balls"],
+    "description": "Place 8 balls in a circle around the hole, all roughly 4 feet away, evenly spaced like numbers on a clock."
+  },
+  "rules": {
+    "description": "Putt each ball in order around the circle. Every putt is a fresh 4-footer from a new angle.",
+    "scoring": ["1 point per made putt", "8 putts total"]
+  },
+  "targets": {
+    "scratch": "7/8",
+    "low": "6/8",
+    "mid": "4/8",
+    "high": "2/8"
+  },
+  "caption": "Same distance, eight different angles -- can you make them all? #golfable #golftok #golfpractice #loweryourhandicap"
+}
