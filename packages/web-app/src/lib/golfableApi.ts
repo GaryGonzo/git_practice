@@ -209,3 +209,54 @@ export async function getUpcomingGolfables(): Promise<GolfableCalendarEntry[]> {
   }
   return entries;
 }
+
+// Case-insensitive availability check, used both at signup and when editing
+// a username later. profiles are publicly readable, so this works pre-auth.
+export async function isUsernameTaken(username: string, excludeUserId?: string): Promise<boolean> {
+  let query = supabase.from("profiles").select("id").ilike("username", username);
+  if (excludeUserId) query = query.neq("id", excludeUserId);
+  const { data } = await query.limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
+export interface ProfileUpdate {
+  username?: string;
+  tier?: HandicapTier;
+  weekly_goal?: number;
+}
+
+export async function updateProfile(userId: string, updates: ProfileUpdate): Promise<void> {
+  const { error } = await supabase.from("profiles").update(updates).eq("id", userId);
+  if (error) throw error;
+}
+
+export interface ScoreHistoryEntry {
+  date: string;
+  createdAt: string;
+  drill: Drill;
+  maxScore: number;
+  score: number;
+}
+
+export async function getScoreHistory(userId: string): Promise<ScoreHistoryEntry[]> {
+  const { data } = await supabase
+    .from("scores")
+    .select("date, score, created_at, drills(*)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (!data) return [];
+
+  const entries: ScoreHistoryEntry[] = [];
+  for (const row of data) {
+    const drillRow = oneDrillRow(row.drills as DrillRow | DrillRow[] | null);
+    if (!drillRow) continue;
+    entries.push({
+      date: row.date as string,
+      createdAt: row.created_at as string,
+      drill: toDrill(drillRow),
+      maxScore: drillRow.max_score,
+      score: row.score as number,
+    });
+  }
+  return entries;
+}

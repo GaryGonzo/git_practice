@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { supabase } from "../../lib/supabaseClient";
+import { isUsernameTaken } from "../../lib/golfableApi";
 
 export function SignupScreen() {
   const navigate = useNavigate();
@@ -18,6 +19,12 @@ export function SignupScreen() {
     setError(null);
     setSubmitting(true);
 
+    if (await isUsernameTaken(username)) {
+      setSubmitting(false);
+      setError("That username is already taken -- try another.");
+      return;
+    }
+
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -26,7 +33,11 @@ export function SignupScreen() {
 
     setSubmitting(false);
     if (signUpError) {
-      setError(signUpError.message);
+      setError(
+        signUpError.message.toLowerCase().includes("already registered")
+          ? "An account with that email already exists -- try logging in instead."
+          : signUpError.message
+      );
       return;
     }
     navigate("/app");
