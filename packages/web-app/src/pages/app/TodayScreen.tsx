@@ -47,6 +47,7 @@ export function TodayScreen() {
   const [scoreInput, setScoreInput] = useState("");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -88,12 +89,18 @@ export function TodayScreen() {
     if (!Number.isFinite(value) || value < 0 || value > maxScore) return;
 
     setSubmitting(true);
-    await submitScore(userId, drill.id, value, date);
-    const board = await getTierLeaderboard(drill.id, profile.tier, date);
-    setSubmitting(false);
-    setSubmittedScore(value);
-    setSessionsThisWeek((n) => n + 1);
-    setLeaderboard(board);
+    setSubmitError(null);
+    try {
+      await submitScore(userId, drill.id, value, date);
+      const board = await getTierLeaderboard(drill.id, profile.tier, date);
+      setSubmittedScore(value);
+      setSessionsThisWeek((n) => n + 1);
+      setLeaderboard(board);
+    } catch {
+      setSubmitError("Couldn't save your score -- check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const backLink = !isToday && (
@@ -142,9 +149,13 @@ export function TodayScreen() {
         weeklyGoal={profile.weekly_goal}
         sessionsThisWeek={sessionsThisWeek}
         scoreInput={scoreInput}
-        onScoreInputChange={setScoreInput}
+        onScoreInputChange={(value) => {
+          setScoreInput(value);
+          setSubmitError(null);
+        }}
         onSubmit={handleSubmit}
         submitting={submitting}
+        error={submitError}
         eyebrow={
           isToday ? "Today's Golfable" : `${submittedScore === null ? "Catching Up" : "Completed"} · ${formatDate(date)}`
         }

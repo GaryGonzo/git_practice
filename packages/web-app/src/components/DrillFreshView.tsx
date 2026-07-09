@@ -59,6 +59,8 @@ interface DrillFreshViewProps {
   subtitle?: string;
   /** When set, replaces the score form with the result -- the drill cards above still show for reference */
   result?: DrillResult;
+  /** Shown above the score form when a submit attempt failed */
+  error?: string | null;
 }
 
 // The "fresh arrival" state of the Today screen: drill cards + score form,
@@ -78,6 +80,7 @@ export function DrillFreshView({
   eyebrow = "Today's Golfable",
   subtitle = "Everyone trains this one today",
   result,
+  error,
 }: DrillFreshViewProps) {
   const tierTarget = drill.targets[tier];
   const tierInfo = TIER_INFO[tier];
@@ -173,6 +176,7 @@ export function DrillFreshView({
           <label className="font-label mb-2 block text-sm font-semibold tracking-widest text-neutral-500 uppercase">
             Log your score
           </label>
+          {error && <p className="font-body mb-2 text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <input
               type="number"

@@ -10,6 +10,7 @@ import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
 import { ForgotPasswordScreen } from "./pages/auth/ForgotPasswordScreen";
 import { ResetPasswordScreen } from "./pages/auth/ResetPasswordScreen";
+import { NotFoundScreen } from "./pages/NotFoundScreen";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <Route path="library/:date" element={<TodayScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
       </Route>
+      <Route path="*" element={<NotFoundScreen />} />
     </Routes>
   );
 }
