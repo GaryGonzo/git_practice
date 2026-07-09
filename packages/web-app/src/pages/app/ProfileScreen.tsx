@@ -6,18 +6,19 @@ import { isUsernameTaken, updateProfile } from "../../lib/golfableApi";
 import { TikTokEmbed } from "../../components/TikTokEmbed";
 
 const SURPRISES = [
-  "The best round of golf you'll ever play is the one where you stop counting the bad shots.",
   "Your handicap doesn't care about your ego. Neither does the ball.",
-  "Fun fact: a regulation golf ball has 300-500 dimples. Yours has been through worse today.",
   "Somewhere right now, someone is three-putting from four feet. You are not alone.",
   "A bad day on the course still beats a good day almost anywhere else.",
   "The shortest distance between two points is a straight line. Golf disagrees.",
-  "Practice like nobody's watching. Score like everybody is.",
-  "Golf: the only sport where you can lose a ball while standing still.",
   "Every scratch golfer was once a beginner who refused to stop swinging.",
-  "The grass is always greener on the fairway you missed.",
-  "You don't have to be great to start -- you just have to start today's Golfable.",
-  "Somewhere out there, a High handicapper just posted a Scratch+ score. Keep believing.",
+  "A Golfable a day keeps the yips away!",
+  "It's just 15 minutes -- what are you waiting for?",
+  "Let's go play the world's best sport!",
+  "A single deep breath can lead to a better round (and day).",
+  "If you're good, play fast. If you're bad, play faster.",
+  "Leave the greens nicer than you found them!",
+  "Only hackers don't rake their bunkers.",
+  "I hope you have the best round (and day) ever!",
 ];
 
 function formatMemberSince(iso: string): string {
