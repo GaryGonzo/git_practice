@@ -10,19 +10,6 @@ import {
 } from "@golfable/shared";
 import { GolfableMark } from "../components/GolfableMark";
 import { DrillFreshView } from "../components/DrillFreshView";
-import { TikTokEmbed } from "../components/TikTokEmbed";
-
-const TIKTOK_HANDLE = "golfablegames";
-const TIKTOK_POSTS = [
-  "https://www.tiktok.com/@golfablegames/video/7641981066168880414",
-  "https://www.tiktok.com/@golfablegames/photo/7654358271163174175",
-  "https://www.tiktok.com/@golfablegames/photo/7649399288216309023",
-  "https://www.tiktok.com/@golfablegames/photo/7649779091914181901",
-  "https://www.tiktok.com/@golfablegames/video/7642720526951107870",
-  "https://www.tiktok.com/@golfablegames/video/7646804815716158733",
-  "https://www.tiktok.com/@golfablegames/video/7646628639349542158",
-  "https://www.tiktok.com/@golfablegames/photo/7647915560553958669",
-];
 
 const CATEGORY_BG: Record<string, string> = {
   driver: "bg-driver",
@@ -606,33 +593,6 @@ export function MarketingHome() {
                   aria-label={`Show review ${i + 1}`}
                   className={`h-2 w-2 rounded-full ${i === activeReview ? "bg-brand" : "bg-neutral-300"}`}
                 />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-4xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              On TikTok
-            </h2>
-            <p className="font-body mx-auto mt-2 max-w-lg text-center text-neutral-600">
-              New drills, real attempts, and the occasional shank. Follow along for a peek at what's
-              coming next.
-            </p>
-            <div className="mt-6 flex justify-center">
-              <a
-                href={`https://www.tiktok.com/@${TIKTOK_HANDLE}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-label rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white"
-              >
-                Follow @{TIKTOK_HANDLE}
-              </a>
-            </div>
-            <div className="mt-8 grid grid-cols-2 justify-items-center gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {TIKTOK_POSTS.map((url) => (
-                <TikTokEmbed key={url} url={url} />
               ))}
             </div>
           </div>

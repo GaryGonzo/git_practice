@@ -3,6 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { isUsernameTaken, updateProfile } from "../../lib/golfableApi";
+import { TikTokEmbed } from "../../components/TikTokEmbed";
+
+const TIKTOK_HANDLE = "golfablegames";
+const TIKTOK_POSTS = [
+  "https://www.tiktok.com/@golfablegames/video/7641981066168880414",
+  "https://www.tiktok.com/@golfablegames/photo/7654358271163174175",
+  "https://www.tiktok.com/@golfablegames/photo/7649399288216309023",
+  "https://www.tiktok.com/@golfablegames/photo/7649779091914181901",
+  "https://www.tiktok.com/@golfablegames/video/7642720526951107870",
+  "https://www.tiktok.com/@golfablegames/video/7646804815716158733",
+  "https://www.tiktok.com/@golfablegames/video/7646628639349542158",
+  "https://www.tiktok.com/@golfablegames/photo/7647915560553958669",
+];
 
 export function ProfileScreen() {
   const { profile, signOut, refreshProfile } = useAuth();
@@ -177,6 +190,30 @@ export function ProfileScreen() {
       >
         Sign out
       </button>
+
+      <div className="mt-8">
+        <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+          On TikTok
+        </h2>
+        <p className="font-body mb-3 text-sm text-neutral-600">
+          New drills, real attempts, and the occasional shank.
+        </p>
+        <a
+          href={`https://www.tiktok.com/@${TIKTOK_HANDLE}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-label mb-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
+        >
+          Follow @{TIKTOK_HANDLE}
+        </a>
+        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
+          {TIKTOK_POSTS.map((url) => (
+            <div key={url} className="flex-none">
+              <TikTokEmbed url={url} />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
