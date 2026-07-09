@@ -208,8 +208,14 @@ export function ProfileScreen() {
         </a>
         <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
           {TIKTOK_POSTS.map((url) => (
-            <div key={url} className="flex-none">
-              <TikTokEmbed url={url} />
+            <div
+              key={url}
+              className="flex-none overflow-hidden rounded-xl border-2 border-neutral-200 bg-white shadow-sm"
+              style={{ width: 130, height: 260 }}
+            >
+              <div style={{ transform: "scale(0.4)", transformOrigin: "top left", width: "250%" }}>
+                <TikTokEmbed url={url} />
+              </div>
             </div>
           ))}
         </div>
