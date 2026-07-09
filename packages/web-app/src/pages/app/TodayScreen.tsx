@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import type { Drill } from "@golfable/shared";
 import { TIER_INFO } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
@@ -15,20 +15,10 @@ import {
   type LeaderboardEntry,
 } from "../../lib/golfableApi";
 
-function TrophyIcon({ className }: { className?: string }) {
+function BackIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M7 4h10v3.5a5 5 0 0 1-5 5 5 5 0 0 1-5-5V4Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M7 5H4v1.5A3.5 3.5 0 0 0 7 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M17 5h3v1.5A3.5 3.5 0 0 1 17 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M12 12.5V16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M8.5 20h7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M9.5 16.5h5l.8 3.5h-6.6l.8-3.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -106,87 +96,77 @@ export function TodayScreen() {
     setLeaderboard(board);
   }
 
+  const backLink = !isToday && (
+    <div className="mx-auto max-w-md px-4 pt-4">
+      <Link to="/app/library" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
+        <BackIcon className="h-4 w-4" />
+        Back to Library
+      </Link>
+    </div>
+  );
+
   if (loading || !profile) {
-    return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
+    return (
+      <div>
+        {backLink}
+        <div className="p-6 text-center font-body text-neutral-500">Loading…</div>
+      </div>
+    );
   }
 
   if (!drill) {
     return (
-      <div className="mx-auto max-w-md px-4 pt-6 pb-24 text-center">
-        <p className="font-body text-neutral-600">
-          {isToday
-            ? "No Golfable is scheduled for today yet — check back soon."
-            : "No Golfable was scheduled for this date."}
-        </p>
+      <div>
+        {backLink}
+        <div className="mx-auto max-w-md px-4 pt-6 pb-24 text-center">
+          <p className="font-body text-neutral-600">
+            {isToday
+              ? "No Golfable is scheduled for today yet — check back soon."
+              : "No Golfable was scheduled for this date."}
+          </p>
+        </div>
       </div>
     );
   }
 
-  const tierTarget = drill.targets[profile.tier];
-  const tierInfo = TIER_INFO[profile.tier];
   const rank = leaderboard.findIndex((entry) => entry.username === profile.username) + 1;
-
-  if (submittedScore === null) {
-    return (
-      <div className="pb-24">
-        <DrillFreshView
-          drill={drill}
-          tier={profile.tier}
-          maxScore={maxScore}
-          weeklyGoal={profile.weekly_goal}
-          sessionsThisWeek={sessionsThisWeek}
-          scoreInput={scoreInput}
-          onScoreInputChange={setScoreInput}
-          onSubmit={handleSubmit}
-          submitting={submitting}
-          eyebrow={isToday ? "Today's Golfable" : `Catching Up · ${formatDate(date)}`}
-          subtitle={isToday ? "Everyone trains this one today" : "Play it now and log your score"}
-        />
-      </div>
-    );
-  }
+  const tierLabel = TIER_INFO[profile.tier].label;
 
   return (
-    <div className="mx-auto max-w-md space-y-3 px-4 pt-6 pb-24">
-      <div className="bg-brand rounded-lg p-5 text-center text-white">
-        <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
-          You scored
-        </p>
-        <p className="font-display text-5xl">
-          {submittedScore}/{maxScore}
-        </p>
-        <p className="font-body mt-1 text-sm text-white/80">
-          {submittedScore >= Number(tierTarget.split("/")[0])
-            ? `Target hit — ${tierInfo.label} target was ${tierTarget}`
-            : `Target was ${tierTarget} — keep after it`}
-          {lastAttempt !== null && (
-            <>
-              {" · "}
-              {submittedScore > lastAttempt
-                ? `up from ${lastAttempt} last time`
-                : submittedScore < lastAttempt
-                  ? `down from ${lastAttempt} last time`
-                  : `same as last time`}
-            </>
-          )}
-        </p>
-      </div>
-
-      {rank > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-full">
-            <TrophyIcon className="text-gold h-6 w-6" />
-          </div>
-          <div>
-            <p className="font-display text-lg tracking-wide">
-              You're #{rank} in {tierInfo.label} {isToday ? "today" : `on ${formatDate(date)}`}
-            </p>
-            <p className="font-body text-xs text-neutral-500">
-              {isToday ? "Resets tomorrow with the next Golfable" : "Logged from the Library"}
-            </p>
-          </div>
-        </div>
-      )}
+    <div className="pb-24">
+      {backLink}
+      <DrillFreshView
+        drill={drill}
+        tier={profile.tier}
+        maxScore={maxScore}
+        weeklyGoal={profile.weekly_goal}
+        sessionsThisWeek={sessionsThisWeek}
+        scoreInput={scoreInput}
+        onScoreInputChange={setScoreInput}
+        onSubmit={handleSubmit}
+        submitting={submitting}
+        eyebrow={
+          isToday ? "Today's Golfable" : `${submittedScore === null ? "Catching Up" : "Completed"} · ${formatDate(date)}`
+        }
+        subtitle={
+          isToday
+            ? "Everyone trains this one today"
+            : submittedScore === null
+              ? "Play it now and log your score"
+              : "Here's what you played"
+        }
+        result={
+          submittedScore === null
+            ? undefined
+            : {
+                score: submittedScore,
+                lastAttempt,
+                rank,
+                rankLabel: `You're #${rank} in ${tierLabel} ${isToday ? "today" : `on ${formatDate(date)}`}`,
+                rankSublabel: isToday ? "Resets tomorrow with the next Golfable" : "Logged from the Library",
+              }
+        }
+      />
     </div>
   );
 }
