@@ -675,7 +675,7 @@ export function MarketingHome() {
 
       <footer className="bg-brand-dark px-6 py-10 text-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
-          <GolfableMark className="h-9 w-9" />
+          <GolfableMark className="h-9 w-9" tone="on-dark" />
           <p className="font-body text-sm text-white/40">{CAPTION_HASHTAGS}</p>
         </div>
       </footer>
