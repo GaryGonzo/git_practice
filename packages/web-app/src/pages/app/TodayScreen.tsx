@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import type { Drill } from "@golfable/shared";
 import { TIER_INFO } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
 import { useAuth } from "../../lib/AuthProvider";
 import {
-  getTodaysDrill,
+  getDrillForDate,
   getSessionsThisWeek,
-  getMyScoreToday,
+  getMyScoreForDate,
   getLastAttemptScore,
   submitScore,
   getTierLeaderboard,
+  todayISO,
   type LeaderboardEntry,
 } from "../../lib/golfableApi";
 
@@ -31,9 +33,20 @@ function TrophyIcon({ className }: { className?: string }) {
   );
 }
 
+function formatDate(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function TodayScreen() {
   const { session, profile } = useAuth();
   const userId = session!.user.id;
+  const { date: dateParam } = useParams();
+  const date = dateParam ?? todayISO();
+  const isToday = date === todayISO();
 
   const [loading, setLoading] = useState(true);
   const [drill, setDrill] = useState<Drill | null>(null);
@@ -49,30 +62,34 @@ export function TodayScreen() {
     if (!profile) return;
     (async () => {
       setLoading(true);
-      const today = await getTodaysDrill();
-      if (!today) {
+      setSubmittedScore(null);
+      setScoreInput("");
+      setLeaderboard([]);
+
+      const found = await getDrillForDate(date);
+      if (!found) {
         setDrill(null);
         setLoading(false);
         return;
       }
-      setDrill(today.drill);
-      setMaxScore(today.maxScore);
+      setDrill(found.drill);
+      setMaxScore(found.maxScore);
 
       const [weekCount, existingScore, last] = await Promise.all([
         getSessionsThisWeek(userId),
-        getMyScoreToday(userId, today.drill.id),
-        getLastAttemptScore(userId, today.drill.id),
+        getMyScoreForDate(userId, found.drill.id, date),
+        getLastAttemptScore(userId, found.drill.id, date),
       ]);
       setSessionsThisWeek(weekCount);
       setLastAttempt(last);
       if (existingScore !== null) {
         setSubmittedScore(existingScore);
-        const board = await getTierLeaderboard(today.drill.id, profile.tier);
+        const board = await getTierLeaderboard(found.drill.id, profile.tier, date);
         setLeaderboard(board);
       }
       setLoading(false);
     })();
-  }, [profile, userId]);
+  }, [profile, userId, date]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -81,8 +98,8 @@ export function TodayScreen() {
     if (!Number.isFinite(value) || value < 0 || value > maxScore) return;
 
     setSubmitting(true);
-    await submitScore(userId, drill.id, value);
-    const board = await getTierLeaderboard(drill.id, profile.tier);
+    await submitScore(userId, drill.id, value, date);
+    const board = await getTierLeaderboard(drill.id, profile.tier, date);
     setSubmitting(false);
     setSubmittedScore(value);
     setSessionsThisWeek((n) => n + 1);
@@ -90,14 +107,16 @@ export function TodayScreen() {
   }
 
   if (loading || !profile) {
-    return <div className="p-6 text-center font-body text-neutral-500">Loading today's Golfable…</div>;
+    return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
   }
 
   if (!drill) {
     return (
       <div className="mx-auto max-w-md px-4 pt-6 pb-24 text-center">
         <p className="font-body text-neutral-600">
-          No Golfable is scheduled for today yet — check back soon.
+          {isToday
+            ? "No Golfable is scheduled for today yet — check back soon."
+            : "No Golfable was scheduled for this date."}
         </p>
       </div>
     );
@@ -120,6 +139,8 @@ export function TodayScreen() {
           onScoreInputChange={setScoreInput}
           onSubmit={handleSubmit}
           submitting={submitting}
+          eyebrow={isToday ? "Today's Golfable" : `Catching Up · ${formatDate(date)}`}
+          subtitle={isToday ? "Everyone trains this one today" : "Play it now and log your score"}
         />
       </div>
     );
@@ -128,7 +149,7 @@ export function TodayScreen() {
   return (
     <div className="mx-auto max-w-md space-y-3 px-4 pt-6 pb-24">
       <div className="bg-brand rounded-lg p-5 text-center text-white">
-        <p className="font-label text-xs font-semibold tracking-widest text-white/70 uppercase">
+        <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
           You scored
         </p>
         <p className="font-display text-5xl">
@@ -158,9 +179,11 @@ export function TodayScreen() {
           </div>
           <div>
             <p className="font-display text-lg tracking-wide">
-              You're #{rank} in {tierInfo.label} today
+              You're #{rank} in {tierInfo.label} {isToday ? "today" : `on ${formatDate(date)}`}
             </p>
-            <p className="font-body text-xs text-neutral-500">Resets tomorrow with the next Golfable</p>
+            <p className="font-body text-xs text-neutral-500">
+              {isToday ? "Resets tomorrow with the next Golfable" : "Logged from the Library"}
+            </p>
           </div>
         </div>
       )}

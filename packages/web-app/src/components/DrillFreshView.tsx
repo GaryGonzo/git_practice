@@ -43,6 +43,8 @@ interface DrillFreshViewProps {
   onScoreInputChange?: (value: string) => void;
   onSubmit?: (event: React.FormEvent) => void;
   submitting?: boolean;
+  eyebrow?: string;
+  subtitle?: string;
 }
 
 // The "fresh arrival" state of the Today screen: drill cards + score form,
@@ -59,6 +61,8 @@ export function DrillFreshView({
   onScoreInputChange,
   onSubmit,
   submitting = false,
+  eyebrow = "Today's Golfable",
+  subtitle = "Everyone trains this one today",
 }: DrillFreshViewProps) {
   const category = CATEGORY_INFO[drill.category];
   const tierTarget = drill.targets[tier];
@@ -69,9 +73,9 @@ export function DrillFreshView({
       <div className="mb-6 flex items-center justify-between">
         <div>
           <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-            Today's Golfable
+            {eyebrow}
           </p>
-          <p className="font-body text-sm text-neutral-500">Everyone trains this one today</p>
+          <p className="font-body text-sm text-neutral-500">{subtitle}</p>
         </div>
         <WeeklyGoalRing completed={sessionsThisWeek} goal={weeklyGoal} size={64} />
       </div>

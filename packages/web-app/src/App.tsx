@@ -26,6 +26,7 @@ function App() {
         <Route index element={<TodayScreen />} />
         <Route path="progress" element={<ProgressScreen />} />
         <Route path="library" element={<LibraryScreen />} />
+        <Route path="library/:date" element={<TodayScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
       </Route>
     </Routes>
