@@ -10,6 +10,12 @@ import {
 } from "@golfable/shared";
 import { GolfableMark } from "../components/GolfableMark";
 import { DrillFreshView } from "../components/DrillFreshView";
+import { FOUNDER_SPOTS, getFounderSpotsRemaining } from "../lib/golfableApi";
+
+// Once fewer than this fraction of founder spots remain, swap the generic
+// banner for a live countdown -- the scarcity reads as more real once it's
+// closer to true.
+const COUNTDOWN_THRESHOLD = 0.3;
 
 const CATEGORY_BG: Record<string, string> = {
   driver: "bg-driver",
@@ -358,6 +364,7 @@ export function MarketingHome() {
   const [email, setEmail] = useState("");
   const [activeReview, setActiveReview] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -366,13 +373,24 @@ export function MarketingHome() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    getFounderSpotsRemaining().then(setSpotsRemaining);
+  }, []);
+
+  const showCountdown = spotsRemaining !== null && spotsRemaining / FOUNDER_SPOTS <= COUNTDOWN_THRESHOLD;
+  const spotsFull = spotsRemaining === 0;
+
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
       <div className="bg-brand-dark px-6 py-2 text-center">
         <p className="font-label text-gold text-sm font-semibold tracking-wide whitespace-nowrap">
-          100 FOUNDER SPOTS — FREE FOREVER.{" "}
+          {spotsFull
+            ? "FOUNDER SPOTS ARE FULL."
+            : showCountdown
+              ? `ONLY ${spotsRemaining} FOUNDER SPOT${spotsRemaining === 1 ? "" : "S"} LEFT — FREE FOREVER.`
+              : "100 FOUNDER SPOTS — FREE FOREVER."}{" "}
           <Link to="/signup" className="underline underline-offset-2">
-            Claim yours
+            {spotsFull ? "Join the waitlist" : "Claim yours"}
           </Link>
         </p>
       </div>

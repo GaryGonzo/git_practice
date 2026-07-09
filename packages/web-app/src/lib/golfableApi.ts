@@ -239,6 +239,16 @@ export interface ScoreHistoryEntry {
   score: number;
 }
 
+export const FOUNDER_SPOTS = 100;
+
+// head: true returns only the row count, not the rows themselves -- safe to
+// call from the logged-out marketing page even though it hits the publicly
+// readable profiles table.
+export async function getFounderSpotsRemaining(): Promise<number> {
+  const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true });
+  return Math.max(FOUNDER_SPOTS - (count ?? 0), 0);
+}
+
 export async function getScoreHistory(userId: string): Promise<ScoreHistoryEntry[]> {
   const { data } = await supabase
     .from("scores")
