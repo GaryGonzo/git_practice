@@ -1,4 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useAuth } from "../lib/AuthProvider";
+import { updateProfile } from "../lib/golfableApi";
+import { WelcomeWalkthrough } from "./WelcomeWalkthrough";
 
 const NAV_ITEMS = [
   { to: "/app", label: "Today", end: true, icon: TodayIcon },
@@ -7,7 +10,7 @@ const NAV_ITEMS = [
   { to: "/app/profile", label: "Profile", end: false, icon: ProfileIcon },
 ];
 
-function TodayIcon({ className }: { className?: string }) {
+export function TodayIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.6" />
@@ -16,7 +19,7 @@ function TodayIcon({ className }: { className?: string }) {
   );
 }
 
-function ProgressIcon({ className }: { className?: string }) {
+export function ProgressIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <path
@@ -30,7 +33,7 @@ function ProgressIcon({ className }: { className?: string }) {
   );
 }
 
-function LibraryIcon({ className }: { className?: string }) {
+export function LibraryIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <rect x="4" y="5" width="16" height="4" rx="1" stroke="currentColor" strokeWidth="1.6" />
@@ -40,7 +43,7 @@ function LibraryIcon({ className }: { className?: string }) {
   );
 }
 
-function ProfileIcon({ className }: { className?: string }) {
+export function ProfileIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.6" />
@@ -50,8 +53,17 @@ function ProfileIcon({ className }: { className?: string }) {
 }
 
 export function AppShell() {
+  const { profile, refreshProfile } = useAuth();
+
+  async function dismissWalkthrough() {
+    if (!profile) return;
+    await updateProfile(profile.id, { has_seen_walkthrough: true });
+    await refreshProfile();
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 pb-16">
+      {profile && !profile.has_seen_walkthrough && <WelcomeWalkthrough onDone={dismissWalkthrough} />}
       <Outlet />
       <nav className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-md">

@@ -223,6 +223,7 @@ export interface ProfileUpdate {
   username?: string;
   tier?: HandicapTier;
   weekly_goal?: number;
+  has_seen_walkthrough?: boolean;
 }
 
 export async function updateProfile(userId: string, updates: ProfileUpdate): Promise<void> {

@@ -10,6 +10,7 @@ export interface Profile {
   weekly_goal: number;
   created_at: string;
   marketing_opt_in: boolean;
+  has_seen_walkthrough: boolean;
 }
 
 interface AuthState {
