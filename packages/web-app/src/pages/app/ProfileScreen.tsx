@@ -5,6 +5,25 @@ import { useAuth } from "../../lib/AuthProvider";
 import { isUsernameTaken, updateProfile } from "../../lib/golfableApi";
 import { TikTokEmbed } from "../../components/TikTokEmbed";
 
+const SURPRISES = [
+  "The best round of golf you'll ever play is the one where you stop counting the bad shots.",
+  "Your handicap doesn't care about your ego. Neither does the ball.",
+  "Fun fact: a regulation golf ball has 300-500 dimples. Yours has been through worse today.",
+  "Somewhere right now, someone is three-putting from four feet. You are not alone.",
+  "A bad day on the course still beats a good day almost anywhere else.",
+  "The shortest distance between two points is a straight line. Golf disagrees.",
+  "Practice like nobody's watching. Score like everybody is.",
+  "Golf: the only sport where you can lose a ball while standing still.",
+  "Every scratch golfer was once a beginner who refused to stop swinging.",
+  "The grass is always greener on the fairway you missed.",
+  "You don't have to be great to start -- you just have to start today's Golfable.",
+  "Somewhere out there, a High handicapper just posted a Scratch+ score. Keep believing.",
+];
+
+function formatMemberSince(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
 const TIKTOK_HANDLE = "golfablegames";
 const TIKTOK_POSTS = [
   "https://www.tiktok.com/@golfablegames/video/7641981066168880414",
@@ -27,6 +46,7 @@ export function ProfileScreen() {
   const [weeklyGoal, setWeeklyGoal] = useState(profile?.weekly_goal ?? 4);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [surprise, setSurprise] = useState<string | null>(null);
 
   if (!profile) return null;
   const tierInfo = TIER_INFO[profile.tier];
@@ -69,6 +89,11 @@ export function ProfileScreen() {
   async function handleSignOut() {
     await signOut();
     navigate("/");
+  }
+
+  function revealSurprise() {
+    const options = SURPRISES.filter((s) => s !== surprise);
+    setSurprise(options[Math.floor(Math.random() * options.length)]);
   }
 
   if (editing) {
@@ -175,6 +200,20 @@ export function ProfileScreen() {
         </p>
         <p className="font-display text-xl">{profile.weekly_goal} Golfables / week</p>
       </div>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+            Member Since
+          </p>
+          <p className="font-display text-xl">{formatMemberSince(profile.created_at)}</p>
+        </div>
+        <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+            Membership
+          </p>
+          <p className="font-display text-gold text-xl">Founder</p>
+        </div>
+      </div>
 
       <button
         type="button"
@@ -190,6 +229,29 @@ export function ProfileScreen() {
       >
         Sign out
       </button>
+
+      <div className="mt-8 rounded-lg border-2 border-dashed border-neutral-300 bg-white p-5 text-center">
+        {surprise ? (
+          <>
+            <p className="font-body text-neutral-700 italic">&ldquo;{surprise}&rdquo;</p>
+            <button
+              type="button"
+              onClick={revealSurprise}
+              className="font-label text-brand mt-3 text-sm font-semibold underline"
+            >
+              Another one
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={revealSurprise}
+            className="font-label bg-gold w-full rounded-md px-4 py-3 text-sm font-semibold text-white"
+          >
+            Click Me For a Surprise
+          </button>
+        )}
+      </div>
 
       <div className="mt-8">
         <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">

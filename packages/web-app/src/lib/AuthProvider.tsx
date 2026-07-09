@@ -8,6 +8,7 @@ export interface Profile {
   username: string;
   tier: HandicapTier;
   weekly_goal: number;
+  created_at: string;
 }
 
 interface AuthState {
