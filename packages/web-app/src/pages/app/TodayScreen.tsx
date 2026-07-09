@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Drill } from "@golfable/shared";
 import { CATEGORY_INFO, TIER_INFO } from "@golfable/shared";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
+import { DrillHeroImage } from "../../components/DrillHeroImage";
 import { useAuth } from "../../lib/AuthProvider";
 import {
   getTodaysDrill,
@@ -147,6 +148,8 @@ export function TodayScreen() {
         </div>
         <WeeklyGoalRing completed={sessionsThisWeek} goal={profile.weekly_goal} size={64} />
       </div>
+
+      <DrillHeroImage drillId={drill.id} alt={drill.name} />
 
       <div className="mb-4 flex items-center gap-2.5">
         <div
