@@ -39,6 +39,25 @@ const TIER_TEXT: Record<string, string> = {
   high: "text-tier-high",
 };
 
+const CATEGORY_DETAIL: Record<string, { description: string; schedule: string }> = {
+  driver: {
+    description: "Tee shots and fairway woods — swinging for distance and finding fairways.",
+    schedule: "Every Monday",
+  },
+  irons: {
+    description: "Approach play — flighting the ball into greens from the fairway.",
+    schedule: "Rotates with Wedges on Tue, Thu & Fri",
+  },
+  wedges: {
+    description: "Short game — chips, pitches, and bunker shots inside 100 yards.",
+    schedule: "Rotates with Irons on Tue, Thu & Fri",
+  },
+  putter: {
+    description: "Putting — speed control and reading greens before you tee off.",
+    schedule: "Every Wednesday",
+  },
+};
+
 const SNEAK_PEEK_DRILLS: { drill: Drill; maxScore: number }[] = [
   {
     drill: {
@@ -129,7 +148,7 @@ export function MarketingHome() {
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
       <div className="bg-brand-dark px-6 py-2 text-center">
-        <p className="font-label text-gold text-xs font-semibold tracking-wide whitespace-nowrap sm:text-sm">
+        <p className="font-label text-gold text-sm font-semibold tracking-wide whitespace-nowrap">
           100 FOUNDER SPOTS — FREE FOREVER.{" "}
           <Link to="/signup" className="underline underline-offset-2">
             Claim yours
@@ -204,7 +223,7 @@ export function MarketingHome() {
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <div className="rounded-lg border border-neutral-200 bg-white p-5">
-                <p className="font-label text-xs font-semibold tracking-widest text-neutral-400 uppercase">
+                <p className="font-label text-sm font-semibold tracking-widest text-neutral-400 uppercase">
                   The problem
                 </p>
                 <p className="font-body mt-2 text-sm text-neutral-700">
@@ -213,7 +232,7 @@ export function MarketingHome() {
                 </p>
               </div>
               <div className="bg-brand rounded-lg p-5 text-white">
-                <p className="font-label text-xs font-semibold tracking-widest text-white/60 uppercase">
+                <p className="font-label text-sm font-semibold tracking-widest text-white/60 uppercase">
                   The Golfable way
                 </p>
                 <p className="font-body mt-2 text-sm text-white/90">
@@ -284,22 +303,30 @@ export function MarketingHome() {
             <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
               Four Skill Categories
             </h2>
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <p className="font-body mx-auto mt-2 max-w-xl text-center text-sm text-neutral-600">
+              Every Golfable falls into one of four categories, each with its own badge, color, and spot
+              on the weekly calendar.
+            </p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {SKILL_CATEGORIES.map((category) => {
                 const info = CATEGORY_INFO[category];
+                const detail = CATEGORY_DETAIL[category];
                 return (
-                  <div
-                    key={category}
-                    className="flex flex-col items-center gap-2 rounded-lg border border-neutral-200 bg-white p-4"
-                  >
-                    <div
-                      className={`font-display flex h-10 w-10 items-center justify-center rounded-full text-lg text-white ${CATEGORY_BG[category]}`}
-                    >
-                      {info.badge}
+                  <div key={category} className="rounded-lg border border-neutral-200 bg-white p-5">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`font-display flex h-10 w-10 flex-none items-center justify-center rounded-full text-lg text-white ${CATEGORY_BG[category]}`}
+                      >
+                        {info.badge}
+                      </div>
+                      <span className={`font-label text-lg font-semibold ${CATEGORY_TEXT[category]}`}>
+                        {info.label}
+                      </span>
                     </div>
-                    <span className={`font-label text-sm font-semibold ${CATEGORY_TEXT[category]}`}>
-                      {info.label}
-                    </span>
+                    <p className="font-body mt-3 text-sm text-neutral-700">{detail.description}</p>
+                    <p className="font-label mt-3 text-sm font-semibold tracking-wide text-neutral-500 uppercase">
+                      {detail.schedule}
+                    </p>
                   </div>
                 );
               })}
@@ -308,15 +335,26 @@ export function MarketingHome() {
         </section>
 
         <section className="bg-brand px-6 py-16 text-white">
-          <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-            <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-white/15">
-              <TrophyIcon className="text-gold h-7 w-7" />
+          <div className="mx-auto max-w-3xl">
+            <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+              <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-white/15">
+                <TrophyIcon className="text-gold h-7 w-7" />
+              </div>
+              <div>
+                <h2 className="font-display text-2xl tracking-wide">Leaderboard</h2>
+                <p className="font-body mt-1 text-white/80">
+                  Every Golfable resets the board daily, split by handicap tier — so you're only ever
+                  measured against golfers playing your game, not the club champion.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-display text-2xl tracking-wide">Leaderboard</h2>
-              <p className="font-body mt-1 text-white/80">
-                Every Golfable resets the board daily, split by handicap tier — so you're only ever
-                measured against golfers playing your game, not the club champion.
+            <div className="mx-auto mt-6 flex max-w-sm items-center gap-3 rounded-lg bg-white/10 p-4 sm:mx-0">
+              <div className="bg-gold/20 flex h-11 w-11 flex-none items-center justify-center rounded-full">
+                <TrophyIcon className="text-gold h-6 w-6" />
+              </div>
+              <p className="font-body text-base text-white">
+                <span className="font-display mr-2 text-2xl align-middle">7/10</span>
+                You're #3 in Mid today
               </p>
             </div>
           </div>
@@ -385,7 +423,7 @@ export function MarketingHome() {
       <footer className="bg-brand-dark px-6 py-10 text-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
           <GolfableMark className="h-9 w-9" />
-          <p className="font-body text-xs text-white/40">{CAPTION_HASHTAGS}</p>
+          <p className="font-body text-sm text-white/40">{CAPTION_HASHTAGS}</p>
         </div>
       </footer>
     </div>

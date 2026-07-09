@@ -68,7 +68,7 @@ export function DrillFreshView({
     <div className="mx-auto max-w-md px-4 pt-6 pb-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+          <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">
             Today's Golfable
           </p>
           <p className="font-body text-sm text-neutral-500">Everyone trains this one today</p>
@@ -86,7 +86,7 @@ export function DrillFreshView({
         </div>
         <div>
           <p
-            className={`font-label text-xs font-semibold tracking-wide uppercase ${CATEGORY_TEXT[drill.category]}`}
+            className={`font-label text-sm font-semibold tracking-wide uppercase ${CATEGORY_TEXT[drill.category]}`}
           >
             {category.label}
           </p>
@@ -95,7 +95,7 @@ export function DrillFreshView({
       </div>
 
       <div className="mb-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label mb-1 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+        <p className="font-label mb-1 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
           Setup
         </p>
         <p className="font-body mb-2 text-sm text-neutral-700">{drill.setup.description}</p>
@@ -107,7 +107,7 @@ export function DrillFreshView({
       </div>
 
       <div className="mb-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label mb-1 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+        <p className="font-label mb-1 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
           Rules &amp; Scoring
         </p>
         <p className="font-body mb-2 text-sm text-neutral-700">{drill.rules.description}</p>
@@ -119,7 +119,7 @@ export function DrillFreshView({
       </div>
 
       <div className={`mb-6 rounded-lg border-2 bg-white p-4 ${TIER_BORDER[tier]}`}>
-        <p className="font-label mb-1 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+        <p className="font-label mb-1 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
           Your Target &middot; {tierInfo.label}
         </p>
         <p className={`font-display text-4xl ${TIER_TEXT[tier]}`}>{tierTarget}</p>
@@ -129,7 +129,7 @@ export function DrillFreshView({
         onSubmit={interactive ? onSubmit : (event) => event.preventDefault()}
         className="rounded-lg border border-neutral-200 bg-white p-4"
       >
-        <label className="font-label mb-2 block text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+        <label className="font-label mb-2 block text-sm font-semibold tracking-widest text-neutral-500 uppercase">
           Log your score
         </label>
         <div className="flex gap-2">
