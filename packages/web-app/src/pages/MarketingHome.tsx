@@ -487,8 +487,25 @@ export function MarketingHome() {
           </div>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-2xl">
+        <section className="relative overflow-hidden px-6 py-16">
+          <div
+            className="absolute inset-0 sm:hidden"
+            style={{
+              backgroundImage: "url(/reviews-bg-mobile.png)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+          <div
+            className="absolute inset-0 hidden sm:block"
+            style={{
+              backgroundImage: "url(/reviews-bg-desktop.png)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+          <div className="absolute inset-0 bg-white/80" />
+          <div className="relative mx-auto max-w-2xl">
             <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
               What Users and Golf Pros Are Saying
             </h2>
