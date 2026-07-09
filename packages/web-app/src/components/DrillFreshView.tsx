@@ -109,7 +109,7 @@ export function DrillFreshView({
         <WeeklyGoalRing completed={sessionsThisWeek} goal={weeklyGoal} size={64} />
       </div>
 
-      <DrillHeroImage drillId={drill.id} alt={drill.name} />
+      <DrillHeroImage drillId={drill.id} category={drill.category} alt={drill.name} />
 
       <div className="mb-4 flex items-center gap-2.5">
         <div
