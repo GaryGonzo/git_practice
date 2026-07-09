@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import type { Drill } from "@golfable/shared";
 import {
@@ -260,6 +260,99 @@ function ChevronDownIcon({ className, open }: { className?: string; open: boolea
     </svg>
   );
 }
+
+function CalendarCheckIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="4" y="5" width="16" height="15" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4 9.5h16" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 3v3.5M16 3v3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8.5 13.8l2 2 4-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TargetIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ClockRewindIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 8v4.5l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrendUpIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M4 16l5-5 3 3 7-8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 6h4v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BadgeCheckIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="9" r="5.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9 13.5L7.5 20l4.5-2.2 4.5 2.2-1.5-6.5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M9.5 9l1.5 1.5 3-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const MEMBER_BENEFITS: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  body: string;
+  accent: "brand" | "gold";
+}[] = [
+  {
+    icon: CalendarCheckIcon,
+    title: "A Fresh Golfable, Every Day",
+    body: "One drill, same for every golfer training that day — no more guessing what to practice.",
+    accent: "brand",
+  },
+  {
+    icon: TargetIcon,
+    title: "Scored to Your Tier",
+    body: "Targets built for Scratch+, Low, Mid, or High, so the challenge always fits your game.",
+    accent: "brand",
+  },
+  {
+    icon: TrophyIcon,
+    title: "Daily Leaderboard",
+    body: "A fresh board every day, split by tier — legit bragging rights, reset every morning.",
+    accent: "gold",
+  },
+  {
+    icon: ClockRewindIcon,
+    title: "Catch Up Anytime",
+    body: "Miss a day? Every past Golfable lives in your Library and still counts toward your goal.",
+    accent: "brand",
+  },
+  {
+    icon: TrendUpIcon,
+    title: "Real Progress, Tracked",
+    body: "Watch your trend on drills you repeat and see your weekly goal fill in, week after week.",
+    accent: "brand",
+  },
+  {
+    icon: BadgeCheckIcon,
+    title: "Founding Member Status",
+    body: "Join now and lock in free access forever as one of our first 100 members.",
+    accent: "gold",
+  },
+];
 
 export function MarketingHome() {
   const [email, setEmail] = useState("");
@@ -527,6 +620,38 @@ export function MarketingHome() {
                       <span className="font-label text-sm text-neutral-500">{info.sublabel}</span>
                     </div>
                     <p className="font-body mt-3 text-sm text-neutral-700">{detail.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
+              Member Benefits
+            </h2>
+            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+              What you get, starting today
+            </h3>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
+              No gimmicks, no upsells — just the tools that make practice worth showing up for.
+            </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {MEMBER_BENEFITS.map((benefit) => {
+                const Icon = benefit.icon;
+                return (
+                  <div key={benefit.title} className="rounded-lg border border-neutral-200 bg-white p-5">
+                    <div
+                      className={`flex h-11 w-11 items-center justify-center rounded-full ${
+                        benefit.accent === "gold" ? "bg-gold/15 text-gold" : "bg-brand/10 text-brand"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-label mt-3 text-base font-semibold">{benefit.title}</h4>
+                    <p className="font-body mt-1.5 text-sm text-neutral-600">{benefit.body}</p>
                   </div>
                 );
               })}
