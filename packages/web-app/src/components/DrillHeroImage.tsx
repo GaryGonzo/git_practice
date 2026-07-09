@@ -1,12 +1,24 @@
 import { useState } from "react";
-import type { SkillCategory } from "@golfable/shared";
+import type { Drill, SkillCategory } from "@golfable/shared";
 import { CATEGORY_INFO } from "@golfable/shared";
 
 interface DrillHeroImageProps {
-  drillId: string;
-  category: SkillCategory;
-  alt: string;
+  drill: Drill;
 }
+
+const CATEGORY_BG: Record<SkillCategory, string> = {
+  driver: "bg-driver",
+  irons: "bg-irons",
+  wedges: "bg-wedges",
+  putter: "bg-putter",
+};
+
+const CATEGORY_TEXT: Record<SkillCategory, string> = {
+  driver: "text-driver",
+  irons: "text-irons",
+  wedges: "text-wedges",
+  putter: "text-putter",
+};
 
 const CATEGORY_FALLBACK_COUNT = 2;
 
@@ -18,40 +30,58 @@ function fallbackIndexFor(drillId: string): number {
   return (sum % CATEGORY_FALLBACK_COUNT) + 1;
 }
 
-// Looks for /drills/<drillId>.jpg first -- real, unique photos get added
-// one at a time, per drill. Until then, falls back to a shared category
-// stock photo (with a branded label overlay, since a generic stock shot
-// benefits from the reminder of what it's standing in for) so the card
-// never shows blank. If even that's missing, renders nothing.
-export function DrillHeroImage({ drillId, category, alt }: DrillHeroImageProps) {
+// Renders the drill's photo -- a real per-drill photo if one exists at
+// /drills/<id>.jpg, else a shared category stock photo -- with the drill's
+// title block (badge + category + name) overlaid on top, so the photo and
+// its caption read as one unit instead of a photo followed by a duplicate
+// title underneath. If no photo exists at all yet, falls back to the same
+// title block rendered plainly, so the drill name is never lost.
+export function DrillHeroImage({ drill }: DrillHeroImageProps) {
   const [stage, setStage] = useState<"drill" | "category" | "none">("drill");
-  if (stage === "none") return null;
+  const info = CATEGORY_INFO[drill.category];
 
-  const info = CATEGORY_INFO[category];
+  const badge = (
+    <div
+      className={`font-display flex h-9 w-9 flex-none items-center justify-center rounded-full text-base text-white ${CATEGORY_BG[drill.category]}`}
+    >
+      {info.badge}
+    </div>
+  );
+
+  if (stage === "none") {
+    return (
+      <div className="mb-4 flex items-center gap-2.5">
+        {badge}
+        <div>
+          <p
+            className={`font-label text-sm font-semibold tracking-wide uppercase ${CATEGORY_TEXT[drill.category]}`}
+          >
+            {info.label}
+          </p>
+          <h1 className="font-display text-2xl tracking-wide">{drill.name}</h1>
+        </div>
+      </div>
+    );
+  }
+
   const src =
-    stage === "drill" ? `/drills/${drillId}.jpg` : `/categories/${category}-${fallbackIndexFor(drillId)}.jpg`;
+    stage === "drill" ? `/drills/${drill.id}.jpg` : `/categories/${drill.category}-${fallbackIndexFor(drill.id)}.jpg`;
 
   return (
     <div className="relative mb-4 h-40 w-full overflow-hidden rounded-lg">
       <img
         src={src}
-        alt={alt}
+        alt={drill.name}
         onError={() => setStage(stage === "drill" ? "category" : "none")}
         className="h-full w-full object-cover"
       />
-      {stage === "category" && (
-        <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-3 py-2.5">
-          <span
-            className="font-display flex h-6 w-6 flex-none items-center justify-center rounded-full text-xs text-white"
-            style={{ backgroundColor: info.color }}
-          >
-            {info.badge}
-          </span>
-          <span className="font-label text-sm font-semibold tracking-wide text-white uppercase">
-            {info.label}
-          </span>
+      <div className="absolute inset-x-0 bottom-0 flex items-center gap-2.5 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 py-3">
+        {badge}
+        <div>
+          <p className="font-label text-sm font-semibold tracking-wide text-white/85 uppercase">{info.label}</p>
+          <h1 className="font-display text-2xl tracking-wide text-white">{drill.name}</h1>
         </div>
-      )}
+      </div>
     </div>
   );
 }

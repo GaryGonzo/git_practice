@@ -1,21 +1,7 @@
 import type { Drill, HandicapTier } from "@golfable/shared";
-import { CATEGORY_INFO, TIER_INFO } from "@golfable/shared";
+import { TIER_INFO } from "@golfable/shared";
 import { WeeklyGoalRing } from "./WeeklyGoalRing";
 import { DrillHeroImage } from "./DrillHeroImage";
-
-const CATEGORY_BG: Record<string, string> = {
-  driver: "bg-driver",
-  irons: "bg-irons",
-  wedges: "bg-wedges",
-  putter: "bg-putter",
-};
-
-const CATEGORY_TEXT: Record<string, string> = {
-  driver: "text-driver",
-  irons: "text-irons",
-  wedges: "text-wedges",
-  putter: "text-putter",
-};
 
 const TIER_TEXT: Record<string, string> = {
   scratch: "text-tier-scratch",
@@ -93,7 +79,6 @@ export function DrillFreshView({
   subtitle = "Everyone trains this one today",
   result,
 }: DrillFreshViewProps) {
-  const category = CATEGORY_INFO[drill.category];
   const tierTarget = drill.targets[tier];
   const tierInfo = TIER_INFO[tier];
 
@@ -109,23 +94,7 @@ export function DrillFreshView({
         <WeeklyGoalRing completed={sessionsThisWeek} goal={weeklyGoal} size={64} />
       </div>
 
-      <DrillHeroImage drillId={drill.id} category={drill.category} alt={drill.name} />
-
-      <div className="mb-4 flex items-center gap-2.5">
-        <div
-          className={`font-display flex h-9 w-9 items-center justify-center rounded-full text-base text-white ${CATEGORY_BG[drill.category]}`}
-        >
-          {category.badge}
-        </div>
-        <div>
-          <p
-            className={`font-label text-sm font-semibold tracking-wide uppercase ${CATEGORY_TEXT[drill.category]}`}
-          >
-            {category.label}
-          </p>
-          <h1 className="font-display text-2xl tracking-wide">{drill.name}</h1>
-        </div>
-      </div>
+      <DrillHeroImage drill={drill} />
 
       <div className="mb-3 rounded-lg border border-neutral-200 bg-white p-4">
         <p className="font-label mb-1 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
