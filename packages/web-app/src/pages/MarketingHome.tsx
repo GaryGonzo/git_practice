@@ -37,6 +37,27 @@ const TIER_TEXT: Record<string, string> = {
   high: "text-tier-high",
 };
 
+const SNEAK_PEEK_DRILLS = [
+  {
+    id: "fairway-finder",
+    category: "driver" as const,
+    name: "Fairway Finder",
+    setup:
+      "Pick a hole with a fairway you can see the width of. Hit 10 drives, aiming to find the short grass every time.",
+    tier: "mid" as const,
+    target: "4/10",
+  },
+  {
+    id: "the-gate",
+    category: "putter" as const,
+    name: "The Gate",
+    setup:
+      "Push two tees into the green just wider than your putter head, forming a gate. Putt 10 balls from 6 feet.",
+    tier: "mid" as const,
+    target: "5/10",
+  },
+];
+
 const HOW_IT_WORKS = [
   {
     step: "1",
@@ -141,6 +162,44 @@ export function MarketingHome() {
         <section className="px-6 py-16">
           <div className="mx-auto max-w-3xl">
             <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
+              Why Golfable
+            </h2>
+            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+              More instruction than ever.
+              <br className="hidden sm:block" /> Handicaps haven't moved.
+            </h3>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
+              Golfers today have more lessons, technology, and data available than any generation before
+              them — and average handicaps haven't improved in decades. That's not an information
+              problem.
+            </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-lg border border-neutral-200 bg-white p-5">
+                <p className="font-label text-xs font-semibold tracking-widest text-neutral-400 uppercase">
+                  The problem
+                </p>
+                <p className="font-body mt-2 text-sm text-neutral-700">
+                  Hitting range balls for an hour doesn't transfer to the course. Endless reps with no
+                  score, no target, and no reason to care just builds a better range game.
+                </p>
+              </div>
+              <div className="bg-brand rounded-lg p-5 text-white">
+                <p className="font-label text-xs font-semibold tracking-widest text-white/60 uppercase">
+                  The Golfable way
+                </p>
+                <p className="font-body mt-2 text-sm text-white/90">
+                  Short, scored sessions built around real on-course situations — not swing mechanics.
+                  Every Golfable is gamified and over in minutes, so you actually do it, and it shows up
+                  in your score.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
               How it works
             </h2>
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -153,6 +212,54 @@ export function MarketingHome() {
                   <p className="font-body mt-1.5 text-sm text-neutral-600">{item.body}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
+              A Peek Inside the App
+            </h2>
+            <p className="font-body mx-auto mt-2 max-w-xl text-center text-sm text-neutral-600">
+              Two real Golfables, shown exactly how they'd land on your Today screen.
+            </p>
+            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+              {SNEAK_PEEK_DRILLS.map((drill) => {
+                const drillTierInfo = TIER_INFO[drill.tier];
+                return (
+                  <div
+                    key={drill.id}
+                    className="rounded-2xl border-2 border-neutral-900/10 bg-white p-5 shadow-sm"
+                  >
+                    <p className="font-label text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                      Today's Golfable
+                    </p>
+                    <div className="mt-2 flex items-center gap-2.5">
+                      <div
+                        className={`font-display flex h-9 w-9 items-center justify-center rounded-full text-base text-white ${CATEGORY_BG[drill.category]}`}
+                      >
+                        {CATEGORY_INFO[drill.category].badge}
+                      </div>
+                      <div>
+                        <p
+                          className={`font-label text-xs font-semibold tracking-wide uppercase ${CATEGORY_TEXT[drill.category]}`}
+                        >
+                          {CATEGORY_INFO[drill.category].label}
+                        </p>
+                        <h3 className="font-display text-xl tracking-wide">{drill.name}</h3>
+                      </div>
+                    </div>
+                    <p className="font-body mt-3 text-sm text-neutral-600">{drill.setup}</p>
+                    <div className={`mt-4 rounded-lg border-2 bg-neutral-50 p-3 ${TIER_BORDER[drill.tier]}`}>
+                      <p className="font-label text-[10px] font-semibold tracking-widest text-neutral-500 uppercase">
+                        Your Target &middot; {drillTierInfo.label}
+                      </p>
+                      <p className={`font-display text-2xl ${TIER_TEXT[drill.tier]}`}>{drill.target}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -191,7 +298,7 @@ export function MarketingHome() {
               <TrophyIcon className="text-gold h-7 w-7" />
             </div>
             <div>
-              <h2 className="font-display text-2xl tracking-wide">Today's leaderboard</h2>
+              <h2 className="font-display text-2xl tracking-wide">Leaderboard</h2>
               <p className="font-body mt-1 text-white/80">
                 Every Golfable resets the board daily, split by handicap tier — so you're only ever
                 measured against golfers playing your game, not the club champion.
