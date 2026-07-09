@@ -58,6 +58,24 @@ const CATEGORY_DETAIL: Record<string, { description: string; schedule: string }>
   },
 };
 
+const TIER_DETAIL: Record<string, { description: string }> = {
+  scratch: {
+    description:
+      "Longer distances, tighter fairways, short-sided greens — the same margin for error a plus-handicap actually plays with.",
+  },
+  low: {
+    description: "Less room to miss and tighter windows to hit. Built for a game that's already dialed in.",
+  },
+  mid: {
+    description:
+      "A real test without punishing you for it — enough margin to succeed, enough precision to keep sharpening.",
+  },
+  high: {
+    description:
+      "The most forgiving targets on the board, built to be fun from your very first swing — hard enough to build real skills as you go.",
+  },
+};
+
 const SNEAK_PEEK_DRILLS: { drill: Drill; maxScore: number }[] = [
   {
     drill: {
@@ -365,18 +383,23 @@ export function MarketingHome() {
             <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
               Handicap Tiers
             </h2>
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <p className="font-body mx-auto mt-2 max-w-xl text-center text-sm text-neutral-600">
+              Targets get tougher as your handicap gets lower — the most fun way to get into the game and
+              start practicing real skills, wherever you're starting from.
+            </p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {HANDICAP_TIERS.map((tier) => {
                 const info = TIER_INFO[tier];
+                const detail = TIER_DETAIL[tier];
                 return (
-                  <div
-                    key={tier}
-                    className={`rounded-lg bg-white p-5 text-center border-2 ${TIER_BORDER[tier]}`}
-                  >
-                    <div className={`font-display text-3xl tracking-wide ${TIER_TEXT[tier]}`}>
-                      {info.label}
+                  <div key={tier} className={`rounded-lg border-2 bg-white p-5 ${TIER_BORDER[tier]}`}>
+                    <div className="flex items-baseline gap-2">
+                      <span className={`font-display text-3xl tracking-wide ${TIER_TEXT[tier]}`}>
+                        {info.label}
+                      </span>
+                      <span className="font-label text-sm text-neutral-500">{info.sublabel}</span>
                     </div>
-                    <div className="font-label mt-1 text-sm text-neutral-500">{info.sublabel}</div>
+                    <p className="font-body mt-3 text-sm text-neutral-700">{detail.description}</p>
                   </div>
                 );
               })}
