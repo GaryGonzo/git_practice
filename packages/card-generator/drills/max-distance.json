@@ -1,0 +1,20 @@
+{
+  "id": "max-distance",
+  "name": "Max Distance",
+  "category": "driver",
+  "setup": {
+    "equipment": ["Driver", "5 golf balls", "Distance markers or a rangefinder"],
+    "description": "Get thoroughly warmed up, then pick a target distance just past your normal average: 200+ yards (High), 240+ yards (Mid), 260+ yards (Low), or 280+ yards (Scratch+). Play 3 rounds of 5 drives trying to beat it."
+  },
+  "rules": {
+    "description": "Play 3 rounds of 5 drives at your target distance -- record your best round. A drive counts if it carries past your target and stays in play; out of bounds or a wild miss doesn't count, even if it's long.",
+    "scoring": ["1 point per drive that passes your target distance and stays in play", "Play 3 rounds of 5 drives; record your best round", "5 drives per round"]
+  },
+  "targets": {
+    "scratch": "4/5",
+    "low": "3/5",
+    "mid": "3/5",
+    "high": "2/5"
+  },
+  "caption": "Get loose, then find out how far past your normal number you can actually go. #golfable #golftok #golfpractice #loweryourhandicap"
+}

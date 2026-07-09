@@ -1,0 +1,20 @@
+{
+  "id": "step-back-ladder",
+  "name": "Step-Back Ladder",
+  "category": "putter",
+  "setup": {
+    "equipment": ["Putter", "1 golf ball"],
+    "description": "Pick a hole with a straight, flat line to putt from. Start 2 feet away. Make it, then move back 2 feet and putt again -- keep stepping back after every make."
+  },
+  "rules": {
+    "description": "This isn't about reading break -- pick a straight putt so it's purely about starting line and speed. Keep moving back 2 feet at a time until you miss.",
+    "scoring": ["Your score is the distance, in feet, of the last putt you made before missing", "No limit on how far back you can go"]
+  },
+  "targets": {
+    "scratch": "20/30",
+    "low": "16/30",
+    "mid": "12/30",
+    "high": "8/30"
+  },
+  "caption": "Forget green reading -- this is pure speed and starting line. How far back can you go? #golfable #golftok #golfpractice #loweryourhandicap"
+}

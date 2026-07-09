@@ -1,0 +1,20 @@
+{
+  "id": "shot-shape-challenge",
+  "name": "Shot Shape Challenge",
+  "category": "irons",
+  "setup": {
+    "equipment": ["7-iron", "12 golf balls"],
+    "description": "Grab a 7-iron. Before each shot, call which shape you're about to hit: stock shot, low stinger, draw, or fade. High handicappers can skip the draw and fade and just focus on the stock shot and low stinger."
+  },
+  "rules": {
+    "description": "Play 3 rounds of all 4 shapes, calling your shot before every swing. A shape only counts if you called it first and it matched what came off the club.",
+    "scoring": ["1 point per shape you called and executed correctly", "Play 3 rounds of 4 shapes; record your best round", "4 shapes per round: stock, low stinger, draw, fade"]
+  },
+  "targets": {
+    "scratch": "4/4",
+    "low": "3/4",
+    "mid": "2/4",
+    "high": "2/4"
+  },
+  "caption": "Call your shot, then hit it. Stock, stinger, draw, fade -- how many can you actually produce on command? #golfable #golftok #golfpractice #loweryourhandicap"
+}
