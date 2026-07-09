@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { Drill, HandicapTier } from "@golfable/shared";
 import { TIER_INFO } from "@golfable/shared";
 import { WeeklyGoalRing } from "./WeeklyGoalRing";
@@ -35,12 +36,22 @@ function TrophyIcon({ className }: { className?: string }) {
   );
 }
 
+function ChevronRightIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path d="M7.5 5l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export interface DrillResult {
   score: number;
   lastAttempt: number | null;
   rank: number;
   rankLabel: string;
   rankSublabel: string;
+  /** When set, the rank card links to the full leaderboard for this drill/date */
+  leaderboardHref?: string;
 }
 
 interface DrillFreshViewProps {
@@ -156,17 +167,32 @@ export function DrillFreshView({
             </p>
           </div>
 
-          {result.rank > 0 && (
-            <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
-              <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-full">
-                <TrophyIcon className="text-gold h-6 w-6" />
+          {result.rank > 0 &&
+            (result.leaderboardHref ? (
+              <Link
+                to={result.leaderboardHref}
+                className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4 active:bg-neutral-50"
+              >
+                <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-full">
+                  <TrophyIcon className="text-gold h-6 w-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-lg tracking-wide">{result.rankLabel}</p>
+                  <p className="font-body text-sm text-neutral-500">{result.rankSublabel}</p>
+                </div>
+                <ChevronRightIcon className="h-5 w-5 flex-none text-neutral-400" />
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
+                <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-full">
+                  <TrophyIcon className="text-gold h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-display text-lg tracking-wide">{result.rankLabel}</p>
+                  <p className="font-body text-sm text-neutral-500">{result.rankSublabel}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-display text-lg tracking-wide">{result.rankLabel}</p>
-                <p className="font-body text-sm text-neutral-500">{result.rankSublabel}</p>
-              </div>
-            </div>
-          )}
+            ))}
         </div>
       ) : (
         <form

@@ -175,6 +175,7 @@ export function TodayScreen() {
                 rank,
                 rankLabel: `You're #${rank} in ${tierLabel} ${isToday ? "today" : `on ${formatDate(date)}`}`,
                 rankSublabel: isToday ? "Resets tomorrow with the next Golfable" : "Logged from the Library",
+                leaderboardHref: `/app/leaderboard/${drill.id}/${date}`,
               }
         }
       />

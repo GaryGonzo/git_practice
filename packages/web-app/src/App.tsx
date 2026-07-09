@@ -6,6 +6,7 @@ import { TodayScreen } from "./pages/app/TodayScreen";
 import { ProgressScreen } from "./pages/app/ProgressScreen";
 import { LibraryScreen } from "./pages/app/LibraryScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
+import { LeaderboardScreen } from "./pages/app/LeaderboardScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
 import { ForgotPasswordScreen } from "./pages/auth/ForgotPasswordScreen";
@@ -32,6 +33,7 @@ function App() {
         <Route path="progress" element={<ProgressScreen />} />
         <Route path="library" element={<LibraryScreen />} />
         <Route path="library/:date" element={<TodayScreen />} />
+        <Route path="leaderboard/:drillId/:date" element={<LeaderboardScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
       </Route>
       <Route path="*" element={<NotFoundScreen />} />
