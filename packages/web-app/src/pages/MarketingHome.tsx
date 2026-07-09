@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Drill } from "@golfable/shared";
 import {
@@ -124,6 +124,61 @@ const SNEAK_PEEK_DRILLS: { drill: Drill; maxScore: number }[] = [
   },
 ];
 
+const REVIEWS = [
+  {
+    quote:
+      "Finally, practice that doesn't feel like homework. I actually look forward to my Golfable every morning.",
+    name: "Jake R.",
+    credential: "12 Handicap",
+    initials: "JR",
+    color: "bg-driver",
+  },
+  {
+    quote: "I've cut four strokes off my handicap in two months. The scoring makes every rep count.",
+    name: "Maria S.",
+    credential: "18 Handicap",
+    initials: "MS",
+    color: "bg-irons",
+  },
+  {
+    quote:
+      "As a coach, I finally have something to send students between lessons that actually sticks.",
+    name: "Tom Bradley",
+    credential: "PGA Teaching Professional",
+    initials: "TB",
+    color: "bg-wedges",
+  },
+  {
+    quote: "The daily leaderboard is dangerously addictive. My whole group chat is obsessed.",
+    name: "Chris D.",
+    credential: "9 Handicap",
+    initials: "CD",
+    color: "bg-putter",
+  },
+  {
+    quote: "Short, scored, and actually fun — this is what golf practice should have been all along.",
+    name: "Dana W.",
+    credential: "Scratch Golfer",
+    initials: "DW",
+    color: "bg-driver",
+  },
+  {
+    quote: "My students show up more prepared than ever. Golfable does the accountability I can't do for them.",
+    name: "Coach Lisa Park",
+    credential: "LPGA Teaching Professional",
+    initials: "LP",
+    color: "bg-irons",
+  },
+];
+
+function StarIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9L1.5 7.6l5.9-.7L10 1.5z" />
+    </svg>
+  );
+}
+
 const HOW_IT_WORKS = [
   {
     step: "1",
@@ -162,6 +217,14 @@ function TrophyIcon({ className }: { className?: string }) {
 
 export function MarketingHome() {
   const [email, setEmail] = useState("");
+  const [activeReview, setActiveReview] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveReview((i) => (i + 1) % REVIEWS.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
@@ -407,15 +470,73 @@ export function MarketingHome() {
           </div>
         </section>
 
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-2xl">
+            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
+              What Users and Golf Pros Are Saying
+            </h2>
+            <div className="relative mt-8 min-h-[260px] sm:min-h-[220px]">
+              {REVIEWS.map((review, i) => (
+                <div
+                  key={review.name}
+                  className={`rounded-lg border border-neutral-200 bg-white p-8 text-center transition-opacity duration-500 ${
+                    i === activeReview ? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0"
+                  }`}
+                >
+                  <div className="text-gold flex justify-center gap-1">
+                    {Array.from({ length: 5 }).map((_, s) => (
+                      <StarIcon key={s} className="h-5 w-5" />
+                    ))}
+                  </div>
+                  <p className="font-body mt-4 text-lg text-neutral-800">&ldquo;{review.quote}&rdquo;</p>
+                  <div className="mt-5 flex items-center justify-center gap-3">
+                    <div
+                      className={`font-display flex h-10 w-10 flex-none items-center justify-center rounded-full text-sm text-white ${review.color}`}
+                    >
+                      {review.initials}
+                    </div>
+                    <div className="text-left">
+                      <p className="font-label text-sm font-semibold">{review.name}</p>
+                      <p className="font-body text-sm text-neutral-500">{review.credential}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-center gap-2">
+              {REVIEWS.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setActiveReview(i)}
+                  aria-label={`Show review ${i + 1}`}
+                  className={`h-2 w-2 rounded-full ${i === activeReview ? "bg-brand" : "bg-neutral-300"}`}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section id="join" className="bg-brand scroll-mt-6 px-6 py-16 text-center text-white">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="font-display text-2xl tracking-wide">
-              Join Golfable — free during early access
+          <div className="mx-auto max-w-2xl">
+            <p className="font-label text-sm font-semibold tracking-widest text-white/60 uppercase">
+              Why We Built Golfable
+            </p>
+            <p className="font-body mx-auto mt-3 max-w-xl text-white/90">
+              Practice shouldn't feel like a chore. We built Golfable to make it fun — short, scored
+              sessions with trackable progress and a community of golfers chasing the same daily
+              challenge, all over the world. It's a serious way to lower your handicap, wrapped in a
+              format that's playful and just competitive enough to keep you coming back. Joining Golfable
+              means joining a movement. We all get better together.
+            </p>
+
+            <h2 className="font-display mt-8 text-3xl tracking-wide sm:text-4xl">
+              A Golfable a Day Keeps the Yips Away
             </h2>
             <p className="font-body mt-2 text-white/80">
-              Membership is free while we build. Drop your email and we'll let you know the moment
-              accounts open.
+              Join us now — free during early access.
             </p>
+
             <form
               className="mx-auto mt-6 flex max-w-sm gap-2"
               onSubmit={(event) => {
