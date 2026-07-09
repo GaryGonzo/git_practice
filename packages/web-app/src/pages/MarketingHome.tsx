@@ -198,6 +198,38 @@ const HOW_IT_WORKS = [
   },
 ];
 
+const FAQS = [
+  {
+    question: "What is Golfable?",
+    answer:
+      "A daily golf skill challenge. Every weekday, every golfer trains the exact same drill -- you play it, log your score, and see how you compare to others in your handicap tier.",
+  },
+  {
+    question: "Is it free?",
+    answer: "Yes. Golfable is free forever for our first 100 founding members -- no credit card required.",
+  },
+  {
+    question: "What do I need to play?",
+    answer:
+      "Just your own clubs and balls, wherever you already practice -- a range, a course, or your backyard. Each Golfable tells you exactly what's needed.",
+  },
+  {
+    question: "How does my handicap tier work?",
+    answer:
+      "When you sign up, you pick the tier that matches your game -- Scratch+, Low, Mid, or High. Every drill has different targets for each tier, so you're always chasing a number that fits you, not a stranger.",
+  },
+  {
+    question: "What happens if I miss a day?",
+    answer:
+      "No pressure. Head to your Library to catch up on any past Golfable and still count it toward your weekly goal.",
+  },
+  {
+    question: "Do I need to be a good golfer to play?",
+    answer:
+      "Not at all. Every tier -- including High -- gets its own realistic targets, so beginners get just as much out of it as scratch players.",
+  },
+];
+
 function TrophyIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -216,9 +248,23 @@ function TrophyIcon({ className }: { className?: string }) {
   );
 }
 
+function ChevronDownIcon({ className, open }: { className?: string; open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className={`${className} transition-transform ${open ? "rotate-180" : ""}`}
+      aria-hidden="true"
+    >
+      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function MarketingHome() {
   const [email, setEmail] = useState("");
   const [activeReview, setActiveReview] = useState(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -548,6 +594,34 @@ export function MarketingHome() {
                   className={`h-2 w-2 rounded-full ${i === activeReview ? "bg-brand" : "bg-neutral-300"}`}
                 />
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-2xl">
+            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
+              Frequently Asked Questions
+            </h2>
+            <div className="mt-6 space-y-2">
+              {FAQS.map((faq, i) => {
+                const open = openFaq === i;
+                return (
+                  <div key={faq.question} className="rounded-lg border border-neutral-200 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setOpenFaq(open ? null : i)}
+                      className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+                    >
+                      <span className="font-label text-base font-semibold">{faq.question}</span>
+                      <ChevronDownIcon open={open} className="h-5 w-5 flex-none text-neutral-400" />
+                    </button>
+                    {open && (
+                      <p className="font-body px-5 pb-4 text-sm text-neutral-600">{faq.answer}</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
