@@ -3,12 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { updateProfile } from "../../lib/golfableApi";
-import { TikTokEmbed } from "../../components/TikTokEmbed";
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
       <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.77l-.44 2.89h-2.33v6.99A10 10 0 0 0 22 12Z" />
+    </svg>
+  );
+}
+
+function PlayIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M10 8.3l6.5 3.7-6.5 3.7v-7.4Z" fill="currentColor" />
     </svg>
   );
 }
@@ -93,8 +101,11 @@ export function ProfileScreen() {
   }
 
   async function handleSignOut() {
+    // Navigate first: once the session clears, RequireAuth's own redirect
+    // to /login can otherwise win the race and stick the user there
+    // instead of the marketing page this button is supposed to land on.
+    navigate("/", { replace: true });
     await signOut();
-    navigate("/");
   }
 
   function revealSurprise() {
@@ -290,17 +301,24 @@ export function ProfileScreen() {
           Follow @{TIKTOK_HANDLE}
         </a>
         <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
-          {TIKTOK_POSTS.map((url) => (
-            <div
-              key={url}
-              className="flex-none overflow-hidden rounded-xl border-2 border-neutral-200 bg-white shadow-sm"
-              style={{ width: 130, height: 260 }}
-            >
-              <div style={{ transform: "scale(0.4)", transformOrigin: "top left", width: "250%" }}>
-                <TikTokEmbed url={url} />
-              </div>
-            </div>
-          ))}
+          {TIKTOK_POSTS.map((url) => {
+            const isPhoto = url.includes("/photo/");
+            return (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-none flex-col items-center justify-center gap-2 rounded-xl border-2 border-neutral-200 bg-neutral-900 text-white shadow-sm"
+                style={{ width: 130, height: 260 }}
+              >
+                <PlayIcon className="h-10 w-10" />
+                <span className="font-label text-xs font-semibold tracking-wide text-white/70 uppercase">
+                  {isPhoto ? "Photo" : "Video"}
+                </span>
+              </a>
+            );
+          })}
         </div>
       </div>
 
