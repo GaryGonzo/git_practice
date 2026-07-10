@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import type { Drill } from "@golfable/shared";
 import { TIER_INFO } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
-import { ScoreCelebration } from "../../components/ScoreCelebration";
+import { CelebrationToast, randomScoreMessage } from "../../components/CelebrationToast";
 import { useAuth } from "../../lib/AuthProvider";
 import {
   getDrillForDate,
@@ -32,6 +32,9 @@ function formatDate(iso: string): string {
   });
 }
 
+const GOAL_MESSAGE = "Goals getting accomplished! Congrats on reaching your weekly target!";
+const GOAL_PARTICLES = ["🏆", "🎉", "🙌", "✨"];
+
 export function TodayScreen() {
   const { session, profile } = useAuth();
   const userId = session!.user.id;
@@ -49,7 +52,9 @@ export function TodayScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [celebrating, setCelebrating] = useState(false);
+  const [scoreCelebration, setScoreCelebration] = useState<string | null>(null);
+  const [pendingGoalCelebration, setPendingGoalCelebration] = useState(false);
+  const [goalCelebration, setGoalCelebration] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -95,10 +100,12 @@ export function TodayScreen() {
     try {
       await submitScore(userId, drill.id, value, date);
       const board = await getTierLeaderboard(drill.id, profile.tier, date);
+      const reachedGoalNow = sessionsThisWeek < profile.weekly_goal && sessionsThisWeek + 1 >= profile.weekly_goal;
       setSubmittedScore(value);
       setSessionsThisWeek((n) => n + 1);
       setLeaderboard(board);
-      setCelebrating(true);
+      setScoreCelebration(randomScoreMessage(profile.first_name));
+      if (reachedGoalNow) setPendingGoalCelebration(true);
     } catch {
       setSubmitError("Couldn't save your score -- check your connection and try again.");
     } finally {
@@ -144,8 +151,27 @@ export function TodayScreen() {
 
   return (
     <div className="pb-24">
-      {celebrating && (
-        <ScoreCelebration firstName={profile.first_name} onDone={() => setCelebrating(false)} />
+      {scoreCelebration ? (
+        <CelebrationToast
+          key="score-celebration"
+          message={scoreCelebration}
+          onDone={() => {
+            setScoreCelebration(null);
+            if (pendingGoalCelebration) {
+              setPendingGoalCelebration(false);
+              setGoalCelebration(true);
+            }
+          }}
+        />
+      ) : (
+        goalCelebration && (
+          <CelebrationToast
+            key="goal-celebration"
+            message={GOAL_MESSAGE}
+            particles={GOAL_PARTICLES}
+            onDone={() => setGoalCelebration(false)}
+          />
+        )
       )}
       {backLink}
       <DrillFreshView

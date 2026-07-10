@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-const MESSAGES: ((name: string) => string)[] = [
+const SCORE_MESSAGES: ((name: string) => string)[] = [
   (name) => `Nicely done, ${name}. Way to go!`,
   () => "Golfable done ✅. Keepin those yips at bay!",
   () => "Progress!",
@@ -11,19 +11,21 @@ const MESSAGES: ((name: string) => string)[] = [
   () => "Solid rep. See you tomorrow.",
 ];
 
-const PARTICLES = ["⛳", "🎉", "✨", "🏌️"];
+export function randomScoreMessage(firstName: string): string {
+  return SCORE_MESSAGES[Math.floor(Math.random() * SCORE_MESSAGES.length)](firstName);
+}
 
-interface ScoreCelebrationProps {
-  firstName: string;
+const DEFAULT_PARTICLES = ["⛳", "🎉", "✨", "🏌️"];
+
+interface CelebrationToastProps {
+  message: string;
+  particles?: string[];
   onDone: () => void;
 }
 
-// A brief, non-blocking toast that fires once right after a fresh score
-// submission (not when revisiting an already-completed day). Picks a random
-// line each time and self-dismisses -- no confirmation click needed.
-export function ScoreCelebration({ firstName, onDone }: ScoreCelebrationProps) {
-  const [message] = useState(() => MESSAGES[Math.floor(Math.random() * MESSAGES.length)](firstName));
-
+// A brief, non-blocking toast used both for a fresh score submission and for
+// hitting the weekly goal. Self-dismisses -- no confirmation click needed.
+export function CelebrationToast({ message, particles = DEFAULT_PARTICLES, onDone }: CelebrationToastProps) {
   useEffect(() => {
     const timer = setTimeout(onDone, 3200);
     return () => clearTimeout(timer);
@@ -35,7 +37,7 @@ export function ScoreCelebration({ firstName, onDone }: ScoreCelebrationProps) {
         className="relative flex items-center gap-2 rounded-full bg-neutral-900 px-5 py-3 text-white shadow-xl"
         style={{ animation: "celebration-pop 3.2s ease forwards" }}
       >
-        {PARTICLES.map((particle, i) => (
+        {particles.map((particle, i) => (
           <span
             key={i}
             className="absolute -top-3 text-lg"
