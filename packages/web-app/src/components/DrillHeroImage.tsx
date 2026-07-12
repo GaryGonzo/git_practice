@@ -67,6 +67,23 @@ export function DrillHeroImage({ drill }: DrillHeroImageProps) {
   const src =
     stage === "drill" ? `/drills/${drill.id}.jpg` : `/categories/${drill.category}-${fallbackIndexFor(drill.id)}.jpg`;
 
+  if (drill.videoUrl) {
+    return (
+      <div className="relative mb-4 w-full overflow-hidden rounded-lg bg-black">
+        <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2.5 bg-gradient-to-b from-black/70 to-transparent px-3 py-3">
+          {badge}
+          <div>
+            <p className="font-label text-sm font-semibold tracking-wide text-white/85 uppercase">{info.label}</p>
+            <h1 className="font-display text-2xl tracking-wide text-white">{drill.name}</h1>
+          </div>
+        </div>
+        <video src={drill.videoUrl} poster={src} controls preload="none" className="aspect-video w-full">
+          Your browser doesn't support embedded video.
+        </video>
+      </div>
+    );
+  }
+
   return (
     <div className="relative mb-4 h-40 w-full overflow-hidden rounded-lg">
       <img

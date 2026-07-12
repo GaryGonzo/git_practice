@@ -17,4 +17,6 @@ export interface Drill {
   };
   targets: DrillTargets;
   caption?: string;
+  /** Direct URL to an instructional video (mp4/webm). Undefined until the drill has one. */
+  videoUrl?: string;
 }

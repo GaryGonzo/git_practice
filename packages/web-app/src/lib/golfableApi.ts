@@ -14,6 +14,7 @@ interface DrillRow {
   target_mid: string;
   target_high: string;
   max_score: number;
+  video_url: string | null;
 }
 
 function toDrill(row: DrillRow): Drill {
@@ -29,6 +30,7 @@ function toDrill(row: DrillRow): Drill {
       mid: row.target_mid,
       high: row.target_high,
     },
+    videoUrl: row.video_url ?? undefined,
   };
 }
 
