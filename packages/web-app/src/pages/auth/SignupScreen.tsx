@@ -65,6 +65,9 @@ export function SignupScreen() {
           We sent a confirmation link to <span className="font-semibold text-neutral-900">{email}</span>. Click it
           to verify your account, then come back and log in.
         </p>
+        <p className="font-body mt-3 text-sm text-neutral-500">
+          Don't see it after a couple minutes? Check your spam or junk folder.
+        </p>
         <Link
           to="/login"
           className="font-label bg-brand mt-6 inline-block rounded-md px-5 py-2.5 text-sm font-semibold text-white"
