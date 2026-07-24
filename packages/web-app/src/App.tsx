@@ -2,11 +2,13 @@ import { Routes, Route } from "react-router-dom";
 import { MarketingHome } from "./pages/MarketingHome";
 import { AppShell } from "./components/AppNav";
 import { RequireAuth } from "./components/RequireAuth";
+import { RequireAdmin } from "./components/RequireAdmin";
 import { TodayScreen } from "./pages/app/TodayScreen";
 import { ProgressScreen } from "./pages/app/ProgressScreen";
 import { LibraryScreen } from "./pages/app/LibraryScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
 import { LeaderboardScreen } from "./pages/app/LeaderboardScreen";
+import { AdminScreen } from "./pages/app/AdminScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
 import { ForgotPasswordScreen } from "./pages/auth/ForgotPasswordScreen";
@@ -35,6 +37,14 @@ function App() {
         <Route path="library/:date" element={<TodayScreen />} />
         <Route path="leaderboard/:drillId/:date" element={<LeaderboardScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
+        <Route
+          path="admin"
+          element={
+            <RequireAdmin>
+              <AdminScreen />
+            </RequireAdmin>
+          }
+        />
       </Route>
       <Route path="*" element={<NotFoundScreen />} />
     </Routes>

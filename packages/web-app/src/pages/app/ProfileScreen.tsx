@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { updateProfile } from "../../lib/golfableApi";
@@ -261,6 +261,15 @@ export function ProfileScreen() {
       >
         Sign out
       </button>
+
+      {profile.is_admin && (
+        <Link
+          to="/app/admin"
+          className="font-label mt-3 block w-full rounded-md border border-neutral-300 px-4 py-2.5 text-center text-sm font-semibold text-neutral-600"
+        >
+          Admin Dashboard
+        </Link>
+      )}
 
       <div className="mt-8 rounded-lg border-2 border-dashed border-neutral-300 bg-white p-5 text-center">
         {surprise ? (

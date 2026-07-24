@@ -12,6 +12,7 @@ export interface Profile {
   created_at: string;
   marketing_opt_in: boolean;
   has_seen_walkthrough: boolean;
+  is_admin: boolean;
 }
 
 interface AuthState {

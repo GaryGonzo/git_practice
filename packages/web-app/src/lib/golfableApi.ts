@@ -266,3 +266,37 @@ export async function getScoreHistory(userId: string): Promise<ScoreHistoryEntry
   }
   return entries;
 }
+
+export interface AdminUserOverview {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  tier: HandicapTier;
+  weeklyGoal: number;
+  marketingOptIn: boolean;
+  createdAt: string;
+  totalScores: number;
+  sessionsThisWeek: number;
+  lastActive: string | null;
+}
+
+// Admin-only: throws if the caller isn't flagged is_admin (enforced
+// server-side in the RPC itself, not just hidden client-side).
+export async function getAdminUserOverview(): Promise<AdminUserOverview[]> {
+  const { data, error } = await supabase.rpc("admin_user_overview");
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+    id: row.id as string,
+    firstName: row.first_name as string,
+    lastName: row.last_name as string,
+    email: row.email as string,
+    tier: row.tier as HandicapTier,
+    weeklyGoal: row.weekly_goal as number,
+    marketingOptIn: row.marketing_opt_in as boolean,
+    createdAt: row.created_at as string,
+    totalScores: Number(row.total_scores),
+    sessionsThisWeek: Number(row.sessions_this_week),
+    lastActive: (row.last_active as string) ?? null,
+  }));
+}
