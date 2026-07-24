@@ -21,7 +21,16 @@ export function AdminScreen() {
       try {
         setUsers(await getAdminUserOverview());
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Couldn't load member data.");
+        // Supabase RPC errors are plain objects, not Error instances --
+        // pull the real message off them instead of always showing a
+        // generic fallback that hides what actually went wrong.
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === "object" && err !== null && "message" in err
+              ? String((err as { message: unknown }).message)
+              : "Couldn't load member data.";
+        setError(message);
       }
       setLoading(false);
     })();
