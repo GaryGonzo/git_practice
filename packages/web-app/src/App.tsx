@@ -3,6 +3,7 @@ import { MarketingHome } from "./pages/MarketingHome";
 import { AppShell } from "./components/AppNav";
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireAdmin } from "./components/RequireAdmin";
+import { HomeScreen } from "./pages/app/HomeScreen";
 import { TodayScreen } from "./pages/app/TodayScreen";
 import { ProgressScreen } from "./pages/app/ProgressScreen";
 import { LibraryScreen } from "./pages/app/LibraryScreen";
@@ -31,7 +32,8 @@ function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<TodayScreen />} />
+        <Route index element={<HomeScreen />} />
+        <Route path="today" element={<TodayScreen />} />
         <Route path="progress" element={<ProgressScreen />} />
         <Route path="library" element={<LibraryScreen />} />
         <Route path="library/:date" element={<TodayScreen />} />

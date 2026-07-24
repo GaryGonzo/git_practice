@@ -7,11 +7,32 @@ import { WelcomeWalkthrough } from "./WelcomeWalkthrough";
 import { WelcomeBackModal } from "./WelcomeBackModal";
 
 const NAV_ITEMS = [
-  { to: "/app", label: "Today", end: true, icon: TodayIcon },
+  { to: "/app", label: "Home", end: true, icon: HomeIcon },
   { to: "/app/progress", label: "Progress", end: false, icon: ProgressIcon },
   { to: "/app/library", label: "Library", end: false, icon: LibraryIcon },
   { to: "/app/profile", label: "Profile", end: false, icon: ProfileIcon },
 ];
+
+export function HomeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4 11.5L12 5l8 6.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 10v8a1 1 0 001 1h10a1 1 0 001-1v-8"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export function TodayIcon({ className }: { className?: string }) {
   return (

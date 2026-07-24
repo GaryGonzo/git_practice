@@ -159,7 +159,7 @@ function CalendarView({
           );
           if (entry && !entry.isFuture) {
             return (
-              <Link key={i} to={entry.isToday ? "/app" : `/app/library/${iso}`}>
+              <Link key={i} to={entry.isToday ? "/app/today" : `/app/library/${iso}`}>
                 {content}
               </Link>
             );

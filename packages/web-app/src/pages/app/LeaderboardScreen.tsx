@@ -58,7 +58,7 @@ export function LeaderboardScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <Link to="/app" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
+      <Link to="/app/today" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
         <BackIcon className="h-4 w-4" />
         Back
       </Link>
