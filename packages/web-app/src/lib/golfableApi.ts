@@ -41,18 +41,52 @@ function oneDrillRow(value: DrillRow | DrillRow[] | null): DrillRow | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
+// The daily Golfable flips over -- and "this week" resets -- at Pacific
+// midnight for every user, regardless of where they're actually playing
+// from, so the whole platform shares one definition of "today."
+const GOLFABLE_TZ = "America/Los_Angeles";
+
+// en-CA formats as YYYY-MM-DD, which is exactly the wall-clock date in the
+// target zone -- no manual offset math needed.
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: GOLFABLE_TZ }).format(new Date());
+}
+
+// Reads the current Pacific wall-clock date/time by formatting `now` into
+// that zone, then constructs a Date whose UTC fields equal those wall-clock
+// values -- a standard trick for doing zone-aware date arithmetic (like
+// "roll back to Monday") without a timezone library.
+function pacificWallClockAsUTC(now: Date): Date {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: GOLFABLE_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  return new Date(
+    Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"))
+  );
 }
 
 function startOfWeekISO(): string {
   const now = new Date();
-  const day = now.getDay(); // 0 = Sunday
+  const wallClock = pacificWallClockAsUTC(now);
+  const offsetMs = now.getTime() - wallClock.getTime();
+
+  const day = wallClock.getUTCDay(); // 0 = Sunday
   const diffToMonday = day === 0 ? 6 : day - 1;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - diffToMonday);
-  monday.setHours(0, 0, 0, 0);
-  return monday.toISOString();
+  const monday = new Date(wallClock);
+  monday.setUTCDate(wallClock.getUTCDate() - diffToMonday);
+  monday.setUTCHours(0, 0, 0, 0);
+
+  // monday is Pacific-midnight-Monday expressed with UTC fields -- add back
+  // the real UTC offset to get the actual instant that moment occurred.
+  return new Date(monday.getTime() + offsetMs).toISOString();
 }
 
 export async function getDrillForDate(date: string): Promise<{ drill: Drill; maxScore: number } | null> {

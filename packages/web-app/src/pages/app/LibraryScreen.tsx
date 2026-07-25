@@ -11,6 +11,11 @@ import {
   type GolfableCalendarEntry,
 } from "../../lib/golfableApi";
 
+function pacificToday(): Date {
+  const [year, month, day] = todayISO().split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 // Cap the Upcoming list at a short, scannable preview -- even once the
 // content calendar is planned out a month or two ahead, the list view
 // stays useful instead of scrolling forever. The Calendar view has no
@@ -109,7 +114,7 @@ function CalendarView({
 }: {
   entries: Map<string, { category: string; completed?: boolean; isToday: boolean; isFuture: boolean }>;
 }) {
-  const now = new Date();
+  const now = pacificToday();
   const year = now.getFullYear();
   const month = now.getMonth();
   const firstWeekday = new Date(year, month, 1).getDay();
