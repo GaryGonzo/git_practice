@@ -1,8 +1,94 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
-import { useAuth } from "../../lib/AuthProvider";
-import { updateProfile } from "../../lib/golfableApi";
+import { useAuth, type Profile } from "../../lib/AuthProvider";
+import { updateProfile, uploadAvatar, getAvatarSignedUrl } from "../../lib/golfableApi";
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+function CameraIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1-1.5h7l1 1.5h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5v-9Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12.5" r="3.25" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function AvatarUploader({ profile, onUploaded }: { profile: Profile; onUploaded: () => Promise<void> }) {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!profile.avatar_path) {
+      setAvatarUrl(null);
+      return;
+    }
+    getAvatarSignedUrl(profile.avatar_path).then((url) => {
+      if (!cancelled) setAvatarUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile.avatar_path]);
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setError("That image is too large -- please choose one under 5MB.");
+      return;
+    }
+
+    setError(null);
+    setUploading(true);
+    try {
+      await uploadAvatar(profile.id, file);
+      await onUploaded();
+    } catch {
+      setError("Couldn't upload that photo -- try again.");
+    }
+    setUploading(false);
+  }
+
+  return (
+    <div className="mt-4 flex flex-col items-center">
+      <label className="relative block h-24 w-24 cursor-pointer">
+        <div className="border-brand/20 h-24 w-24 overflow-hidden rounded-full border-2 bg-neutral-100">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Your profile" className="h-full w-full object-cover" />
+          ) : (
+            <div className="font-display flex h-full w-full items-center justify-center text-2xl text-neutral-400">
+              {profile.first_name.charAt(0)}
+              {profile.last_name.charAt(0)}
+            </div>
+          )}
+        </div>
+        <div className="bg-brand absolute right-0 bottom-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-white">
+          <CameraIcon className="h-4 w-4" />
+        </div>
+        <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
+      </label>
+      <p className="font-body mt-2 text-xs text-neutral-500">
+        {uploading ? "Uploading…" : "Only you can see this photo"}
+      </p>
+      {error && <p className="font-body mt-1 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -117,6 +203,7 @@ export function ProfileScreen() {
     return (
       <div className="mx-auto max-w-md px-4 pt-6 pb-24">
         <h1 className="font-display text-2xl tracking-wide">Edit Profile</h1>
+        <AvatarUploader profile={profile} onUploaded={refreshProfile} />
 
         <form onSubmit={handleSave} className="mt-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -212,6 +299,7 @@ export function ProfileScreen() {
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <h1 className="font-display text-2xl tracking-wide">Profile</h1>
+      <AvatarUploader profile={profile} onUploaded={refreshProfile} />
       <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
         <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
           Name

@@ -13,6 +13,7 @@ export interface Profile {
   marketing_opt_in: boolean;
   has_seen_walkthrough: boolean;
   is_admin: boolean;
+  avatar_path: string | null;
 }
 
 interface AuthState {

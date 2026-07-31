@@ -184,6 +184,25 @@ export async function getTierLeaderboard(
   });
 }
 
+// Unlike getTierLeaderboard, this spans every tier -- the Home screen's
+// "live" leaderboard for whoever has played today's drill, ranked highest
+// score first.
+export async function getGlobalLeaderboard(drillId: string, date: string, limit: number): Promise<LeaderboardEntry[]> {
+  const { data } = await supabase
+    .from("scores")
+    .select("user_id, score, profiles!inner(first_name)")
+    .eq("drill_id", drillId)
+    .eq("date", date)
+    .order("score", { ascending: false })
+    .limit(limit);
+
+  if (!data) return [];
+  return data.map((row) => {
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return { userId: row.user_id as string, firstName: profile.first_name as string, score: row.score as number };
+  });
+}
+
 export interface GolfableCalendarEntry {
   date: string;
   drill: Drill;
@@ -258,6 +277,34 @@ export interface ProfileUpdate {
 export async function updateProfile(userId: string, updates: ProfileUpdate): Promise<void> {
   const { error } = await supabase.from("profiles").update(updates).eq("id", userId);
   if (error) throw error;
+}
+
+// Always the same object key per user (no extension) so re-uploading just
+// overwrites it in place instead of orphaning the old file under a
+// different name -- the correct MIME type still gets served from the
+// contentType set at upload time. The avatars bucket is private and its
+// storage.objects RLS policy scopes every read/write to the caller's own
+// folder, so nobody else can upload here or ever fetch this file back.
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  const path = `${userId}/avatar`;
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (uploadError) throw uploadError;
+
+  const { error: profileError } = await supabase.from("profiles").update({ avatar_path: path }).eq("id", userId);
+  if (profileError) throw profileError;
+
+  return path;
+}
+
+// The bucket is private, so the photo can only ever be fetched through a
+// short-lived signed URL scoped to the requesting user's own RLS access --
+// there is no public URL for it.
+export async function getAvatarSignedUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from("avatars").createSignedUrl(path, 3600);
+  if (error || !data) return null;
+  return data.signedUrl;
 }
 
 export interface ScoreHistoryEntry {

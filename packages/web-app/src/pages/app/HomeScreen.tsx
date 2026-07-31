@@ -4,7 +4,16 @@ import { CATEGORY_INFO } from "@golfable/shared";
 import type { Drill } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
-import { getDrillForDate, getMyScoreForDate, getSessionsThisWeek, todayISO } from "../../lib/golfableApi";
+import {
+  getDrillForDate,
+  getGlobalLeaderboard,
+  getMyScoreForDate,
+  getSessionsThisWeek,
+  todayISO,
+  type LeaderboardEntry,
+} from "../../lib/golfableApi";
+
+const LEADERBOARD_LIMIT = 5;
 
 const CATEGORY_BG: Record<string, string> = {
   driver: "bg-driver",
@@ -28,6 +37,7 @@ export function HomeScreen() {
   const [maxScore, setMaxScore] = useState(0);
   const [score, setScore] = useState<number | null>(null);
   const [sessionsThisWeek, setSessionsThisWeek] = useState(0);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   useEffect(() => {
     if (!profile) return;
@@ -38,8 +48,10 @@ export function HomeScreen() {
         setDrill(found.drill);
         setMaxScore(found.maxScore);
         setScore(await getMyScoreForDate(profile.id, found.drill.id, todayISO()));
+        setLeaderboard(await getGlobalLeaderboard(found.drill.id, todayISO(), LEADERBOARD_LIMIT));
       } else {
         setDrill(null);
+        setLeaderboard([]);
       }
       setSessionsThisWeek(await getSessionsThisWeek(profile.id));
       setLoading(false);
@@ -106,6 +118,55 @@ export function HomeScreen() {
           <p className="font-body text-xs text-neutral-500">See your trend over time</p>
         </Link>
       </div>
+
+      {!loading && drill && (
+        <div className="mt-8">
+          <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+            Live Leaderboard
+          </h2>
+          {leaderboard.length === 0 ? (
+            <div className="rounded-lg border border-neutral-200 bg-white p-6 text-center font-body text-sm text-neutral-500">
+              No scores logged yet today — be the first!
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {leaderboard.map((entry, i) => {
+                const rank = i + 1;
+                const isMe = entry.userId === profile.id;
+                return (
+                  <div
+                    key={entry.userId}
+                    className={`flex items-center gap-3 rounded-lg border p-3 ${
+                      isMe ? "border-brand bg-brand/5" : "border-neutral-200 bg-white"
+                    }`}
+                  >
+                    <div
+                      className={`font-display flex h-7 w-7 flex-none items-center justify-center rounded-full text-sm ${
+                        rank <= 3 ? "bg-gold text-white" : "bg-neutral-100 text-neutral-500"
+                      }`}
+                    >
+                      {rank}
+                    </div>
+                    <p className="font-label min-w-0 flex-1 truncate text-sm font-semibold">
+                      {entry.firstName}
+                      {isMe && <span className="text-brand"> (you)</span>}
+                    </p>
+                    <span className="font-label flex-none rounded-full bg-neutral-100 px-3 py-1 text-sm font-semibold text-neutral-600">
+                      {entry.score}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <Link
+            to={`/app/leaderboard/${drill.id}/${todayISO()}`}
+            className="font-label text-brand mt-3 block text-center text-sm font-semibold"
+          >
+            View Full Leaderboard →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
