@@ -1,15 +1,26 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, Navigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
+import type { HouseholdRole } from "../../types";
+
+const ROLE_COPY: Record<HouseholdRole, { heading: string; emoji: string }> = {
+  wife: { heading: "Create your wife account", emoji: "👰" },
+  husband: { heading: "Create your husband account", emoji: "🤵" },
+};
 
 export function SignupScreen() {
   const navigate = useNavigate();
+  const { role } = useParams<{ role: string }>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+
+  if (role !== "wife" && role !== "husband") {
+    return <Navigate to="/signup" replace />;
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -20,7 +31,7 @@ export function SignupScreen() {
       email,
       password,
       options: {
-        data: { display_name: displayName },
+        data: { display_name: displayName, role },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     });
@@ -59,8 +70,15 @@ export function SignupScreen() {
 
   return (
     <div className="mx-auto max-w-sm px-6 py-16">
-      <h1 className="font-display text-3xl">Create your account</h1>
-      <p className="font-body mt-1 text-sm text-neutral-600">One account per partner, then link up as a household.</p>
+      <h1 className="font-display text-3xl">
+        {ROLE_COPY[role].emoji} {ROLE_COPY[role].heading}
+      </h1>
+      <p className="font-body mt-1 text-sm text-neutral-600">
+        Not the {role === "wife" ? "husband" : "wife"}?{" "}
+        <Link to={`/signup/${role === "wife" ? "husband" : "wife"}`} className="text-brand underline">
+          Switch account type
+        </Link>
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>

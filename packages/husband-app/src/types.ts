@@ -1,11 +1,13 @@
 export type RequestStatus = "pending" | "in_progress" | "done" | "cancelled";
 export type TaskStatus = "open" | "in_progress" | "done";
 export type PreferenceCategory = "coffee" | "starbucks" | "general";
+export type HouseholdRole = "wife" | "husband";
 
 export interface Profile {
   id: string;
   display_name: string;
   avatar_emoji: string;
+  role: HouseholdRole;
   created_at: string;
 }
 

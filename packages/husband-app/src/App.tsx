@@ -9,6 +9,7 @@ import { RequestsScreen } from "./pages/app/RequestsScreen";
 import { TasksScreen } from "./pages/app/TasksScreen";
 import { NotesScreen } from "./pages/app/NotesScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
+import { SignupChooserScreen } from "./pages/auth/SignupChooserScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
 import { NotFoundScreen } from "./pages/NotFoundScreen";
@@ -17,7 +18,8 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<MarketingHome />} />
-      <Route path="/signup" element={<SignupScreen />} />
+      <Route path="/signup" element={<SignupChooserScreen />} />
+      <Route path="/signup/:role" element={<SignupScreen />} />
       <Route path="/login" element={<LoginScreen />} />
       <Route
         path="/app/setup"
