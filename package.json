@@ -6,6 +6,8 @@
   ],
   "scripts": {
     "cards:render": "npm run render --workspace=@golfable/card-generator",
-    "web:dev": "npm run dev --workspace=@golfable/web-app"
+    "web:dev": "npm run dev --workspace=@golfable/web-app",
+    "husband:dev": "npm run dev --workspace=@husband-app/web",
+    "husband:build": "npm run build --workspace=@husband-app/web"
   }
 }

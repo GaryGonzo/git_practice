@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Segoe UI Rounded", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-brand: #c94f7c;
+  --color-brand-dark: #8f3459;
+  --color-brand-light: #fbe8ef;
+  --color-gold: #e0a458;
+  --color-mint: #4f9d8f;
+}
+
+body {
+  font-family: var(--font-body);
+}

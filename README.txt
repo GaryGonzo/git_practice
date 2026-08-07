@@ -1,7 +1,10 @@
+This monorepo hosts two unrelated apps, each its own npm workspace package
+with its own Supabase project. They share nothing but the workspace tooling.
+
 Golfable
 ========
 
-Daily golf skill challenge platform. Monorepo with three packages:
+Daily golf skill challenge platform. Packages:
 
   packages/shared          Brand system + Drill schema (TypeScript types),
                             shared by both packages below.
@@ -51,3 +54,29 @@ Web app
   against a provisioned Supabase project. Stripe checkout session creation
   must happen server-side (a Supabase Edge Function) since it needs the
   secret key — never put that in the web app.
+
+The Husband App
+================
+
+Playful-but-functional app for couples. One partner can send requests
+(coffee, breakfast in bed, light candles, draw a bath...), assign honey-do
+tasks with points attached, and leave standing notes (her usual Starbucks
+order) so a surprise doesn't require asking first.
+
+  packages/husband-app  Full-stack React + Tailwind + Supabase app (its own
+                         Supabase project -- schema in
+                         packages/husband-app/supabase/migrations).
+
+Setup
+-----
+  1. Create a new Supabase project and run
+     packages/husband-app/supabase/migrations/0001_init.sql against it
+     (SQL Editor, or `supabase db push` once the CLI is linked).
+  2. cd packages/husband-app && cp .env.example .env.local, fill in the
+     project's URL + anon key.
+  3. From the repo root: npm run husband:dev
+
+  One account per partner. The first person to sign up creates a household
+  from /app/setup and shares the generated invite code; the second person
+  joins with it. From there both partners see the same requests, tasks,
+  points, and notes.
