@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
 import { completeTask, createTask, deleteTask, listTasks, updateTaskStatus } from "../../lib/api";
-import type { HouseholdTask, TaskStatus } from "../../types";
+import { URGENCY_INFO, sortByUrgency } from "../../lib/askMeta";
+import type { AskUrgency, HouseholdTask, TaskStatus } from "../../types";
 
 type Filter = "for_me" | "from_me" | "all";
 
@@ -30,6 +31,7 @@ export function TasksScreen() {
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState(5);
   const [assignTo, setAssignTo] = useState<string>("");
+  const [urgency, setUrgency] = useState<AskUrgency>("soon");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,10 +75,12 @@ export function TasksScreen() {
         title: title.trim(),
         description: description.trim() || null,
         points,
+        urgency,
       });
       setTitle("");
       setDescription("");
       setPoints(5);
+      setUrgency("soon");
       setShowForm(false);
       await refresh();
     } catch (err) {
@@ -101,11 +105,13 @@ export function TasksScreen() {
     await refresh();
   }
 
-  const filtered = tasks.filter((t) => {
-    if (filter === "for_me") return t.assigned_to === profile.id;
-    if (filter === "from_me") return t.created_by === profile.id;
-    return true;
-  });
+  const filtered = sortByUrgency(
+    tasks.filter((t) => {
+      if (filter === "for_me") return t.assigned_to === profile.id;
+      if (filter === "from_me") return t.created_by === profile.id;
+      return true;
+    })
+  );
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
@@ -181,6 +187,28 @@ export function TasksScreen() {
             </div>
           </div>
 
+          <div>
+            <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              How urgent
+            </label>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {(Object.keys(URGENCY_INFO) as AskUrgency[]).map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => setUrgency(u)}
+                  className={`font-display rounded-md border px-2 py-2 text-xs font-semibold ${
+                    urgency === u ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+                  }`}
+                  title={URGENCY_INFO[u].hint}
+                >
+                  {URGENCY_INFO[u].emoji} {URGENCY_INFO[u].label}
+                </button>
+              ))}
+            </div>
+            <p className="font-body mt-1 text-xs text-neutral-500">{URGENCY_INFO[urgency].hint}</p>
+          </div>
+
           {error && <p className="font-body text-sm text-red-600">{error}</p>}
 
           <button
@@ -223,6 +251,12 @@ export function TasksScreen() {
                   <p className="font-body mt-1 text-xs text-neutral-400">
                     {memberName(t.created_by)} assigned {memberName(t.assigned_to)}
                   </p>
+                  <span
+                    className={`font-display mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${URGENCY_INFO[t.urgency].className}`}
+                    title={URGENCY_INFO[t.urgency].hint}
+                  >
+                    {URGENCY_INFO[t.urgency].emoji} {URGENCY_INFO[t.urgency].label}
+                  </span>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   <span className="font-display rounded-full bg-gold/20 px-2.5 py-1 text-xs font-semibold text-gold">

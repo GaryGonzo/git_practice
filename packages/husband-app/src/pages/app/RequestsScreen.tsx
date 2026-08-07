@@ -8,7 +8,8 @@ import {
   listRequests,
   updateRequestStatus,
 } from "../../lib/api";
-import type { HouseholdRequest, PerkCatalogItem, RequestStatus } from "../../types";
+import { TIER_INFO, URGENCY_INFO, sortByUrgency } from "../../lib/askMeta";
+import type { AskUrgency, HouseholdRequest, PerkCatalogItem, RequestStatus, RequestTier } from "../../types";
 
 type Filter = "for_me" | "from_me" | "all";
 
@@ -39,6 +40,8 @@ export function RequestsScreen() {
   const [customLabel, setCustomLabel] = useState("");
   const [note, setNote] = useState("");
   const [assignTo, setAssignTo] = useState<string>("");
+  const [tier, setTier] = useState<RequestTier>("small");
+  const [urgency, setUrgency] = useState<AskUrgency>("soon");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,10 +86,14 @@ export function RequestsScreen() {
         perkKey: selectedPerk,
         customLabel: selectedPerk ? null : customLabel.trim(),
         note: note.trim() || null,
+        tier,
+        urgency,
       });
       setSelectedPerk(null);
       setCustomLabel("");
       setNote("");
+      setTier("small");
+      setUrgency("soon");
       setShowForm(false);
       await refresh();
     } catch (err) {
@@ -106,11 +113,13 @@ export function RequestsScreen() {
     await refresh();
   }
 
-  const filtered = requests.filter((r) => {
-    if (filter === "for_me") return r.assigned_to === profile.id;
-    if (filter === "from_me") return r.requested_by === profile.id;
-    return true;
-  });
+  const filtered = sortByUrgency(
+    requests.filter((r) => {
+      if (filter === "for_me") return r.assigned_to === profile.id;
+      if (filter === "from_me") return r.requested_by === profile.id;
+      return true;
+    })
+  );
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
@@ -132,7 +141,10 @@ export function RequestsScreen() {
               <button
                 key={item.key}
                 type="button"
-                onClick={() => setSelectedPerk(item.key)}
+                onClick={() => {
+                  setSelectedPerk(item.key);
+                  setTier(item.tier);
+                }}
                 className={`font-display flex flex-col items-center gap-1 rounded-lg border p-2 text-center text-xs font-semibold ${
                   selectedPerk === item.key ? "border-brand bg-brand-light text-brand-dark" : "border-neutral-200 text-neutral-600"
                 }`}
@@ -170,6 +182,48 @@ export function RequestsScreen() {
               onChange={(e) => setNote(e.target.value)}
               className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
             />
+          </div>
+
+          <div>
+            <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              How big an ask
+            </label>
+            <div className="mt-1 grid grid-cols-3 gap-2">
+              {(Object.keys(TIER_INFO) as RequestTier[]).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTier(t)}
+                  className={`font-display rounded-md border px-2 py-2 text-xs font-semibold ${
+                    tier === t ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+                  }`}
+                >
+                  {TIER_INFO[t].emoji} {TIER_INFO[t].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              How urgent
+            </label>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {(Object.keys(URGENCY_INFO) as AskUrgency[]).map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => setUrgency(u)}
+                  className={`font-display rounded-md border px-2 py-2 text-xs font-semibold ${
+                    urgency === u ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+                  }`}
+                  title={URGENCY_INFO[u].hint}
+                >
+                  {URGENCY_INFO[u].emoji} {URGENCY_INFO[u].label}
+                </button>
+              ))}
+            </div>
+            <p className="font-body mt-1 text-xs text-neutral-500">{URGENCY_INFO[urgency].hint}</p>
           </div>
 
           {members.length > 2 && (
@@ -237,6 +291,17 @@ export function RequestsScreen() {
                   <p className="font-body mt-1 text-xs text-neutral-400">
                     {memberName(r.requested_by)} asked {memberName(r.assigned_to)}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className={`font-display rounded-full px-2 py-0.5 text-xs font-semibold ${TIER_INFO[r.tier].className}`}>
+                      {TIER_INFO[r.tier].emoji} {TIER_INFO[r.tier].label}
+                    </span>
+                    <span
+                      className={`font-display rounded-full px-2 py-0.5 text-xs font-semibold ${URGENCY_INFO[r.urgency].className}`}
+                      title={URGENCY_INFO[r.urgency].hint}
+                    >
+                      {URGENCY_INFO[r.urgency].emoji} {URGENCY_INFO[r.urgency].label}
+                    </span>
+                  </div>
                 </div>
                 <span className={`font-display shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[r.status]}`}>
                   {STATUS_LABEL[r.status]}

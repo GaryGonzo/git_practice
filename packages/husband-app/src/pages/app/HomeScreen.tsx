@@ -4,6 +4,7 @@ import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
 import { listPointsLedger, listRequests, listTasks, totalsByMember } from "../../lib/api";
 import { PointsSummary } from "../../components/PointsSummary";
+import { Avatar } from "../../components/Avatar";
 import type { HouseholdRequest, HouseholdTask, PointsLedgerEntry } from "../../types";
 
 export function HomeScreen() {
@@ -35,12 +36,16 @@ export function HomeScreen() {
   const totals = totalsByMember(ledger);
   const myOpenRequests = requests.filter((r) => r.assigned_to === profile.id && (r.status === "pending" || r.status === "in_progress"));
   const myOpenTasks = tasks.filter((t) => t.assigned_to === profile.id && t.status !== "done");
+  const myUrgentCount = [...myOpenRequests, ...myOpenTasks].filter(
+    (item) => item.urgency === "emergency" || item.urgency === "urgent"
+  ).length;
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <p className="font-display text-sm font-semibold tracking-widest text-neutral-500 uppercase">Welcome back</p>
-      <h1 className="font-display text-3xl">
-        {profile.avatar_emoji} {profile.display_name}
+      <h1 className="font-display flex items-center gap-2 text-3xl">
+        <Avatar profile={profile} size={36} />
+        {profile.display_name}
       </h1>
       <p className="font-body mt-1 text-sm text-neutral-500">{household.name}</p>
 
@@ -50,6 +55,14 @@ export function HomeScreen() {
         </div>
       ) : (
         <>
+          {myUrgentCount > 0 && (
+            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-center">
+              <p className="font-display text-sm font-semibold text-red-700">
+                🚨 {myUrgentCount} thing{myUrgentCount === 1 ? "" : "s"} marked urgent or CODE RED. Move.
+              </p>
+            </div>
+          )}
+
           <Link
             to="/app/requests"
             className="mt-6 block rounded-2xl border border-neutral-200 bg-white p-4 active:scale-[0.99]"

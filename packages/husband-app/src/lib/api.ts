@@ -1,12 +1,16 @@
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import type {
+  AskUrgency,
   HouseholdRequest,
   HouseholdTask,
+  Notification,
   PerkCatalogItem,
   PointsLedgerEntry,
   Preference,
   PreferenceCategory,
   RequestStatus,
+  RequestTier,
   TaskStatus,
 } from "../types";
 
@@ -41,6 +45,8 @@ export interface NewRequestInput {
   perkKey?: string | null;
   customLabel?: string | null;
   note?: string | null;
+  tier: RequestTier;
+  urgency: AskUrgency;
 }
 
 export async function createRequest(input: NewRequestInput): Promise<void> {
@@ -51,6 +57,8 @@ export async function createRequest(input: NewRequestInput): Promise<void> {
     perk_key: input.perkKey ?? null,
     custom_label: input.customLabel ?? null,
     note: input.note ?? null,
+    tier: input.tier,
+    urgency: input.urgency,
   });
   if (error) throw error;
 }
@@ -85,6 +93,7 @@ export interface NewTaskInput {
   title: string;
   description?: string | null;
   points: number;
+  urgency: AskUrgency;
 }
 
 export async function createTask(input: NewTaskInput): Promise<void> {
@@ -95,6 +104,7 @@ export async function createTask(input: NewTaskInput): Promise<void> {
     title: input.title,
     description: input.description ?? null,
     points: input.points,
+    urgency: input.urgency,
   });
   if (error) throw error;
 }
@@ -188,4 +198,54 @@ export async function upsertPreference(input: UpsertPreferenceInput): Promise<vo
 export async function deletePreference(id: string): Promise<void> {
   const { error } = await supabase.from("preferences").delete().eq("id", id);
   if (error) throw error;
+}
+
+// Uploads to <userId>/avatar.<ext> with upsert so a re-upload just replaces
+// the existing file rather than accumulating orphaned objects, then stamps
+// a cache-busting query param onto the public URL so the img tag actually
+// picks up the new image instead of a stale browser-cached copy.
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${userId}/avatar.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+  if (uploadError) throw uploadError;
+
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  const url = `${data.publicUrl}?t=${Date.now()}`;
+
+  const { error: updateError } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", userId);
+  if (updateError) throw updateError;
+
+  return url;
+}
+
+export async function listNotifications(recipientId: string, limit = 30): Promise<Notification[]> {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*, actor:profiles!actor_id(display_name, avatar_emoji, avatar_url)")
+    .eq("recipient_id", recipientId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((row) => ({ ...row, actor: oneOrFirst(row.actor) })) as Notification[];
+}
+
+export async function markAllNotificationsRead(recipientId: string): Promise<void> {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("recipient_id", recipientId)
+    .is("read_at", null);
+  if (error) throw error;
+}
+
+export function subscribeToNotifications(recipientId: string, onInsert: (n: Notification) => void): RealtimeChannel {
+  return supabase
+    .channel(`notifications:${recipientId}`)
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${recipientId}` },
+      (payload) => onInsert(payload.new as Notification)
+    )
+    .subscribe();
 }

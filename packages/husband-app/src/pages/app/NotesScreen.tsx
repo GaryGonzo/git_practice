@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
 import { deletePreference, listPreferences, upsertPreference } from "../../lib/api";
+import { Avatar } from "../../components/Avatar";
 import type { Preference, PreferenceCategory } from "../../types";
 
 const CATEGORY_LABEL: Record<PreferenceCategory, string> = {
@@ -174,8 +175,9 @@ export function NotesScreen() {
             if (own.length === 0) return null;
             return (
               <div key={member.id}>
-                <p className="font-display text-sm font-semibold text-neutral-500">
-                  {member.avatar_emoji} {member.id === profile.id ? "Your notes" : `${member.display_name}'s notes`}
+                <p className="font-display flex items-center gap-1.5 text-sm font-semibold text-neutral-500">
+                  <Avatar profile={member} size={18} />
+                  {member.id === profile.id ? "Your notes" : `${member.display_name}'s notes`}
                 </p>
                 <div className="mt-2 space-y-2">
                   {own.map((pref) => (

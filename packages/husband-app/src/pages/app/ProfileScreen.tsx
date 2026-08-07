@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
-import { awardBonusPoints, listPointsLedger, totalsByMember } from "../../lib/api";
+import { awardBonusPoints, listPointsLedger, totalsByMember, uploadAvatar } from "../../lib/api";
 import { PointsSummary } from "../../components/PointsSummary";
+import { Avatar } from "../../components/Avatar";
 import type { PointsLedgerEntry } from "../../types";
 
 export function ProfileScreen() {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, refreshProfile } = useAuth();
   const { household, members, partner } = useHousehold();
   const [ledger, setLedger] = useState<PointsLedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +16,9 @@ export function ProfileScreen() {
   const [bonusPoints, setBonusPoints] = useState(10);
   const [bonusReason, setBonusReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function refresh() {
     if (!household) return;
@@ -56,11 +60,42 @@ export function ProfileScreen() {
     return members.find((m) => m.id === id)?.display_name ?? "Someone";
   }
 
+  async function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file || !profile) return;
+    setPhotoError(null);
+    setUploadingPhoto(true);
+    try {
+      await uploadAvatar(profile.id, file);
+      await refreshProfile();
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "Couldn't upload that photo.");
+    } finally {
+      setUploadingPhoto(false);
+      event.target.value = "";
+    }
+  }
+
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <h1 className="font-display text-3xl">
-        {profile.avatar_emoji} {profile.display_name}
-      </h1>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingPhoto}
+          className="relative shrink-0"
+          aria-label="Change photo"
+        >
+          <Avatar profile={profile} size={56} />
+          <span className="font-display absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-800 text-xs text-white">
+            📷
+          </span>
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+        <h1 className="font-display text-3xl">{profile.display_name}</h1>
+      </div>
+      {uploadingPhoto && <p className="font-body mt-1 text-xs text-neutral-500">Uploading…</p>}
+      {photoError && <p className="font-body mt-1 text-xs text-red-600">{photoError}</p>}
 
       <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
         <p className="font-display text-xs font-semibold tracking-widest text-neutral-500 uppercase">Household</p>

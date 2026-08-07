@@ -1,4 +1,5 @@
 import type { Profile } from "../types";
+import { Avatar } from "./Avatar";
 
 interface Props {
   members: Profile[];
@@ -17,8 +18,9 @@ export function PointsSummary({ members, totals, meId }: Props) {
         return (
           <div key={member.id}>
             <div className="flex items-baseline justify-between">
-              <p className="font-display text-sm font-semibold">
-                {member.avatar_emoji} {member.id === meId ? "You" : member.display_name}
+              <p className="font-display flex items-center gap-1.5 text-sm font-semibold">
+                <Avatar profile={member} size={20} />
+                {member.id === meId ? "You" : member.display_name}
               </p>
               <p className="font-display text-sm font-semibold text-brand">{points} pts</p>
             </div>

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./lib/AuthProvider.tsx";
 import { HouseholdProvider } from "./lib/HouseholdProvider.tsx";
+import { NotificationsProvider } from "./lib/NotificationsProvider.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import App from "./App.tsx";
 import "./index.css";
@@ -13,7 +14,9 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <AuthProvider>
           <HouseholdProvider>
-            <App />
+            <NotificationsProvider>
+              <App />
+            </NotificationsProvider>
           </HouseholdProvider>
         </AuthProvider>
       </BrowserRouter>
