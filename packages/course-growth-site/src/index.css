@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/*
+  Brand system for OGG Course Growth (Oregon Golf Guide's B2B side).
+  Deliberately distinct from the Golfable consumer-app palette elsewhere in this
+  monorepo — this is a separate product line under the same parent brand.
+
+  Type stack uses system serif/sans (no webfont files shipped yet) so the site
+  ships fast with no external font requests; swap in licensed brand fonts later
+  by adding @font-face rules here the same way packages/web-app does.
+*/
+@theme {
+  --font-display: ui-serif, Georgia, "Times New Roman", serif;
+  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-fairway: #16342a;
+  --color-fairway-dark: #0d221b;
+  --color-fairway-light: #2f5c46;
+  --color-gold: #b9862a;
+  --color-gold-light: #d7ab55;
+  --color-cream: #f6f2e8;
+  --color-cream-dark: #ece4d1;
+  --color-sand: #d8cdb0;
+  --color-ink: #1b211d;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+}

@@ -1,18 +1,25 @@
 Golfable
 ========
 
-Daily golf skill challenge platform. Monorepo with three packages:
+Daily golf skill challenge platform. Monorepo with four packages:
 
-  packages/shared          Brand system + Drill schema (TypeScript types),
-                            shared by both packages below.
+  packages/shared           Brand system + Drill schema (TypeScript types),
+                             shared by both packages below.
 
-  packages/card-generator  Renders the 3-card format (Setup, Rules & Scoring,
-                            Targets) for a drill from a JSON data file to
-                            310x388px PNGs, ready to post to TikTok.
+  packages/card-generator   Renders the 3-card format (Setup, Rules & Scoring,
+                             Targets) for a drill from a JSON data file to
+                             310x388px PNGs, ready to post to TikTok.
 
-  packages/web-app         React + Tailwind skeleton for the planned paid
-                            web app (Supabase auth/DB, Stripe billing,
-                            deployed on Vercel).
+  packages/web-app          React + Tailwind skeleton for the planned paid
+                             web app (Supabase auth/DB, Stripe billing,
+                             deployed on Vercel).
+
+  packages/course-growth-site  Marketing site for OGG Course Growth, the
+                             separate B2B service business under Oregon Golf
+                             Guide (done-for-you revenue marketing for golf
+                             courses). Unrelated to the Golfable product;
+                             see packages/course-growth-site/README.md and
+                             docs/course-growth/ for the full business plan.
 
 Setup
 -----
