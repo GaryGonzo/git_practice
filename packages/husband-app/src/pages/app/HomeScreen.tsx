@@ -5,7 +5,12 @@ import { useHousehold } from "../../lib/HouseholdProvider";
 import { listPointsLedger, listRequests, listTasks, pointsSummaryForMember, totalsByMember } from "../../lib/api";
 import { PointsSummary } from "../../components/PointsSummary";
 import { Avatar } from "../../components/Avatar";
+import { WelcomeTour } from "../../components/WelcomeTour";
 import type { HouseholdRequest, HouseholdTask, PointsLedgerEntry } from "../../types";
+
+function welcomeKey(profileId: string): string {
+  return `husband-app:welcomed:${profileId}`;
+}
 
 export function HomeScreen() {
   const { profile } = useAuth();
@@ -14,6 +19,7 @@ export function HomeScreen() {
   const [ledger, setLedger] = useState<PointsLedgerEntry[]>([]);
   const [requests, setRequests] = useState<HouseholdRequest[]>([]);
   const [tasks, setTasks] = useState<HouseholdTask[]>([]);
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     if (!household) return;
@@ -30,6 +36,18 @@ export function HomeScreen() {
       setLoading(false);
     })();
   }, [household]);
+
+  useEffect(() => {
+    if (!profile) return;
+    if (!localStorage.getItem(welcomeKey(profile.id))) {
+      setShowTour(true);
+    }
+  }, [profile]);
+
+  function dismissTour() {
+    if (profile) localStorage.setItem(welcomeKey(profile.id), "1");
+    setShowTour(false);
+  }
 
   if (!profile || !household) return null;
 
@@ -53,6 +71,7 @@ export function HomeScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
+      {showTour && <WelcomeTour onDone={dismissTour} />}
       <p className="font-display text-sm font-semibold tracking-widest text-neutral-500 uppercase">Welcome back</p>
       <h1 className="font-display flex items-center gap-2 text-3xl">
         <Avatar profile={profile} size={36} />

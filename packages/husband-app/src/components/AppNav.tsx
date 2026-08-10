@@ -15,8 +15,11 @@ export function AppShell() {
   const { unreadCount } = useNotifications();
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-20">
-      <div className="flex items-center justify-between border-b border-neutral-200 bg-white px-4 py-3">
+    <div className="min-h-screen bg-neutral-50 pb-24">
+      <div
+        className="flex items-center justify-between border-b border-neutral-200 bg-white px-4 py-3"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
         <p className="font-display text-sm font-semibold text-neutral-600">{household?.name}</p>
         <Link to="/app/notifications" className="relative rounded-full p-1.5 text-xl" aria-label="Notifications">
           🔔
@@ -28,7 +31,10 @@ export function AppShell() {
         </Link>
       </div>
       <Outlet />
-      <nav className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white">
+      <nav
+        className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         <div className="mx-auto flex max-w-md">
           {NAV_ITEMS.map(({ to, label, end, emoji }) => (
             <NavLink

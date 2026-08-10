@@ -83,12 +83,19 @@ const FAQS = [
     q: "What if I want something that's not on the request menu?",
     a: "Every request has a free-text option, so you're never limited to the built-in list of coffee, breakfast in bed, candles, and a bath.",
   },
+  {
+    q: "Is this an app? Do I need to download it?",
+    a: "There's nothing to download from an app store -- The Husband App runs right in your phone's browser. To get an app-like icon on your home screen: on iPhone, open this site in Safari, tap the Share icon, then \"Add to Home Screen.\" On Android, open it in Chrome, tap the ⋮ menu, then \"Add to Home screen\" (or \"Install app\"). Either way you'll get a real icon that launches full-screen, just like a downloaded app.",
+  },
 ];
 
 export function MarketingHome() {
   return (
     <div className="text-neutral-900">
-      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur">
+      <header
+        className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 backdrop-blur"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link to="/" className="font-display text-lg font-semibold">
             💛 The Husband App
