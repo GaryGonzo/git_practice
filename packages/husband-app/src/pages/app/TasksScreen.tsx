@@ -1,9 +1,19 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
-import { completeTask, createTask, deleteTask, listTasks, updateTaskStatus } from "../../lib/api";
+import {
+  completeTask,
+  createTask,
+  declineTask,
+  deleteTask,
+  listCustomAskTemplates,
+  listTasks,
+  saveCustomAskTemplate,
+  updateTaskStatus,
+} from "../../lib/api";
 import { URGENCY_INFO, sortByUrgency } from "../../lib/askMeta";
-import type { AskUrgency, HouseholdTask, TaskStatus } from "../../types";
+import { guessEmoji } from "../../lib/emojiGuess";
+import type { AskUrgency, CustomAskTemplate, HouseholdTask, TaskStatus } from "../../types";
 
 type Filter = "for_me" | "from_me" | "all";
 
@@ -11,18 +21,25 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
   open: "Open",
   in_progress: "In progress",
   done: "Done",
+  declined: "Declined",
 };
 
 const STATUS_COLOR: Record<TaskStatus, string> = {
   open: "bg-amber-100 text-amber-800",
   in_progress: "bg-blue-100 text-blue-800",
   done: "bg-green-100 text-green-800",
+  declined: "bg-red-100 text-red-700",
 };
+
+function isTerminal(status: TaskStatus): boolean {
+  return status === "done" || status === "declined";
+}
 
 export function TasksScreen() {
   const { profile } = useAuth();
   const { household, members, partner } = useHousehold();
   const [tasks, setTasks] = useState<HouseholdTask[]>([]);
+  const [templates, setTemplates] = useState<CustomAskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("for_me");
   const [showForm, setShowForm] = useState(false);
@@ -35,9 +52,17 @@ export function TasksScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [decliningId, setDecliningId] = useState<string | null>(null);
+  const [declineNote, setDeclineNote] = useState("");
+
   async function refresh() {
     if (!household) return;
-    setTasks(await listTasks(household.id));
+    const [t, templatesList] = await Promise.all([
+      listTasks(household.id),
+      listCustomAskTemplates(household.id, "task"),
+    ]);
+    setTasks(t);
+    setTemplates(templatesList);
     setLoading(false);
   }
 
@@ -61,7 +86,8 @@ export function TasksScreen() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!profile || !household) return;
-    if (!title.trim()) {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
       setError("Give the task a title.");
       return;
     }
@@ -72,11 +98,22 @@ export function TasksScreen() {
         householdId: household.id,
         createdBy: profile.id,
         assignedTo: assignTo || null,
-        title: title.trim(),
+        title: trimmedTitle,
         description: description.trim() || null,
         points,
         urgency,
       });
+      try {
+        await saveCustomAskTemplate({
+          householdId: household.id,
+          kind: "task",
+          label: trimmedTitle,
+          emoji: guessEmoji(trimmedTitle),
+          points,
+        });
+      } catch {
+        // Convenience only -- the task itself already saved above.
+      }
       setTitle("");
       setDescription("");
       setPoints(5);
@@ -105,6 +142,13 @@ export function TasksScreen() {
     await refresh();
   }
 
+  async function handleDecline(id: string) {
+    await declineTask(id, declineNote.trim() || null);
+    setDecliningId(null);
+    setDeclineNote("");
+    await refresh();
+  }
+
   const filtered = sortByUrgency(
     tasks.filter((t) => {
       if (filter === "for_me") return t.assigned_to === profile.id;
@@ -128,6 +172,31 @@ export function TasksScreen() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 rounded-2xl border border-neutral-200 bg-white p-4">
+          {templates.length > 0 && (
+            <div>
+              <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                Your usual tasks
+              </label>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {templates.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      setTitle(t.label);
+                      if (t.points != null) setPoints(t.points);
+                    }}
+                    className={`font-display rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                      title === t.label ? "border-brand bg-brand-light text-brand-dark" : "border-neutral-200 text-neutral-600"
+                    }`}
+                  >
+                    {t.emoji} {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
               Title
@@ -251,6 +320,9 @@ export function TasksScreen() {
                   <p className="font-body mt-1 text-xs text-neutral-400">
                     {memberName(t.created_by)} assigned {memberName(t.assigned_to)}
                   </p>
+                  {t.status === "declined" && t.decline_note && (
+                    <p className="font-body mt-1 text-xs text-red-600">Declined: "{t.decline_note}"</p>
+                  )}
                   <span
                     className={`font-display mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${URGENCY_INFO[t.urgency].className}`}
                     title={URGENCY_INFO[t.urgency].hint}
@@ -268,35 +340,75 @@ export function TasksScreen() {
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {t.status === "open" && (t.assigned_to === profile.id || !t.assigned_to) && (
-                  <button
-                    type="button"
-                    onClick={() => handleStart(t.id)}
-                    className="font-display rounded-full bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-800"
-                  >
-                    Start
-                  </button>
-                )}
-                {t.status !== "done" && (
-                  <button
-                    type="button"
-                    onClick={() => handleComplete(t.id)}
-                    className="font-display rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
-                  >
-                    Mark done
-                  </button>
-                )}
-                {t.created_by === profile.id && (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(t.id)}
-                    className="font-display rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
+              {decliningId === t.id ? (
+                <div className="mt-3 space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Reason (optional) -- already left for work, etc."
+                    value={declineNote}
+                    onChange={(e) => setDeclineNote(e.target.value)}
+                    className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDecline(t.id)}
+                      className="font-display flex-1 rounded-full bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"
+                    >
+                      Confirm decline
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDecliningId(null);
+                        setDeclineNote("");
+                      }}
+                      className="font-display flex-1 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
+                    >
+                      Never mind
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {t.status === "open" && (t.assigned_to === profile.id || !t.assigned_to) && (
+                    <button
+                      type="button"
+                      onClick={() => handleStart(t.id)}
+                      className="font-display rounded-full bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-800"
+                    >
+                      Start
+                    </button>
+                  )}
+                  {!isTerminal(t.status) && (
+                    <button
+                      type="button"
+                      onClick={() => handleComplete(t.id)}
+                      className="font-display rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
+                    >
+                      Mark done
+                    </button>
+                  )}
+                  {(t.assigned_to === profile.id || !t.assigned_to) && !isTerminal(t.status) && (
+                    <button
+                      type="button"
+                      onClick={() => setDecliningId(t.id)}
+                      className="font-display rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
+                    >
+                      Decline
+                    </button>
+                  )}
+                  {t.created_by === profile.id && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(t.id)}
+                      className="font-display rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))
         )}

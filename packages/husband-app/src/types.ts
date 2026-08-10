@@ -1,10 +1,19 @@
-export type RequestStatus = "pending" | "in_progress" | "done" | "cancelled";
-export type TaskStatus = "open" | "in_progress" | "done";
+export type RequestStatus = "pending" | "in_progress" | "done" | "cancelled" | "declined";
+export type TaskStatus = "open" | "in_progress" | "done" | "declined";
 export type PreferenceCategory = "coffee" | "starbucks" | "general";
 export type HouseholdRole = "wife" | "husband";
 export type RequestTier = "small" | "medium" | "large";
 export type AskUrgency = "whenever" | "soon" | "urgent" | "emergency";
-export type NotificationKind = "request_created" | "request_done" | "task_created" | "task_done" | "bonus_points";
+export type CustomAskKind = "request" | "task";
+export type NotificationKind =
+  | "request_created"
+  | "request_done"
+  | "request_declined"
+  | "task_created"
+  | "task_done"
+  | "task_declined"
+  | "bonus_points"
+  | "reward_redeemed";
 
 export interface Profile {
   id: string;
@@ -41,6 +50,7 @@ export interface HouseholdRequest {
   status: RequestStatus;
   tier: RequestTier;
   urgency: AskUrgency;
+  decline_note: string | null;
   created_at: string;
   completed_at: string | null;
   perk_catalog: { label: string; emoji: string } | null;
@@ -56,6 +66,7 @@ export interface HouseholdTask {
   points: number;
   status: TaskStatus;
   urgency: AskUrgency;
+  decline_note: string | null;
   created_at: string;
   completed_at: string | null;
 }
@@ -93,4 +104,37 @@ export interface Notification {
   created_at: string;
   read_at: string | null;
   actor: { display_name: string; avatar_emoji: string; avatar_url: string | null } | null;
+}
+
+export interface CustomAskTemplate {
+  id: string;
+  household_id: string;
+  created_by: string;
+  kind: CustomAskKind;
+  label: string;
+  emoji: string;
+  points: number | null;
+  tier: RequestTier | null;
+  use_count: number;
+  created_at: string;
+}
+
+export interface Reward {
+  id: string;
+  household_id: string;
+  created_by: string;
+  label: string;
+  emoji: string;
+  point_cost: number;
+  created_at: string;
+}
+
+export interface RewardRedemption {
+  id: string;
+  household_id: string;
+  reward_id: string | null;
+  redeemed_by: string;
+  label: string;
+  points_spent: number;
+  created_at: string;
 }

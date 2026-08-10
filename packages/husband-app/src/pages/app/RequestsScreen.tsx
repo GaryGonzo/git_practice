@@ -3,13 +3,17 @@ import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
 import {
   createRequest,
+  declineRequest,
   deleteRequest,
   getPerkCatalog,
+  listCustomAskTemplates,
   listRequests,
+  saveCustomAskTemplate,
   updateRequestStatus,
 } from "../../lib/api";
 import { TIER_INFO, URGENCY_INFO, sortByUrgency } from "../../lib/askMeta";
-import type { AskUrgency, HouseholdRequest, PerkCatalogItem, RequestStatus, RequestTier } from "../../types";
+import { guessEmoji } from "../../lib/emojiGuess";
+import type { AskUrgency, CustomAskTemplate, HouseholdRequest, PerkCatalogItem, RequestStatus, RequestTier } from "../../types";
 
 type Filter = "for_me" | "from_me" | "all";
 
@@ -18,6 +22,7 @@ const STATUS_LABEL: Record<RequestStatus, string> = {
   in_progress: "In progress",
   done: "Done",
   cancelled: "Cancelled",
+  declined: "Declined",
 };
 
 const STATUS_COLOR: Record<RequestStatus, string> = {
@@ -25,13 +30,19 @@ const STATUS_COLOR: Record<RequestStatus, string> = {
   in_progress: "bg-blue-100 text-blue-800",
   done: "bg-green-100 text-green-800",
   cancelled: "bg-neutral-200 text-neutral-600",
+  declined: "bg-red-100 text-red-700",
 };
+
+function isTerminal(status: RequestStatus): boolean {
+  return status === "done" || status === "cancelled" || status === "declined";
+}
 
 export function RequestsScreen() {
   const { profile } = useAuth();
   const { household, members, partner } = useHousehold();
   const [requests, setRequests] = useState<HouseholdRequest[]>([]);
   const [catalog, setCatalog] = useState<PerkCatalogItem[]>([]);
+  const [templates, setTemplates] = useState<CustomAskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("for_me");
   const [showForm, setShowForm] = useState(false);
@@ -45,11 +56,19 @@ export function RequestsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [decliningId, setDecliningId] = useState<string | null>(null);
+  const [declineNote, setDeclineNote] = useState("");
+
   async function refresh() {
     if (!household) return;
-    const [r, c] = await Promise.all([listRequests(household.id), getPerkCatalog()]);
+    const [r, c, t] = await Promise.all([
+      listRequests(household.id),
+      getPerkCatalog(),
+      listCustomAskTemplates(household.id, "request"),
+    ]);
     setRequests(r);
     setCatalog(c);
+    setTemplates(t);
     setLoading(false);
   }
 
@@ -72,7 +91,8 @@ export function RequestsScreen() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!profile || !household) return;
-    if (!selectedPerk && !customLabel.trim()) {
+    const trimmedLabel = customLabel.trim();
+    if (!selectedPerk && !trimmedLabel) {
       setError("Pick something from the menu or describe what you'd like.");
       return;
     }
@@ -84,11 +104,25 @@ export function RequestsScreen() {
         requestedBy: profile.id,
         assignedTo: assignTo,
         perkKey: selectedPerk,
-        customLabel: selectedPerk ? null : customLabel.trim(),
+        customLabel: selectedPerk ? null : trimmedLabel,
         note: note.trim() || null,
         tier,
         urgency,
       });
+      if (!selectedPerk && trimmedLabel) {
+        try {
+          await saveCustomAskTemplate({
+            householdId: household.id,
+            kind: "request",
+            label: trimmedLabel,
+            emoji: guessEmoji(trimmedLabel),
+            tier,
+          });
+        } catch {
+          // Saving the quick-pick template is a convenience, not critical --
+          // the request itself already went through above.
+        }
+      }
       setSelectedPerk(null);
       setCustomLabel("");
       setNote("");
@@ -110,6 +144,13 @@ export function RequestsScreen() {
 
   async function handleDelete(id: string) {
     await deleteRequest(id);
+    await refresh();
+  }
+
+  async function handleDecline(id: string) {
+    await declineRequest(id, declineNote.trim() || null);
+    setDecliningId(null);
+    setDeclineNote("");
     await refresh();
   }
 
@@ -143,6 +184,7 @@ export function RequestsScreen() {
                 type="button"
                 onClick={() => {
                   setSelectedPerk(item.key);
+                  setCustomLabel("");
                   setTier(item.tier);
                 }}
                 className={`font-display flex flex-col items-center gap-1 rounded-lg border p-2 text-center text-xs font-semibold ${
@@ -154,6 +196,32 @@ export function RequestsScreen() {
               </button>
             ))}
           </div>
+
+          {templates.length > 0 && (
+            <div>
+              <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                Your usual asks
+              </label>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {templates.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPerk(null);
+                      setCustomLabel(t.label);
+                      if (t.tier) setTier(t.tier);
+                    }}
+                    className={`font-display rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                      customLabel === t.label ? "border-brand bg-brand-light text-brand-dark" : "border-neutral-200 text-neutral-600"
+                    }`}
+                  >
+                    {t.emoji} {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
@@ -291,6 +359,9 @@ export function RequestsScreen() {
                   <p className="font-body mt-1 text-xs text-neutral-400">
                     {memberName(r.requested_by)} asked {memberName(r.assigned_to)}
                   </p>
+                  {r.status === "declined" && r.decline_note && (
+                    <p className="font-body mt-1 text-xs text-red-600">Declined: "{r.decline_note}"</p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <span className={`font-display rounded-full px-2 py-0.5 text-xs font-semibold ${TIER_INFO[r.tier].className}`}>
                       {TIER_INFO[r.tier].emoji} {TIER_INFO[r.tier].label}
@@ -308,44 +379,84 @@ export function RequestsScreen() {
                 </span>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {r.assigned_to === profile.id && r.status === "pending" && (
-                  <button
-                    type="button"
-                    onClick={() => handleStatus(r.id, "in_progress")}
-                    className="font-display rounded-full bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-800"
-                  >
-                    Start
-                  </button>
-                )}
-                {r.assigned_to === profile.id && r.status !== "done" && r.status !== "cancelled" && (
-                  <button
-                    type="button"
-                    onClick={() => handleStatus(r.id, "done")}
-                    className="font-display rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
-                  >
-                    Mark done
-                  </button>
-                )}
-                {(r.assigned_to === profile.id || r.requested_by === profile.id) && r.status !== "done" && r.status !== "cancelled" && (
-                  <button
-                    type="button"
-                    onClick={() => handleStatus(r.id, "cancelled")}
-                    className="font-display rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
-                  >
-                    Cancel
-                  </button>
-                )}
-                {r.requested_by === profile.id && (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(r.id)}
-                    className="font-display rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
+              {decliningId === r.id ? (
+                <div className="mt-3 space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Reason (optional)"
+                    value={declineNote}
+                    onChange={(e) => setDeclineNote(e.target.value)}
+                    className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDecline(r.id)}
+                      className="font-display flex-1 rounded-full bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"
+                    >
+                      Confirm decline
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDecliningId(null);
+                        setDeclineNote("");
+                      }}
+                      className="font-display flex-1 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
+                    >
+                      Never mind
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {r.assigned_to === profile.id && r.status === "pending" && (
+                    <button
+                      type="button"
+                      onClick={() => handleStatus(r.id, "in_progress")}
+                      className="font-display rounded-full bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-800"
+                    >
+                      Start
+                    </button>
+                  )}
+                  {r.assigned_to === profile.id && !isTerminal(r.status) && (
+                    <button
+                      type="button"
+                      onClick={() => handleStatus(r.id, "done")}
+                      className="font-display rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
+                    >
+                      Mark done
+                    </button>
+                  )}
+                  {r.assigned_to === profile.id && !isTerminal(r.status) && (
+                    <button
+                      type="button"
+                      onClick={() => setDecliningId(r.id)}
+                      className="font-display rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
+                    >
+                      Decline
+                    </button>
+                  )}
+                  {(r.assigned_to === profile.id || r.requested_by === profile.id) && !isTerminal(r.status) && (
+                    <button
+                      type="button"
+                      onClick={() => handleStatus(r.id, "cancelled")}
+                      className="font-display rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  {r.requested_by === profile.id && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(r.id)}
+                      className="font-display rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))
         )}

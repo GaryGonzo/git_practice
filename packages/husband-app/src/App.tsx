@@ -9,6 +9,7 @@ import { RequestsScreen } from "./pages/app/RequestsScreen";
 import { TasksScreen } from "./pages/app/TasksScreen";
 import { NotesScreen } from "./pages/app/NotesScreen";
 import { NotificationsScreen } from "./pages/app/NotificationsScreen";
+import { RewardsScreen } from "./pages/app/RewardsScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
 import { SignupChooserScreen } from "./pages/auth/SignupChooserScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
@@ -45,6 +46,7 @@ function App() {
         <Route path="tasks" element={<TasksScreen />} />
         <Route path="notes" element={<NotesScreen />} />
         <Route path="notifications" element={<NotificationsScreen />} />
+        <Route path="rewards" element={<RewardsScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
       </Route>
       <Route path="*" element={<NotFoundScreen />} />

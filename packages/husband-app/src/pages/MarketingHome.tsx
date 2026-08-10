@@ -45,16 +45,19 @@ const SCENARIOS = [
   {
     emoji: "🌅",
     title: "Tuesday morning",
-    body: "She taps \"Coffee\" and adds a note — oat milk latte, extra hot. He gets the alert, already knows exactly what to make, and it's in her hands before she's out of the shower.",
+    image: "https://picsum.photos/seed/morning-coffee-cup/640/420",
+    body: "She taps \"Coffee\" and adds a note — oat milk latte, extra hot. He gets the alert, already knows exactly what to make, and it's in her hands before she's even out of bed.",
   },
   {
     emoji: "🎉",
     title: "No occasion at all",
+    image: "https://picsum.photos/seed/surprise-flowers-gift/640/420",
     body: "He wants to surprise her with her Starbucks order but has never actually asked what it is. He opens Notes, finds it saved from months ago, and orders it on the way home.",
   },
   {
     emoji: "🧺",
     title: "Sunday chores",
+    image: "https://picsum.photos/seed/laundry-basket-home/640/420",
     body: "She adds \"Fold the laundry\" and \"Take the dog to the vet\" to the list with points attached. He clears both, taps done, and the scoreboard updates.",
   },
 ];
@@ -74,7 +77,7 @@ const FAQS = [
   },
   {
     q: "What happens to the points?",
-    a: "They add up on a running scoreboard visible to both of you. There's no store to redeem them yet — for now it's bragging rights, plus a clear record of who's been pulling their weight.",
+    a: "They're the husband's to redeem. The two of you set up rewards together — anything from \"make a sandwich\" or \"golf with the boys\" to something a lot more playful — each with a point cost attached. Once he's earned enough, he cashes one in, and it's logged for you both to see.",
   },
   {
     q: "What if I want something that's not on the request menu?",
@@ -118,8 +121,9 @@ export function MarketingHome() {
             <p className="font-display text-sm font-semibold tracking-widest text-brand uppercase">For couples</p>
             <h1 className="font-display mt-2 text-5xl">The Husband App</h1>
             <p className="font-body mt-4 text-lg text-neutral-600">
-              Order coffee, breakfast in bed, or a lit candle. Assign a honey-do task and rack up points. Keep her
-              standing coffee order on hand so a surprise never starts with a question. Playful, helpful, married.
+              Send a request — coffee, breakfast in bed, a lit candle. Assign a task, and earn points toward rewards
+              you both set up. Keep your partner's standing order on hand so a surprise never starts with a question.
+              Playful, helpful, married.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link to="/signup" className="font-display bg-brand rounded-full px-6 py-3 text-sm font-semibold text-white">
@@ -132,6 +136,12 @@ export function MarketingHome() {
                 Log in
               </Link>
             </div>
+            <img
+              src="https://picsum.photos/seed/husband-app-hero-couple/1200/500"
+              alt=""
+              loading="lazy"
+              className="mt-12 h-56 w-full rounded-2xl object-cover sm:h-72"
+            />
           </div>
         </section>
 
@@ -169,10 +179,18 @@ export function MarketingHome() {
           <h2 className="font-display text-center text-3xl">A few ways it plays out</h2>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {SCENARIOS.map((scenario) => (
-              <div key={scenario.title} className="rounded-2xl border border-neutral-200 bg-white p-6">
-                <p className="text-3xl">{scenario.emoji}</p>
-                <p className="font-display mt-3 text-base font-semibold">{scenario.title}</p>
-                <p className="font-body mt-1 text-sm text-neutral-600">{scenario.body}</p>
+              <div key={scenario.title} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+                <img
+                  src={scenario.image}
+                  alt=""
+                  loading="lazy"
+                  className="h-40 w-full object-cover"
+                />
+                <div className="p-6">
+                  <p className="text-3xl">{scenario.emoji}</p>
+                  <p className="font-display mt-3 text-base font-semibold">{scenario.title}</p>
+                  <p className="font-body mt-1 text-sm text-neutral-600">{scenario.body}</p>
+                </div>
               </div>
             ))}
           </div>

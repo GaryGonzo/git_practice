@@ -2,6 +2,8 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import type {
   AskUrgency,
+  CustomAskKind,
+  CustomAskTemplate,
   HouseholdRequest,
   HouseholdTask,
   Notification,
@@ -11,6 +13,8 @@ import type {
   PreferenceCategory,
   RequestStatus,
   RequestTier,
+  Reward,
+  RewardRedemption,
   TaskStatus,
 } from "../types";
 
@@ -76,6 +80,11 @@ export async function deleteRequest(requestId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function declineRequest(requestId: string, note?: string | null): Promise<void> {
+  const { error } = await supabase.rpc("decline_request", { target_request_id: requestId, note: note ?? null });
+  if (error) throw error;
+}
+
 export async function listTasks(householdId: string): Promise<HouseholdTask[]> {
   const { data, error } = await supabase
     .from("tasks")
@@ -124,6 +133,11 @@ export async function deleteTask(taskId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function declineTask(taskId: string, note?: string | null): Promise<void> {
+  const { error } = await supabase.rpc("decline_task", { target_task_id: taskId, note: note ?? null });
+  if (error) throw error;
+}
+
 export async function listPointsLedger(householdId: string): Promise<PointsLedgerEntry[]> {
   const { data, error } = await supabase
     .from("points_ledger")
@@ -140,6 +154,26 @@ export function totalsByMember(entries: PointsLedgerEntry[]): Map<string, number
     totals.set(entry.member_id, (totals.get(entry.member_id) ?? 0) + entry.points);
   }
   return totals;
+}
+
+export interface PointsSummary {
+  earned: number;
+  redeemed: number;
+  available: number;
+}
+
+// Splits a member's ledger into lifetime earned vs. lifetime redeemed,
+// since "available" alone can't be shown as a running total on its own --
+// redemptions are negative entries in the same ledger.
+export function pointsSummaryForMember(entries: PointsLedgerEntry[], memberId: string): PointsSummary {
+  let earned = 0;
+  let redeemed = 0;
+  for (const entry of entries) {
+    if (entry.member_id !== memberId) continue;
+    if (entry.points > 0) earned += entry.points;
+    else redeemed += -entry.points;
+  }
+  return { earned, redeemed, available: earned - redeemed };
 }
 
 export async function awardBonusPoints(
@@ -248,4 +282,85 @@ export function subscribeToNotifications(recipientId: string, onInsert: (n: Noti
       (payload) => onInsert(payload.new as Notification)
     )
     .subscribe();
+}
+
+export async function listCustomAskTemplates(householdId: string, kind: CustomAskKind): Promise<CustomAskTemplate[]> {
+  const { data, error } = await supabase
+    .from("custom_ask_templates")
+    .select("*")
+    .eq("household_id", householdId)
+    .eq("kind", kind)
+    .order("use_count", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export interface SaveCustomAskTemplateInput {
+  householdId: string;
+  kind: CustomAskKind;
+  label: string;
+  emoji: string;
+  points?: number | null;
+  tier?: RequestTier | null;
+}
+
+export async function saveCustomAskTemplate(input: SaveCustomAskTemplateInput): Promise<void> {
+  const { error } = await supabase.rpc("upsert_custom_ask_template", {
+    target_household_id: input.householdId,
+    target_kind: input.kind,
+    target_label: input.label,
+    target_emoji: input.emoji,
+    target_points: input.points ?? null,
+    target_tier: input.tier ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function listRewards(householdId: string): Promise<Reward[]> {
+  const { data, error } = await supabase
+    .from("rewards")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("point_cost", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export interface NewRewardInput {
+  householdId: string;
+  createdBy: string;
+  label: string;
+  emoji: string;
+  pointCost: number;
+}
+
+export async function createReward(input: NewRewardInput): Promise<void> {
+  const { error } = await supabase.from("rewards").insert({
+    household_id: input.householdId,
+    created_by: input.createdBy,
+    label: input.label,
+    emoji: input.emoji,
+    point_cost: input.pointCost,
+  });
+  if (error) throw error;
+}
+
+export async function deleteReward(rewardId: string): Promise<void> {
+  const { error } = await supabase.from("rewards").delete().eq("id", rewardId);
+  if (error) throw error;
+}
+
+export async function redeemReward(rewardId: string): Promise<void> {
+  const { error } = await supabase.rpc("redeem_reward", { target_reward_id: rewardId });
+  if (error) throw error;
+}
+
+export async function listRedemptions(householdId: string): Promise<RewardRedemption[]> {
+  const { data, error } = await supabase
+    .from("reward_redemptions")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
 }
