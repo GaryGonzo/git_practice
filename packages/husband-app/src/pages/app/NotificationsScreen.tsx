@@ -5,9 +5,12 @@ import { Avatar } from "../../components/Avatar";
 const KIND_EMOJI: Record<string, string> = {
   request_created: "☕",
   request_done: "✅",
+  request_declined: "🙅",
   task_created: "📋",
   task_done: "🏆",
+  task_declined: "🙅",
   bonus_points: "🎁",
+  reward_redeemed: "🎉",
 };
 
 function timeAgo(iso: string): string {
