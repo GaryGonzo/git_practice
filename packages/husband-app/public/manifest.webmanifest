@@ -8,9 +8,9 @@
   "background_color": "#fbe8ef",
   "theme_color": "#c94f7c",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "https://raw.githubusercontent.com/GaryGonzo/git_practice/8e06503b9982e95502410933c1c00c8accb85e9e/packages/husband-app/public/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "https://raw.githubusercontent.com/GaryGonzo/git_practice/8e06503b9982e95502410933c1c00c8accb85e9e/packages/husband-app/public/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "https://raw.githubusercontent.com/GaryGonzo/git_practice/8e06503b9982e95502410933c1c00c8accb85e9e/packages/husband-app/public/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "https://raw.githubusercontent.com/GaryGonzo/git_practice/8e06503b9982e95502410933c1c00c8accb85e9e/packages/husband-app/public/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
