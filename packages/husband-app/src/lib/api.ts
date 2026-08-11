@@ -15,7 +15,9 @@ import type {
   RequestStatus,
   RequestTier,
   Reward,
+  RewardCatalogItem,
   RewardRedemption,
+  TaskCatalogItem,
   TaskStatus,
 } from "../types";
 
@@ -26,6 +28,18 @@ function oneOrFirst<T>(value: T | T[] | null): T | null {
 
 export async function getPerkCatalog(): Promise<PerkCatalogItem[]> {
   const { data, error } = await supabase.from("perk_catalog").select("*").order("sort_order");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getTaskCatalog(): Promise<TaskCatalogItem[]> {
+  const { data, error } = await supabase.from("task_catalog").select("*").order("sort_order");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getRewardCatalog(): Promise<RewardCatalogItem[]> {
+  const { data, error } = await supabase.from("reward_catalog").select("*").order("sort_order");
   if (error) throw error;
   return data ?? [];
 }

@@ -17,6 +17,7 @@ import { TIER_INFO, URGENCY_INFO, sortByUrgency } from "../../lib/askMeta";
 import { guessEmoji } from "../../lib/emojiGuess";
 import { getRoleCopy } from "../../lib/roleCopy";
 import { SectionIntro } from "../../components/SectionIntro";
+import { CREATE_NEW_KEY, PresetList, type PresetListItem } from "../../components/PresetList";
 import type { AskUrgency, CustomAskTemplate, HouseholdRequest, PerkCatalogItem, RequestStatus, RequestTier } from "../../types";
 
 type Filter = "for_me" | "from_me" | "all";
@@ -49,8 +50,6 @@ function errorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-const DEFAULT_POINTS_BY_TIER: Record<RequestTier, number> = { small: 5, medium: 10, large: 20 };
-
 export function RequestsScreen() {
   const { profile } = useAuth();
   const { household, members, partner } = useHousehold();
@@ -61,13 +60,14 @@ export function RequestsScreen() {
   const [filter, setFilter] = useState<Filter>("for_me");
   const [showForm, setShowForm] = useState(false);
 
+  const [pickerKey, setPickerKey] = useState<string | null>(null);
   const [selectedPerk, setSelectedPerk] = useState<string | null>(null);
   const [customLabel, setCustomLabel] = useState("");
   const [note, setNote] = useState("");
   const [assignTo, setAssignTo] = useState<string>("");
   const [tier, setTier] = useState<RequestTier>("small");
   const [urgency, setUrgency] = useState<AskUrgency>("soon");
-  const [points, setPoints] = useState(DEFAULT_POINTS_BY_TIER.small);
+  const [points, setPoints] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -108,12 +108,46 @@ export function RequestsScreen() {
     return members.find((m) => m.id === id)?.display_name ?? "Someone";
   }
 
+  function handlePickNew() {
+    setPickerKey(CREATE_NEW_KEY);
+    setSelectedPerk(null);
+    setCustomLabel("");
+    setTier("small");
+    setPoints("");
+  }
+
+  function handlePickItem(item: PresetListItem) {
+    setPickerKey(item.key);
+    if (item.key.startsWith("tpl:")) {
+      const tpl = templates.find((t) => `tpl:${t.id}` === item.key);
+      setSelectedPerk(null);
+      setCustomLabel(item.label);
+      setTier(tpl?.tier ?? "small");
+      setPoints(tpl?.points ?? "");
+    } else {
+      const catalogItem = catalog.find((c) => c.key === item.key);
+      setSelectedPerk(item.key);
+      setCustomLabel("");
+      setTier(catalogItem?.tier ?? "small");
+      const remembered = templates.find((t) => t.label === item.label);
+      setPoints(remembered?.points ?? "");
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!profile || !household) return;
     const trimmedLabel = customLabel.trim();
-    if (!selectedPerk && !trimmedLabel) {
-      setError("Pick something from the menu or describe what you'd like.");
+    if (!pickerKey) {
+      setError("Pick something from the list.");
+      return;
+    }
+    if (pickerKey === CREATE_NEW_KEY && !trimmedLabel) {
+      setError("Describe what you'd like.");
+      return;
+    }
+    if (points === "" || points <= 0) {
+      setError("Set how many points this is worth.");
       return;
     }
     setError(null);
@@ -147,12 +181,13 @@ export function RequestsScreen() {
         // Saving/updating the remembered template is a convenience, not
         // critical -- the request itself already went through above.
       }
+      setPickerKey(null);
       setSelectedPerk(null);
       setCustomLabel("");
       setNote("");
       setTier("small");
       setUrgency("soon");
-      setPoints(DEFAULT_POINTS_BY_TIER.small);
+      setPoints("");
       setShowForm(false);
       await refresh();
     } catch (err) {
@@ -224,6 +259,12 @@ export function RequestsScreen() {
     })
   );
 
+  const catalogLabels = new Set(catalog.map((c) => c.label));
+  const pickerItems: PresetListItem[] = [
+    ...catalog.map((c) => ({ key: c.key, label: c.label, emoji: c.emoji })),
+    ...templates.filter((t) => !catalogLabels.has(t.label)).map((t) => ({ key: `tpl:${t.id}`, label: t.label, emoji: t.emoji })),
+  ];
+
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <SectionIntro
@@ -251,71 +292,33 @@ export function RequestsScreen() {
 
       {profile.role === "wife" && showForm && (
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 rounded-2xl border border-neutral-200 bg-white p-4">
-          <div className="grid grid-cols-4 gap-2">
-            {catalog.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => {
-                  setSelectedPerk(item.key);
-                  setCustomLabel("");
-                  setTier(item.tier);
-                  const remembered = templates.find((t) => t.label === item.label);
-                  setPoints(remembered?.points ?? DEFAULT_POINTS_BY_TIER[item.tier]);
-                }}
-                className={`font-display flex flex-col items-center gap-1 rounded-lg border p-2 text-center text-xs font-semibold ${
-                  selectedPerk === item.key ? "border-brand bg-brand-light text-brand-dark" : "border-neutral-200 text-neutral-600"
-                }`}
-              >
-                <span className="text-xl">{item.emoji}</span>
-                {item.label}
-              </button>
-            ))}
+          <div>
+            <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              What is it
+            </label>
+            <div className="mt-1">
+              <PresetList term="request" items={pickerItems} selectedKey={pickerKey} onSelectNew={handlePickNew} onSelectItem={handlePickItem} />
+            </div>
           </div>
 
-          {templates.length > 0 && (
+          {pickerKey === CREATE_NEW_KEY && (
             <div>
               <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-                Your usual asks
+                Describe it
               </label>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {templates.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedPerk(null);
-                      setCustomLabel(t.label);
-                      if (t.tier) setTier(t.tier);
-                      setPoints(t.points ?? DEFAULT_POINTS_BY_TIER[t.tier ?? "small"]);
-                    }}
-                    className={`font-display rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                      customLabel === t.label ? "border-brand bg-brand-light text-brand-dark" : "border-neutral-200 text-neutral-600"
-                    }`}
-                  >
-                    {t.emoji} {t.label}
-                  </button>
-                ))}
-              </div>
+              <input
+                type="text"
+                placeholder="Surprise me..."
+                value={customLabel}
+                onChange={(e) => setCustomLabel(e.target.value)}
+                className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+                autoFocus
+              />
             </div>
           )}
 
-          <div>
-            <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-              Or something else
-            </label>
-            <input
-              type="text"
-              placeholder="Surprise me..."
-              value={customLabel}
-              onChange={(e) => {
-                setCustomLabel(e.target.value);
-                if (e.target.value) setSelectedPerk(null);
-              }}
-              className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
-            />
-          </div>
-
+          {pickerKey && (
+          <>
           <div>
             <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
               Note (optional)
@@ -356,9 +359,10 @@ export function RequestsScreen() {
             <input
               type="number"
               min={1}
-              max={100}
+              max={100000}
               value={points}
-              onChange={(e) => setPoints(Number(e.target.value))}
+              onChange={(e) => setPoints(e.target.value === "" ? "" : Number(e.target.value))}
+              placeholder="How much is this worth?"
               className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
             />
             <p className="font-body mt-1 text-xs text-neutral-500">
@@ -407,6 +411,8 @@ export function RequestsScreen() {
                   ))}
               </select>
             </div>
+          )}
+          </>
           )}
 
           {error && <p className="font-body text-sm text-red-600">{error}</p>}
@@ -478,7 +484,7 @@ export function RequestsScreen() {
                       <input
                         type="number"
                         min={1}
-                        max={100}
+                        max={100000}
                         value={editPointsValue}
                         onChange={(e) => setEditPointsValue(Number(e.target.value))}
                         className="font-body w-14 rounded-md border border-neutral-300 px-1.5 py-0.5 text-xs"

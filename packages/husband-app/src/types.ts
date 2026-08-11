@@ -4,7 +4,7 @@ export type PreferenceCategory = "coffee" | "starbucks" | "general";
 export type HouseholdRole = "wife" | "husband";
 export type RequestTier = "small" | "medium" | "large";
 export type AskUrgency = "whenever" | "soon" | "urgent" | "emergency";
-export type CustomAskKind = "request" | "task";
+export type CustomAskKind = "request" | "task" | "reward";
 export type RewardStatus = "pending" | "active";
 export type NotificationKind =
   | "request_created"
@@ -42,6 +42,20 @@ export interface PerkCatalogItem {
   emoji: string;
   sort_order: number;
   tier: RequestTier;
+}
+
+export interface TaskCatalogItem {
+  key: string;
+  label: string;
+  emoji: string;
+  sort_order: number;
+}
+
+export interface RewardCatalogItem {
+  key: string;
+  label: string;
+  emoji: string;
+  sort_order: number;
 }
 
 export interface HouseholdRequest {

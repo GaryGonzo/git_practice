@@ -6,6 +6,7 @@ import {
   createTask,
   declineTask,
   deleteTask,
+  getTaskCatalog,
   listCustomAskTemplates,
   listTasks,
   saveCustomAskTemplate,
@@ -15,7 +16,8 @@ import { URGENCY_INFO, sortByUrgency } from "../../lib/askMeta";
 import { guessEmoji } from "../../lib/emojiGuess";
 import { getRoleCopy } from "../../lib/roleCopy";
 import { SectionIntro } from "../../components/SectionIntro";
-import type { AskUrgency, CustomAskTemplate, HouseholdTask, TaskStatus } from "../../types";
+import { CREATE_NEW_KEY, PresetList, type PresetListItem } from "../../components/PresetList";
+import type { AskUrgency, CustomAskTemplate, HouseholdTask, TaskCatalogItem, TaskStatus } from "../../types";
 
 type Filter = "for_me" | "from_me" | "all";
 
@@ -49,14 +51,16 @@ export function TasksScreen() {
   const { profile } = useAuth();
   const { household, members, partner } = useHousehold();
   const [tasks, setTasks] = useState<HouseholdTask[]>([]);
+  const [catalog, setCatalog] = useState<TaskCatalogItem[]>([]);
   const [templates, setTemplates] = useState<CustomAskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("for_me");
   const [showForm, setShowForm] = useState(false);
 
+  const [pickerKey, setPickerKey] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [points, setPoints] = useState(5);
+  const [points, setPoints] = useState<number | "">("");
   const [assignTo, setAssignTo] = useState<string>("");
   const [urgency, setUrgency] = useState<AskUrgency>("soon");
   const [submitting, setSubmitting] = useState(false);
@@ -68,11 +72,13 @@ export function TasksScreen() {
 
   async function refresh() {
     if (!household) return;
-    const [t, templatesList] = await Promise.all([
+    const [t, c, templatesList] = await Promise.all([
       listTasks(household.id),
+      getTaskCatalog(),
       listCustomAskTemplates(household.id, "task"),
     ]);
     setTasks(t);
+    setCatalog(c);
     setTemplates(templatesList);
     setLoading(false);
   }
@@ -96,12 +102,33 @@ export function TasksScreen() {
     return members.find((m) => m.id === id)?.display_name ?? "Someone";
   }
 
+  function handlePickNew() {
+    setPickerKey(CREATE_NEW_KEY);
+    setTitle("");
+    setPoints("");
+  }
+
+  function handlePickItem(item: PresetListItem) {
+    setPickerKey(item.key);
+    setTitle(item.label);
+    const remembered = templates.find((t) => t.label === item.label);
+    setPoints(remembered?.points ?? "");
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!profile || !household) return;
     const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
+    if (!pickerKey) {
+      setError("Pick something from the list.");
+      return;
+    }
+    if (pickerKey === CREATE_NEW_KEY && !trimmedTitle) {
       setError("Give the task a title.");
+      return;
+    }
+    if (points === "" || points <= 0) {
+      setError("Set how many points this is worth.");
       return;
     }
     setError(null);
@@ -127,9 +154,10 @@ export function TasksScreen() {
       } catch {
         // Convenience only -- the task itself already saved above.
       }
+      setPickerKey(null);
       setTitle("");
       setDescription("");
-      setPoints(5);
+      setPoints("");
       setUrgency("soon");
       setShowForm(false);
       await refresh();
@@ -191,6 +219,12 @@ export function TasksScreen() {
     })
   );
 
+  const catalogLabels = new Set(catalog.map((c) => c.label));
+  const pickerItems: PresetListItem[] = [
+    ...catalog.map((c) => ({ key: c.key, label: c.label, emoji: c.emoji })),
+    ...templates.filter((t) => !catalogLabels.has(t.label)).map((t) => ({ key: `tpl:${t.id}`, label: t.label, emoji: t.emoji })),
+  ];
+
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <SectionIntro
@@ -216,44 +250,33 @@ export function TasksScreen() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 rounded-2xl border border-neutral-200 bg-white p-4">
-          {templates.length > 0 && (
+          <div>
+            <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              What is it
+            </label>
+            <div className="mt-1">
+              <PresetList term="to-do" items={pickerItems} selectedKey={pickerKey} onSelectNew={handlePickNew} onSelectItem={handlePickItem} />
+            </div>
+          </div>
+
+          {pickerKey === CREATE_NEW_KEY && (
             <div>
               <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-                Your usual tasks
+                Title
               </label>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {templates.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      setTitle(t.label);
-                      if (t.points != null) setPoints(t.points);
-                    }}
-                    className={`font-display rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                      title === t.label ? "border-brand bg-brand-light text-brand-dark" : "border-neutral-200 text-neutral-600"
-                    }`}
-                  >
-                    {t.emoji} {t.label}
-                  </button>
-                ))}
-              </div>
+              <input
+                type="text"
+                placeholder="Take out the garbage"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+                autoFocus
+              />
             </div>
           )}
 
-          <div>
-            <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-              Title
-            </label>
-            <input
-              type="text"
-              placeholder="Take out the garbage"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
-            />
-          </div>
-
+          {pickerKey && (
+          <>
           <div>
             <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
               Details (optional)
@@ -274,10 +297,11 @@ export function TasksScreen() {
               </label>
               <input
                 type="number"
-                min={0}
-                max={100}
+                min={1}
+                max={100000}
                 value={points}
-                onChange={(e) => setPoints(Number(e.target.value))}
+                onChange={(e) => setPoints(e.target.value === "" ? "" : Number(e.target.value))}
+                placeholder="Worth?"
                 className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
               />
             </div>
@@ -299,6 +323,9 @@ export function TasksScreen() {
               </select>
             </div>
           </div>
+          <p className="font-body -mt-2 text-xs text-neutral-500">
+            Remembered for next time -- edit it later if you want to change what it's worth.
+          </p>
 
           <div>
             <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
@@ -321,6 +348,8 @@ export function TasksScreen() {
             </div>
             <p className="font-body mt-1 text-xs text-neutral-500">{URGENCY_INFO[urgency].hint}</p>
           </div>
+          </>
+          )}
 
           {error && <p className="font-body text-sm text-red-600">{error}</p>}
 

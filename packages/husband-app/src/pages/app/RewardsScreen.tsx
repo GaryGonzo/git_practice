@@ -5,17 +5,21 @@ import {
   approveReward,
   createReward,
   deleteReward,
+  getRewardCatalog,
+  listCustomAskTemplates,
   listPointsLedger,
   listRedemptions,
   listRewards,
   pointsSummaryForMember,
   redeemReward,
+  saveCustomAskTemplate,
   updateReward,
 } from "../../lib/api";
 import { guessEmoji } from "../../lib/emojiGuess";
 import { getRoleCopy } from "../../lib/roleCopy";
 import { SectionIntro } from "../../components/SectionIntro";
-import type { PointsLedgerEntry, Reward, RewardRedemption } from "../../types";
+import { CREATE_NEW_KEY, PresetList, type PresetListItem } from "../../components/PresetList";
+import type { CustomAskTemplate, PointsLedgerEntry, Reward, RewardCatalogItem, RewardRedemption } from "../../types";
 
 function timeAgo(iso: string): string {
   const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
@@ -31,14 +35,17 @@ export function RewardsScreen() {
   const { profile } = useAuth();
   const { household, members } = useHousehold();
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [catalog, setCatalog] = useState<RewardCatalogItem[]>([]);
+  const [templates, setTemplates] = useState<CustomAskTemplate[]>([]);
   const [redemptions, setRedemptions] = useState<RewardRedemption[]>([]);
   const [ledger, setLedger] = useState<PointsLedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
+  const [pickerKey, setPickerKey] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [emoji, setEmoji] = useState("🎁");
-  const [pointCost, setPointCost] = useState(25);
+  const [pointCost, setPointCost] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
@@ -50,12 +57,16 @@ export function RewardsScreen() {
 
   async function refresh() {
     if (!household) return;
-    const [r, red, l] = await Promise.all([
+    const [r, c, tpl, red, l] = await Promise.all([
       listRewards(household.id),
+      getRewardCatalog(),
+      listCustomAskTemplates(household.id, "reward"),
       listRedemptions(household.id),
       listPointsLedger(household.id),
     ]);
     setRewards(r);
+    setCatalog(c);
+    setTemplates(tpl);
     setRedemptions(red);
     setLedger(l);
     setLoading(false);
@@ -79,12 +90,35 @@ export function RewardsScreen() {
     return members.find((m) => m.id === id)?.display_name ?? "Someone";
   }
 
+  function handlePickNew() {
+    setPickerKey(CREATE_NEW_KEY);
+    setLabel("");
+    setEmoji("🎁");
+    setPointCost("");
+  }
+
+  function handlePickItem(item: PresetListItem) {
+    setPickerKey(item.key);
+    setLabel(item.label);
+    setEmoji(item.emoji);
+    const remembered = templates.find((t) => t.label === item.label);
+    setPointCost(remembered?.points ?? "");
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!profile || !household) return;
     const trimmed = label.trim();
-    if (!trimmed || pointCost <= 0) {
-      setError("Give the reward a name and a point cost above zero.");
+    if (!pickerKey) {
+      setError("Pick something from the list.");
+      return;
+    }
+    if (pickerKey === CREATE_NEW_KEY && !trimmed) {
+      setError("Give the reward a name.");
+      return;
+    }
+    if (pointCost === "" || pointCost <= 0) {
+      setError("Set how many points this is worth.");
       return;
     }
     setError(null);
@@ -97,9 +131,21 @@ export function RewardsScreen() {
         emoji,
         pointCost,
       });
+      try {
+        await saveCustomAskTemplate({
+          householdId: household.id,
+          kind: "reward",
+          label: trimmed,
+          emoji,
+          points: pointCost,
+        });
+      } catch {
+        // Convenience only -- the reward itself already saved above.
+      }
+      setPickerKey(null);
       setLabel("");
       setEmoji("🎁");
-      setPointCost(25);
+      setPointCost("");
       setShowForm(false);
       await refresh();
     } catch (err) {
@@ -161,6 +207,12 @@ export function RewardsScreen() {
     }
   }
 
+  const catalogLabels = new Set(catalog.map((c) => c.label));
+  const pickerItems: PresetListItem[] = [
+    ...catalog.map((c) => ({ key: c.key, label: c.label, emoji: c.emoji })),
+    ...templates.filter((t) => !catalogLabels.has(t.label)).map((t) => ({ key: `tpl:${t.id}`, label: t.label, emoji: t.emoji })),
+  ];
+
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <SectionIntro
@@ -206,49 +258,69 @@ export function RewardsScreen() {
             <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
               What is it
             </label>
-            <input
-              type="text"
-              placeholder="Make a sandwich, golf with the boys..."
-              value={label}
-              onChange={(e) => {
-                setLabel(e.target.value);
-                setEmoji(guessEmoji(e.target.value));
-              }}
-              className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
-            />
+            <div className="mt-1">
+              <PresetList term="reward" items={pickerItems} selectedKey={pickerKey} onSelectNew={handlePickNew} onSelectItem={handlePickItem} />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-                Emoji
-              </label>
-              <input
-                type="text"
-                value={emoji}
-                onChange={(e) => setEmoji(e.target.value)}
-                className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-center text-lg"
-              />
+          {pickerKey === CREATE_NEW_KEY && (
+            <div className="grid grid-cols-4 gap-2">
+              <div>
+                <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                  Emoji
+                </label>
+                <input
+                  type="text"
+                  value={emoji}
+                  onChange={(e) => setEmoji(e.target.value)}
+                  className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-center text-lg"
+                />
+              </div>
+              <div className="col-span-3">
+                <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                  Name it
+                </label>
+                <input
+                  type="text"
+                  placeholder="Make a sandwich, golf with the boys..."
+                  value={label}
+                  onChange={(e) => {
+                    setLabel(e.target.value);
+                    setEmoji(guessEmoji(e.target.value));
+                  }}
+                  className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+                  autoFocus
+                />
+              </div>
             </div>
-            <div>
-              <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-                Point cost
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={1000}
-                value={pointCost}
-                onChange={(e) => setPointCost(Number(e.target.value))}
-                className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
-              />
-            </div>
+          )}
+
+          {pickerKey && (
+          <>
+          <div>
+            <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              Point cost
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={100000}
+              value={pointCost}
+              onChange={(e) => setPointCost(e.target.value === "" ? "" : Number(e.target.value))}
+              placeholder="Worth?"
+              className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+            />
+            <p className="font-body mt-1 text-xs text-neutral-500">
+              Remembered for next time -- edit it later if you want to change what it's worth.
+            </p>
           </div>
 
           {profile.role === "husband" && (
             <p className="font-body text-xs text-neutral-500">
               She'll need to approve this before you can claim it.
             </p>
+          )}
+          </>
           )}
 
           <button
@@ -290,7 +362,7 @@ export function RewardsScreen() {
                     <input
                       type="number"
                       min={1}
-                      max={1000}
+                      max={100000}
                       value={editPointCost}
                       onChange={(e) => setEditPointCost(Number(e.target.value))}
                       className="font-body w-24 rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
