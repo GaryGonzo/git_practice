@@ -19,9 +19,11 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 const URL_BY_KIND: Record<string, string> = {
   request_created: "/app/requests",
+  request_started: "/app/requests",
   request_done: "/app/requests",
   request_declined: "/app/requests",
   task_created: "/app/tasks",
+  task_started: "/app/tasks",
   task_done: "/app/tasks",
   task_declined: "/app/tasks",
   bonus_points: "/app/rewards",

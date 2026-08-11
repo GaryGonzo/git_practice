@@ -7,9 +7,11 @@ export type AskUrgency = "whenever" | "soon" | "urgent" | "emergency";
 export type CustomAskKind = "request" | "task";
 export type NotificationKind =
   | "request_created"
+  | "request_started"
   | "request_done"
   | "request_declined"
   | "task_created"
+  | "task_started"
   | "task_done"
   | "task_declined"
   | "bonus_points"
