@@ -21,6 +21,11 @@ const FEATURES = [
     title: "Points",
     body: "Every completed task adds to a running score. Award bonus points anytime, for anything — it's a scoreboard for being a good partner.",
   },
+  {
+    emoji: "🎁",
+    title: "Rewards",
+    body: "Set up standing rewards together, or redeem points on a special one-off request dreamed up in the moment — nothing has to be planned in advance.",
+  },
 ];
 
 const STEPS = [
@@ -77,7 +82,7 @@ const FAQS = [
   },
   {
     q: "What happens to the points?",
-    a: "They're the husband's to redeem. The two of you set up rewards together — anything from \"make a sandwich\" or \"golf with the boys\" to something a lot more playful — each with a point cost attached. Once he's earned enough, he cashes one in, and it's logged for you both to see.",
+    a: "They're the husband's to redeem. The two of you set up standing rewards together — anything from \"make a sandwich\" or \"golf with the boys\" to something a lot more playful — each with a point cost attached. Rewards don't have to be planned ahead of time, either -- either of you can add a brand new one on the spot as a special one-off request. Once he's earned enough, he cashes one in, and it's logged for you both to see.",
   },
   {
     q: "What if I want something that's not on the request menu?",
