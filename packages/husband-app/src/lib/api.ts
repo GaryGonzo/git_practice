@@ -165,14 +165,6 @@ export async function listPointsLedger(householdId: string): Promise<PointsLedge
   return data ?? [];
 }
 
-export function totalsByMember(entries: PointsLedgerEntry[]): Map<string, number> {
-  const totals = new Map<string, number>();
-  for (const entry of entries) {
-    totals.set(entry.member_id, (totals.get(entry.member_id) ?? 0) + entry.points);
-  }
-  return totals;
-}
-
 export interface PointsSummary {
   earned: number;
   redeemed: number;

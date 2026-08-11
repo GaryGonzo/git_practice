@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
-import { awardBonusPoints, listPointsLedger, totalsByMember, uploadAvatar } from "../../lib/api";
-import { PointsSummary } from "../../components/PointsSummary";
+import { awardBonusPoints, listPointsLedger, pointsSummaryForMember, uploadAvatar } from "../../lib/api";
 import { Avatar } from "../../components/Avatar";
 import { getExistingSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "../../lib/push";
 import { InstallReminder } from "../../components/InstallReminder";
@@ -27,6 +26,7 @@ export function ProfileScreen() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
+  const [bonusError, setBonusError] = useState<string | null>(null);
 
   useEffect(() => {
     getExistingSubscription().then((sub) => setPushEnabled(Boolean(sub)));
@@ -64,7 +64,8 @@ export function ProfileScreen() {
 
   if (!profile || !household) return null;
 
-  const totals = totalsByMember(ledger);
+  const husband = members.find((m) => m.role === "husband");
+  const husbandSummary = husband ? pointsSummaryForMember(ledger, husband.id) : null;
 
   async function handleCopy() {
     await navigator.clipboard.writeText(household!.invite_code);
@@ -76,11 +77,14 @@ export function ProfileScreen() {
     event.preventDefault();
     if (!partner || !bonusReason.trim()) return;
     setSubmitting(true);
+    setBonusError(null);
     try {
       await awardBonusPoints(household!.id, partner.id, bonusPoints, bonusReason.trim());
       setBonusReason("");
       setShowBonus(false);
       await refresh();
+    } catch (err) {
+      setBonusError(err instanceof Error ? err.message : "Couldn't send those points.");
     } finally {
       setSubmitting(false);
     }
@@ -152,11 +156,15 @@ export function ProfileScreen() {
 
       <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
         <p className="font-display text-xs font-semibold tracking-widest text-neutral-500 uppercase">Points</p>
-        <div className="mt-3">
-          <PointsSummary members={members} totals={totals} meId={profile.id} />
-        </div>
+        {husband && husbandSummary && (
+          <p className="font-body mt-2 text-sm text-neutral-700">
+            {husband.id === profile.id ? "You've" : `${husband.display_name} has`} earned{" "}
+            <span className="font-semibold text-brand">{husbandSummary.earned}</span> points overall, with{" "}
+            <span className="font-semibold text-brand">{husbandSummary.available}</span> available to redeem.
+          </p>
+        )}
 
-        {partner && (
+        {profile.role === "wife" && partner && (
           <div className="mt-4">
             {!showBonus ? (
               <button
@@ -185,6 +193,7 @@ export function ProfileScreen() {
                     className="font-body rounded-md border border-neutral-300 px-3 py-2"
                   />
                 </div>
+                {bonusError && <p className="font-body text-xs text-red-600">{bonusError}</p>}
                 <div className="flex gap-2">
                   <button
                     type="submit"
@@ -195,7 +204,10 @@ export function ProfileScreen() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowBonus(false)}
+                    onClick={() => {
+                      setShowBonus(false);
+                      setBonusError(null);
+                    }}
                     className="font-display flex-1 rounded-full bg-neutral-100 px-4 py-2 text-sm font-semibold text-neutral-600"
                   >
                     Cancel

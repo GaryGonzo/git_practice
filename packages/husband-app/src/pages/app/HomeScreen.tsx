@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
-import { listPointsLedger, listRequests, listTasks, pointsSummaryForMember, totalsByMember } from "../../lib/api";
-import { PointsSummary } from "../../components/PointsSummary";
+import { listPointsLedger, listRequests, listTasks, pointsSummaryForMember } from "../../lib/api";
 import { Avatar } from "../../components/Avatar";
 import { WelcomeTour } from "../../components/WelcomeTour";
 import { getRoleCopy } from "../../lib/roleCopy";
@@ -53,7 +52,6 @@ export function HomeScreen() {
   if (!profile || !household) return null;
 
   const copy = getRoleCopy(profile.role);
-  const totals = totalsByMember(ledger);
   const husband = members.find((m) => m.role === "husband");
   const husbandAvailable = husband ? pointsSummaryForMember(ledger, husband.id).available : 0;
 
@@ -146,9 +144,6 @@ export function HomeScreen() {
 
           <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
             <p className="font-display text-xs font-semibold tracking-widest text-neutral-500 uppercase">Points</p>
-            <div className="mt-3">
-              <PointsSummary members={members} totals={totals} meId={profile.id} />
-            </div>
             {husband && (
               <Link
                 to="/app/rewards"

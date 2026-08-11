@@ -2,10 +2,12 @@
 -- column (the original request's note, e.g. "oat milk latte, extra hot") --
 -- inside the function body, bare "note" was ambiguous between the two,
 -- so every decline on a request has always failed with "column reference
--- "note" is ambiguous". Renaming the parameter fixes it; the client call
--- is updated to match.
+-- "note" is ambiguous". Postgres won't let create-or-replace rename a
+-- parameter, so the old signature has to be dropped first.
 
-create or replace function decline_request(target_request_id uuid, decline_reason text default null)
+drop function if exists decline_request(uuid, text);
+
+create function decline_request(target_request_id uuid, decline_reason text default null)
 returns requests
 language plpgsql
 security definer set search_path = public
