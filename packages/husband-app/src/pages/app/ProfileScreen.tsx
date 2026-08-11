@@ -5,6 +5,7 @@ import { useHousehold } from "../../lib/HouseholdProvider";
 import { awardBonusPoints, listPointsLedger, totalsByMember, uploadAvatar } from "../../lib/api";
 import { PointsSummary } from "../../components/PointsSummary";
 import { Avatar } from "../../components/Avatar";
+import { getExistingSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "../../lib/push";
 import type { PointsLedgerEntry } from "../../types";
 
 const ADMIN_EMAIL = "garygonzo.gg@gmail.com";
@@ -22,6 +23,32 @@ export function ProfileScreen() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getExistingSubscription().then((sub) => setPushEnabled(Boolean(sub)));
+  }, []);
+
+  async function handleTogglePush() {
+    if (!profile) return;
+    setPushBusy(true);
+    setPushError(null);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
+      } else {
+        await subscribeToPush(profile.id);
+        setPushEnabled(true);
+      }
+    } catch (err) {
+      setPushError(err instanceof Error ? err.message : "Couldn't update notifications.");
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function refresh() {
     if (!household) return;
@@ -170,6 +197,32 @@ export function ProfileScreen() {
               </form>
             )}
           </div>
+        )}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
+        <p className="font-display text-xs font-semibold tracking-widest text-neutral-500 uppercase">Notifications</p>
+        {isPushSupported() ? (
+          <>
+            <p className="font-body mt-1 text-sm text-neutral-600">
+              {pushEnabled ? "🔔 On -- you'll be notified the moment something needs you." : "Off -- turn these on so you never miss a request."}
+            </p>
+            <button
+              type="button"
+              onClick={handleTogglePush}
+              disabled={pushBusy}
+              className={`font-display mt-3 w-full rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60 ${
+                pushEnabled ? "bg-neutral-100 text-neutral-600" : "bg-brand text-white"
+              }`}
+            >
+              {pushBusy ? "Working…" : pushEnabled ? "Turn off notifications" : "🔔 Turn on notifications"}
+            </button>
+            {pushError && <p className="font-body mt-2 text-xs text-red-600">{pushError}</p>}
+          </>
+        ) : (
+          <p className="font-body mt-1 text-sm text-neutral-500">
+            On an iPhone, add this app to your Home Screen first (Share → Add to Home Screen), then come back here.
+          </p>
         )}
       </div>
 

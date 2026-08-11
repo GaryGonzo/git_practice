@@ -71,7 +71,7 @@ export function HomeScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      {showTour && <WelcomeTour onDone={dismissTour} />}
+      {showTour && <WelcomeTour onDone={dismissTour} memberId={profile.id} />}
       <p className="font-display text-sm font-semibold tracking-widest text-neutral-500 uppercase">Welcome back</p>
       <h1 className="font-display flex items-center gap-2 text-3xl">
         <Avatar profile={profile} size={36} />

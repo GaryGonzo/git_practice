@@ -374,3 +374,28 @@ export async function listAllUsers(): Promise<AdminUserRow[]> {
   if (error) throw error;
   return data ?? [];
 }
+
+export interface SavePushSubscriptionInput {
+  memberId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
+export async function savePushSubscription(input: SavePushSubscriptionInput): Promise<void> {
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      member_id: input.memberId,
+      endpoint: input.endpoint,
+      p256dh: input.p256dh,
+      auth: input.auth,
+    },
+    { onConflict: "endpoint" }
+  );
+  if (error) throw error;
+}
+
+export async function deletePushSubscription(endpoint: string): Promise<void> {
+  const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  if (error) throw error;
+}
