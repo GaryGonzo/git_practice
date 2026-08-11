@@ -6,6 +6,7 @@ import { awardBonusPoints, listPointsLedger, totalsByMember, uploadAvatar } from
 import { PointsSummary } from "../../components/PointsSummary";
 import { Avatar } from "../../components/Avatar";
 import { getExistingSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "../../lib/push";
+import { InstallReminder } from "../../components/InstallReminder";
 import type { PointsLedgerEntry } from "../../types";
 
 const ADMIN_EMAIL = "garygonzo.gg@gmail.com";
@@ -108,6 +109,12 @@ export function ProfileScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
+      <InstallReminder
+        pushEnabled={pushEnabled}
+        pushBusy={pushBusy}
+        pushError={pushError}
+        onEnablePush={handleTogglePush}
+      />
       <div className="flex items-center gap-3">
         <button
           type="button"

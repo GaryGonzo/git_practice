@@ -65,6 +65,7 @@ export function RequestsScreen() {
 
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [declineNote, setDeclineNote] = useState("");
+  const [declineError, setDeclineError] = useState<string | null>(null);
   const [editingPointsId, setEditingPointsId] = useState<string | null>(null);
   const [editPointsValue, setEditPointsValue] = useState(5);
 
@@ -175,10 +176,15 @@ export function RequestsScreen() {
   }
 
   async function handleDecline(id: string) {
-    await declineRequest(id, declineNote.trim() || null);
-    setDecliningId(null);
-    setDeclineNote("");
-    await refresh();
+    setDeclineError(null);
+    try {
+      await declineRequest(id, declineNote.trim() || null);
+      setDecliningId(null);
+      setDeclineNote("");
+      await refresh();
+    } catch (err) {
+      setDeclineError(err instanceof Error ? err.message : "Couldn't decline that.");
+    }
   }
 
   const filtered = sortByUrgency(
@@ -479,6 +485,7 @@ export function RequestsScreen() {
                     onChange={(e) => setDeclineNote(e.target.value)}
                     className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                   />
+                  {declineError && <p className="font-body text-xs text-red-600">{declineError}</p>}
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -492,6 +499,7 @@ export function RequestsScreen() {
                       onClick={() => {
                         setDecliningId(null);
                         setDeclineNote("");
+                        setDeclineError(null);
                       }}
                       className="font-display flex-1 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
                     >

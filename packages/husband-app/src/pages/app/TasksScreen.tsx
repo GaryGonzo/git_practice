@@ -21,7 +21,7 @@ type Filter = "for_me" | "from_me" | "all";
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
   open: "Open",
-  in_progress: "In progress",
+  in_progress: "Accepted",
   done: "Done",
   declined: "Declined",
 };
@@ -56,6 +56,7 @@ export function TasksScreen() {
 
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [declineNote, setDeclineNote] = useState("");
+  const [declineError, setDeclineError] = useState<string | null>(null);
 
   async function refresh() {
     if (!household) return;
@@ -147,10 +148,15 @@ export function TasksScreen() {
   }
 
   async function handleDecline(id: string) {
-    await declineTask(id, declineNote.trim() || null);
-    setDecliningId(null);
-    setDeclineNote("");
-    await refresh();
+    setDeclineError(null);
+    try {
+      await declineTask(id, declineNote.trim() || null);
+      setDecliningId(null);
+      setDeclineNote("");
+      await refresh();
+    } catch (err) {
+      setDeclineError(err instanceof Error ? err.message : "Couldn't decline that.");
+    }
   }
 
   const filtered = sortByUrgency(
@@ -170,7 +176,7 @@ export function TasksScreen() {
         body={
           profile.role === "wife"
             ? "Add chores and attach points to them. He'll see them here, and you'll both watch the points add up as he clears them."
-            : "Chores land here with points attached. Start it, finish it, or decline it with a reason if you're not able to get to it."
+            : "Chores land here with points attached. Accept it, finish it, or decline it with a reason if you're not able to get to it."
         }
       />
       <div className="flex items-center justify-between">
@@ -363,6 +369,7 @@ export function TasksScreen() {
                     onChange={(e) => setDeclineNote(e.target.value)}
                     className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                   />
+                  {declineError && <p className="font-body text-xs text-red-600">{declineError}</p>}
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -376,6 +383,7 @@ export function TasksScreen() {
                       onClick={() => {
                         setDecliningId(null);
                         setDeclineNote("");
+                        setDeclineError(null);
                       }}
                       className="font-display flex-1 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
                     >
@@ -391,7 +399,7 @@ export function TasksScreen() {
                       onClick={() => handleStart(t.id)}
                       className="font-display rounded-full bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-800"
                     >
-                      Start
+                      Accepted
                     </button>
                   )}
                   {!isTerminal(t.status) && (
