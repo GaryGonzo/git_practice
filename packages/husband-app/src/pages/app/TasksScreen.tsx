@@ -37,6 +37,14 @@ function isTerminal(status: TaskStatus): boolean {
   return status === "done" || status === "declined";
 }
 
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "object" && err !== null && "message" in err && typeof (err as { message: unknown }).message === "string") {
+    return (err as { message: string }).message;
+  }
+  return fallback;
+}
+
 export function TasksScreen() {
   const { profile } = useAuth();
   const { household, members, partner } = useHousehold();
@@ -56,7 +64,7 @@ export function TasksScreen() {
 
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [declineNote, setDeclineNote] = useState("");
-  const [declineError, setDeclineError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function refresh() {
     if (!household) return;
@@ -133,30 +141,46 @@ export function TasksScreen() {
   }
 
   async function handleComplete(id: string) {
-    await completeTask(id);
-    await refresh();
+    setActionError(null);
+    try {
+      await completeTask(id);
+      await refresh();
+    } catch (err) {
+      setActionError(errorMessage(err, "Couldn't mark that done."));
+    }
   }
 
   async function handleStart(id: string) {
-    await updateTaskStatus(id, "in_progress");
-    await refresh();
+    setActionError(null);
+    try {
+      await updateTaskStatus(id, "in_progress");
+      await refresh();
+    } catch (err) {
+      setActionError(errorMessage(err, "Couldn't update that."));
+    }
   }
 
   async function handleDelete(id: string) {
-    await deleteTask(id);
-    await refresh();
+    setActionError(null);
+    try {
+      await deleteTask(id);
+      await refresh();
+    } catch (err) {
+      setActionError(errorMessage(err, "Couldn't delete that."));
+    }
   }
 
   async function handleDecline(id: string) {
-    setDeclineError(null);
+    setActionError(null);
     try {
       await declineTask(id, declineNote.trim() || null);
       setDecliningId(null);
       setDeclineNote("");
-      await refresh();
     } catch (err) {
-      setDeclineError(err instanceof Error ? err.message : "Couldn't decline that.");
+      setActionError(errorMessage(err, "Couldn't decline that."));
+      return;
     }
+    await refresh();
   }
 
   const filtered = sortByUrgency(
@@ -325,6 +349,10 @@ export function TasksScreen() {
         ))}
       </div>
 
+      {actionError && (
+        <p className="font-body mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{actionError}</p>
+      )}
+
       <div className="mt-4 space-y-3">
         {loading ? (
           <p className="font-body text-center text-neutral-500">Loading…</p>
@@ -369,7 +397,6 @@ export function TasksScreen() {
                     onChange={(e) => setDeclineNote(e.target.value)}
                     className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
                   />
-                  {declineError && <p className="font-body text-xs text-red-600">{declineError}</p>}
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -383,7 +410,7 @@ export function TasksScreen() {
                       onClick={() => {
                         setDecliningId(null);
                         setDeclineNote("");
-                        setDeclineError(null);
+                        setActionError(null);
                       }}
                       className="font-display flex-1 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
                     >
