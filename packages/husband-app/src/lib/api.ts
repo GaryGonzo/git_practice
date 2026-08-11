@@ -52,6 +52,7 @@ export interface NewRequestInput {
   note?: string | null;
   tier: RequestTier;
   urgency: AskUrgency;
+  points: number;
 }
 
 export async function createRequest(input: NewRequestInput): Promise<void> {
@@ -64,15 +65,30 @@ export async function createRequest(input: NewRequestInput): Promise<void> {
     note: input.note ?? null,
     tier: input.tier,
     urgency: input.urgency,
+    points: input.points,
   });
   if (error) throw error;
 }
 
+// Status transitions other than "done" carry no points effect. Marking a
+// request done goes through complete_request() instead, since that's the
+// one transition that has to award points atomically alongside the status
+// change.
 export async function updateRequestStatus(requestId: string, status: RequestStatus): Promise<void> {
   const { error } = await supabase
     .from("requests")
-    .update({ status, completed_at: status === "done" ? new Date().toISOString() : null })
+    .update({ status, completed_at: null })
     .eq("id", requestId);
+  if (error) throw error;
+}
+
+export async function completeRequest(requestId: string): Promise<void> {
+  const { error } = await supabase.rpc("complete_request", { target_request_id: requestId });
+  if (error) throw error;
+}
+
+export async function updateRequestPoints(requestId: string, points: number): Promise<void> {
+  const { error } = await supabase.rpc("update_request_points", { target_request_id: requestId, new_points: points });
   if (error) throw error;
 }
 
@@ -348,6 +364,20 @@ export async function createReward(input: NewRewardInput): Promise<void> {
 
 export async function deleteReward(rewardId: string): Promise<void> {
   const { error } = await supabase.from("rewards").delete().eq("id", rewardId);
+  if (error) throw error;
+}
+
+export interface UpdateRewardInput {
+  label: string;
+  emoji: string;
+  pointCost: number;
+}
+
+export async function updateReward(rewardId: string, input: UpdateRewardInput): Promise<void> {
+  const { error } = await supabase
+    .from("rewards")
+    .update({ label: input.label, emoji: input.emoji, point_cost: input.pointCost })
+    .eq("id", rewardId);
   if (error) throw error;
 }
 

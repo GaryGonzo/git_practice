@@ -9,6 +9,7 @@ import {
   listRewards,
   pointsSummaryForMember,
   redeemReward,
+  updateReward,
 } from "../../lib/api";
 import { guessEmoji } from "../../lib/emojiGuess";
 import { getRoleCopy } from "../../lib/roleCopy";
@@ -40,6 +41,11 @@ export function RewardsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
+
+  const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [editEmoji, setEditEmoji] = useState("🎁");
+  const [editPointCost, setEditPointCost] = useState(25);
 
   async function refresh() {
     if (!household) return;
@@ -116,6 +122,21 @@ export function RewardsScreen() {
 
   async function handleDelete(rewardId: string) {
     await deleteReward(rewardId);
+    await refresh();
+  }
+
+  function startEdit(reward: Reward) {
+    setEditingRewardId(reward.id);
+    setEditLabel(reward.label);
+    setEditEmoji(reward.emoji);
+    setEditPointCost(reward.point_cost);
+  }
+
+  async function handleSaveEdit(rewardId: string) {
+    const trimmed = editLabel.trim();
+    if (!trimmed || editPointCost <= 0) return;
+    await updateReward(rewardId, { label: trimmed, emoji: editEmoji, pointCost: editPointCost });
+    setEditingRewardId(null);
     await refresh();
   }
 
@@ -221,34 +242,87 @@ export function RewardsScreen() {
           ) : rewards.length === 0 ? (
             <p className="font-body py-4 text-sm text-neutral-500">No rewards set up yet -- add one above.</p>
           ) : (
-            rewards.map((reward) => (
-              <div key={reward.id} className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{reward.emoji}</span>
-                  <div>
-                    <p className="font-display text-sm font-semibold">{reward.label}</p>
-                    <p className="font-body text-xs text-neutral-500">{reward.point_cost} points</p>
+            rewards.map((reward) =>
+              editingRewardId === reward.id ? (
+                <div key={reward.id} className="space-y-2 rounded-xl border border-brand/40 bg-white p-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={editEmoji}
+                      onChange={(e) => setEditEmoji(e.target.value)}
+                      className="font-body w-12 rounded-md border border-neutral-300 px-2 py-1.5 text-center text-lg"
+                    />
+                    <input
+                      type="text"
+                      value={editLabel}
+                      onChange={(e) => setEditLabel(e.target.value)}
+                      className="font-body flex-1 rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={1000}
+                      value={editPointCost}
+                      onChange={(e) => setEditPointCost(Number(e.target.value))}
+                      className="font-body w-24 rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+                    />
+                    <span className="font-body text-xs text-neutral-500">points</span>
+                    <div className="ml-auto flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingRewardId(null)}
+                        className="font-display rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEdit(reward.id)}
+                        className="font-display rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
+                      >
+                        Save
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={redeemingId === reward.id || mySummary.available < reward.point_cost}
-                    onClick={() => handleRedeem(reward.id)}
-                    className="font-display bg-brand rounded-full px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-                  >
-                    {redeemingId === reward.id ? "Redeeming…" : copy.rewardsRedeemCta}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(reward.id)}
-                    className="font-display rounded-full bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-600"
-                  >
-                    ✕
-                  </button>
+              ) : (
+                <div key={reward.id} className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{reward.emoji}</span>
+                    <div>
+                      <p className="font-display text-sm font-semibold">{reward.label}</p>
+                      <p className="font-body text-xs text-neutral-500">{reward.point_cost} points</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={redeemingId === reward.id || mySummary.available < reward.point_cost}
+                      onClick={() => handleRedeem(reward.id)}
+                      className="font-display bg-brand rounded-full px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                    >
+                      {redeemingId === reward.id ? "Redeeming…" : copy.rewardsRedeemCta}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(reward)}
+                      className="font-display rounded-full bg-neutral-100 px-2 py-1.5 text-xs font-semibold text-neutral-600"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(reward.id)}
+                      className="font-display rounded-full bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            )
           )}
         </div>
       </div>

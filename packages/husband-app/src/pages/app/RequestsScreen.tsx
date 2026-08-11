@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
 import {
+  completeRequest,
   createRequest,
   declineRequest,
   deleteRequest,
@@ -9,6 +10,7 @@ import {
   listCustomAskTemplates,
   listRequests,
   saveCustomAskTemplate,
+  updateRequestPoints,
   updateRequestStatus,
 } from "../../lib/api";
 import { TIER_INFO, URGENCY_INFO, sortByUrgency } from "../../lib/askMeta";
@@ -39,6 +41,8 @@ function isTerminal(status: RequestStatus): boolean {
   return status === "done" || status === "cancelled" || status === "declined";
 }
 
+const DEFAULT_POINTS_BY_TIER: Record<RequestTier, number> = { small: 5, medium: 10, large: 20 };
+
 export function RequestsScreen() {
   const { profile } = useAuth();
   const { household, members, partner } = useHousehold();
@@ -55,11 +59,14 @@ export function RequestsScreen() {
   const [assignTo, setAssignTo] = useState<string>("");
   const [tier, setTier] = useState<RequestTier>("small");
   const [urgency, setUrgency] = useState<AskUrgency>("soon");
+  const [points, setPoints] = useState(DEFAULT_POINTS_BY_TIER.small);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [declineNote, setDeclineNote] = useState("");
+  const [editingPointsId, setEditingPointsId] = useState<string | null>(null);
+  const [editPointsValue, setEditPointsValue] = useState(5);
 
   async function refresh() {
     if (!household) return;
@@ -103,6 +110,10 @@ export function RequestsScreen() {
     setError(null);
     setSubmitting(true);
     try {
+      const selectedCatalogItem = catalog.find((item) => item.key === selectedPerk);
+      const label = selectedCatalogItem?.label ?? trimmedLabel;
+      const emoji = selectedCatalogItem?.emoji ?? guessEmoji(trimmedLabel);
+
       await createRequest({
         householdId: household.id,
         requestedBy: profile.id,
@@ -112,26 +123,27 @@ export function RequestsScreen() {
         note: note.trim() || null,
         tier,
         urgency,
+        points,
       });
-      if (!selectedPerk && trimmedLabel) {
-        try {
-          await saveCustomAskTemplate({
-            householdId: household.id,
-            kind: "request",
-            label: trimmedLabel,
-            emoji: guessEmoji(trimmedLabel),
-            tier,
-          });
-        } catch {
-          // Saving the quick-pick template is a convenience, not critical --
-          // the request itself already went through above.
-        }
+      try {
+        await saveCustomAskTemplate({
+          householdId: household.id,
+          kind: "request",
+          label,
+          emoji,
+          tier,
+          points,
+        });
+      } catch {
+        // Saving/updating the remembered template is a convenience, not
+        // critical -- the request itself already went through above.
       }
       setSelectedPerk(null);
       setCustomLabel("");
       setNote("");
       setTier("small");
       setUrgency("soon");
+      setPoints(DEFAULT_POINTS_BY_TIER.small);
       setShowForm(false);
       await refresh();
     } catch (err) {
@@ -143,6 +155,17 @@ export function RequestsScreen() {
 
   async function handleStatus(id: string, status: RequestStatus) {
     await updateRequestStatus(id, status);
+    await refresh();
+  }
+
+  async function handleComplete(id: string) {
+    await completeRequest(id);
+    await refresh();
+  }
+
+  async function handleSavePoints(id: string) {
+    await updateRequestPoints(id, editPointsValue);
+    setEditingPointsId(null);
     await refresh();
   }
 
@@ -200,6 +223,8 @@ export function RequestsScreen() {
                   setSelectedPerk(item.key);
                   setCustomLabel("");
                   setTier(item.tier);
+                  const remembered = templates.find((t) => t.label === item.label);
+                  setPoints(remembered?.points ?? DEFAULT_POINTS_BY_TIER[item.tier]);
                 }}
                 className={`font-display flex flex-col items-center gap-1 rounded-lg border p-2 text-center text-xs font-semibold ${
                   selectedPerk === item.key ? "border-brand bg-brand-light text-brand-dark" : "border-neutral-200 text-neutral-600"
@@ -225,6 +250,7 @@ export function RequestsScreen() {
                       setSelectedPerk(null);
                       setCustomLabel(t.label);
                       if (t.tier) setTier(t.tier);
+                      setPoints(t.points ?? DEFAULT_POINTS_BY_TIER[t.tier ?? "small"]);
                     }}
                     className={`font-display rounded-full border px-3 py-1.5 text-xs font-semibold ${
                       customLabel === t.label ? "border-brand bg-brand-light text-brand-dark" : "border-neutral-200 text-neutral-600"
@@ -284,6 +310,23 @@ export function RequestsScreen() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              Points
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={points}
+              onChange={(e) => setPoints(Number(e.target.value))}
+              className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+            />
+            <p className="font-body mt-1 text-xs text-neutral-500">
+              Remembered for next time -- edit it later if you want to change what it's worth.
+            </p>
           </div>
 
           <div>
@@ -388,9 +431,43 @@ export function RequestsScreen() {
                     </span>
                   </div>
                 </div>
-                <span className={`font-display shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[r.status]}`}>
-                  {STATUS_LABEL[r.status]}
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {editingPointsId === r.id ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={editPointsValue}
+                        onChange={(e) => setEditPointsValue(Number(e.target.value))}
+                        className="font-body w-14 rounded-md border border-neutral-300 px-1.5 py-0.5 text-xs"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSavePoints(r.id)}
+                        className="font-display rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={!(r.requested_by === profile.id && !isTerminal(r.status))}
+                      onClick={() => {
+                        setEditingPointsId(r.id);
+                        setEditPointsValue(r.points);
+                      }}
+                      className="font-display rounded-full bg-gold/20 px-2.5 py-1 text-xs font-semibold text-gold disabled:cursor-default"
+                    >
+                      +{r.points} pts{r.requested_by === profile.id && !isTerminal(r.status) ? " ✎" : ""}
+                    </button>
+                  )}
+                  <span className={`font-display rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[r.status]}`}>
+                    {STATUS_LABEL[r.status]}
+                  </span>
+                </div>
               </div>
 
               {decliningId === r.id ? (
@@ -436,7 +513,7 @@ export function RequestsScreen() {
                   {r.assigned_to === profile.id && !isTerminal(r.status) && (
                     <button
                       type="button"
-                      onClick={() => handleStatus(r.id, "done")}
+                      onClick={() => handleComplete(r.id)}
                       className="font-display rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
                     >
                       Mark done
