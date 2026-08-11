@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
 import {
+  approveReward,
   createReward,
   deleteReward,
   listPointsLedger,
@@ -121,8 +122,13 @@ export function RewardsScreen() {
   }
 
   async function handleDelete(rewardId: string) {
-    await deleteReward(rewardId);
-    await refresh();
+    setError(null);
+    try {
+      await deleteReward(rewardId);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't delete that.");
+    }
   }
 
   function startEdit(reward: Reward) {
@@ -135,9 +141,24 @@ export function RewardsScreen() {
   async function handleSaveEdit(rewardId: string) {
     const trimmed = editLabel.trim();
     if (!trimmed || editPointCost <= 0) return;
-    await updateReward(rewardId, { label: trimmed, emoji: editEmoji, pointCost: editPointCost });
-    setEditingRewardId(null);
-    await refresh();
+    setError(null);
+    try {
+      await updateReward(rewardId, { label: trimmed, emoji: editEmoji, pointCost: editPointCost });
+      setEditingRewardId(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save those changes.");
+    }
+  }
+
+  async function handleApprove(rewardId: string) {
+    setError(null);
+    try {
+      await approveReward(rewardId);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't approve that.");
+    }
   }
 
   return (
@@ -148,8 +169,8 @@ export function RewardsScreen() {
         title={copy.rewardsHeading}
         body={
           profile.role === "wife"
-            ? "Add rewards for him to redeem -- pre-planned or a special one-off request on the spot. You'll see his running tally and everything he's redeemed."
-            : "Every point you've earned adds up here. Once you've got enough, cash one in -- it's logged for you both to see."
+            ? "Add rewards for him to claim -- pre-planned or a special one-off. If he suggests his own reward idea, it'll show up here waiting on your approval before he can claim it."
+            : "Already-set rewards are ready to claim any time you've got the points. Got something new in mind? Type it in with what you think it's worth -- she'll need to approve it before you can claim it."
         }
       />
       <div className="flex items-center justify-between">
@@ -159,9 +180,11 @@ export function RewardsScreen() {
           onClick={() => setShowForm((v) => !v)}
           className="font-display bg-brand rounded-full px-4 py-2 text-sm font-semibold text-white"
         >
-          {showForm ? "Cancel" : "New reward"}
+          {showForm ? "Cancel" : copy.rewardsCreateButton}
         </button>
       </div>
+
+      {error && <p className="font-body mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       {husband && husbandSummary && (
         <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
@@ -222,7 +245,11 @@ export function RewardsScreen() {
             </div>
           </div>
 
-          {error && <p className="font-body text-sm text-red-600">{error}</p>}
+          {profile.role === "husband" && (
+            <p className="font-body text-xs text-neutral-500">
+              She'll need to approve this before you can claim it.
+            </p>
+          )}
 
           <button
             type="submit"
@@ -293,18 +320,35 @@ export function RewardsScreen() {
                     <span className="text-2xl">{reward.emoji}</span>
                     <div>
                       <p className="font-display text-sm font-semibold">{reward.label}</p>
-                      <p className="font-body text-xs text-neutral-500">{reward.point_cost} points</p>
+                      <p className="font-body text-xs text-neutral-500">
+                        {reward.point_cost} points
+                        {reward.status === "pending" && " -- awaiting approval"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={redeemingId === reward.id || mySummary.available < reward.point_cost}
-                      onClick={() => handleRedeem(reward.id)}
-                      className="font-display bg-brand rounded-full px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-                    >
-                      {redeemingId === reward.id ? "Redeeming…" : copy.rewardsRedeemCta}
-                    </button>
+                    {reward.status === "pending" ? (
+                      profile.role === "wife" && (
+                        <button
+                          type="button"
+                          onClick={() => handleApprove(reward.id)}
+                          className="font-display rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
+                        >
+                          Approve
+                        </button>
+                      )
+                    ) : (
+                      profile.role === "husband" && (
+                        <button
+                          type="button"
+                          disabled={redeemingId === reward.id || mySummary.available < reward.point_cost}
+                          onClick={() => handleRedeem(reward.id)}
+                          className="font-display bg-brand rounded-full px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                        >
+                          {redeemingId === reward.id ? "Claiming…" : copy.rewardsRedeemCta}
+                        </button>
+                      )
+                    )}
                     <button
                       type="button"
                       onClick={() => startEdit(reward)}

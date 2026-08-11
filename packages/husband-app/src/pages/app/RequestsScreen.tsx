@@ -238,16 +238,18 @@ export function RequestsScreen() {
       />
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Requests</h1>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
-          className="font-display bg-brand rounded-full px-4 py-2 text-sm font-semibold text-white"
-        >
-          {showForm ? "Cancel" : copy.requestsButton}
-        </button>
+        {profile.role === "wife" && (
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className="font-display bg-brand rounded-full px-4 py-2 text-sm font-semibold text-white"
+          >
+            {showForm ? "Cancel" : copy.requestsButton}
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {profile.role === "wife" && showForm && (
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 rounded-2xl border border-neutral-200 bg-white p-4">
           <div className="grid grid-cols-4 gap-2">
             {catalog.map((item) => (

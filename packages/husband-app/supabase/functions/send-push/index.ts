@@ -28,6 +28,8 @@ const URL_BY_KIND: Record<string, string> = {
   task_declined: "/app/tasks",
   bonus_points: "/app/rewards",
   reward_redeemed: "/app/rewards",
+  reward_requested: "/app/rewards",
+  reward_approved: "/app/rewards",
 };
 
 Deno.serve(async (req) => {

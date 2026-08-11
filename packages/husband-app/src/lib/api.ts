@@ -378,6 +378,11 @@ export async function redeemReward(rewardId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function approveReward(rewardId: string): Promise<void> {
+  const { error } = await supabase.rpc("approve_reward", { target_reward_id: rewardId });
+  if (error) throw error;
+}
+
 export async function listRedemptions(householdId: string): Promise<RewardRedemption[]> {
   const { data, error } = await supabase
     .from("reward_redemptions")

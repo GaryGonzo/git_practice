@@ -5,6 +5,7 @@ export type HouseholdRole = "wife" | "husband";
 export type RequestTier = "small" | "medium" | "large";
 export type AskUrgency = "whenever" | "soon" | "urgent" | "emergency";
 export type CustomAskKind = "request" | "task";
+export type RewardStatus = "pending" | "active";
 export type NotificationKind =
   | "request_created"
   | "request_started"
@@ -15,7 +16,9 @@ export type NotificationKind =
   | "task_done"
   | "task_declined"
   | "bonus_points"
-  | "reward_redeemed";
+  | "reward_redeemed"
+  | "reward_requested"
+  | "reward_approved";
 
 export interface Profile {
   id: string;
@@ -129,6 +132,7 @@ export interface Reward {
   label: string;
   emoji: string;
   point_cost: number;
+  status: RewardStatus;
   created_at: string;
 }
 

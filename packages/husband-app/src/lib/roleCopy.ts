@@ -11,6 +11,7 @@ interface RoleCopy {
   tasksEmptyState: string;
   rewardsHeading: string;
   rewardsRedeemCta: string;
+  rewardsCreateButton: string;
   homeRequestsCard: string;
   homeTasksCard: string;
 }
@@ -20,8 +21,9 @@ const HUSBAND_COPY: RoleCopy = {
   requestsEmptyState: "No requests yet -- nice.",
   tasksButton: "New to-do",
   tasksEmptyState: "No to-do items yet.",
-  rewardsHeading: "Cash in your rewards",
-  rewardsRedeemCta: "Cash in",
+  rewardsHeading: "Claim your rewards",
+  rewardsRedeemCta: "Claim reward",
+  rewardsCreateButton: "Request a reward",
   homeRequestsCard: "☕ You have a request",
   homeTasksCard: "✅ New to-do item",
 };
@@ -33,6 +35,7 @@ const WIFE_COPY: RoleCopy = {
   tasksEmptyState: "Nothing assigned yet.",
   rewardsHeading: "Set up rewards together",
   rewardsRedeemCta: "Redeem",
+  rewardsCreateButton: "New reward",
   homeRequestsCard: "☕ Requests",
   homeTasksCard: "✅ Honey-do list",
 };
