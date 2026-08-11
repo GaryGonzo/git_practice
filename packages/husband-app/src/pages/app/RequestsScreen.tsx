@@ -13,6 +13,8 @@ import {
 } from "../../lib/api";
 import { TIER_INFO, URGENCY_INFO, sortByUrgency } from "../../lib/askMeta";
 import { guessEmoji } from "../../lib/emojiGuess";
+import { getRoleCopy } from "../../lib/roleCopy";
+import { SectionIntro } from "../../components/SectionIntro";
 import type { AskUrgency, CustomAskTemplate, HouseholdRequest, PerkCatalogItem, RequestStatus, RequestTier } from "../../types";
 
 type Filter = "for_me" | "from_me" | "all";
@@ -82,6 +84,8 @@ export function RequestsScreen() {
   }, [partner]);
 
   if (!profile || !household) return null;
+
+  const copy = getRoleCopy(profile.role);
 
   function memberName(id: string) {
     if (id === profile?.id) return "You";
@@ -164,6 +168,16 @@ export function RequestsScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
+      <SectionIntro
+        storageKey={`husband-app:intro:requests:${profile.id}`}
+        emoji="☕"
+        title={profile.role === "wife" ? "Make a request" : "You have a request"}
+        body={
+          profile.role === "wife"
+            ? "Pick something from the menu or type your own, add a note for exactly how you want it, and send it straight to him. You'll see the status update in real time."
+            : "When she needs something -- coffee, breakfast in bed, anything -- it'll show up here. Tap Start when you're on it, Mark done when it's delivered, or Decline with a quick reason if you can't."
+        }
+      />
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Requests</h1>
         <button
@@ -171,7 +185,7 @@ export function RequestsScreen() {
           onClick={() => setShowForm((v) => !v)}
           className="font-display bg-brand rounded-full px-4 py-2 text-sm font-semibold text-white"
         >
-          {showForm ? "Cancel" : "New request"}
+          {showForm ? "Cancel" : copy.requestsButton}
         </button>
       </div>
 
@@ -346,7 +360,7 @@ export function RequestsScreen() {
         {loading ? (
           <p className="font-body text-center text-neutral-500">Loading…</p>
         ) : filtered.length === 0 ? (
-          <p className="font-body py-8 text-center text-neutral-500">Nothing here yet.</p>
+          <p className="font-body py-8 text-center text-neutral-500">{copy.requestsEmptyState}</p>
         ) : (
           filtered.map((r) => (
             <div key={r.id} className="rounded-2xl border border-neutral-200 bg-white p-4">

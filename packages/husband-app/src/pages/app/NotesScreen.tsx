@@ -3,6 +3,7 @@ import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
 import { deletePreference, listPreferences, upsertPreference } from "../../lib/api";
 import { Avatar } from "../../components/Avatar";
+import { SectionIntro } from "../../components/SectionIntro";
 import type { Preference, PreferenceCategory } from "../../types";
 
 const CATEGORY_LABEL: Record<PreferenceCategory, string> = {
@@ -92,6 +93,12 @@ export function NotesScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
+      <SectionIntro
+        storageKey={`husband-app:intro:notes:${profile.id}`}
+        emoji="📝"
+        title="Standing notes"
+        body="Save your usual coffee order, Starbucks order, or anything else worth remembering -- so a surprise never starts with a question. You each keep your own notes, but you both can see them."
+      />
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Notes</h1>
         <button

@@ -6,6 +6,7 @@ import { listPointsLedger, listRequests, listTasks, pointsSummaryForMember, tota
 import { PointsSummary } from "../../components/PointsSummary";
 import { Avatar } from "../../components/Avatar";
 import { WelcomeTour } from "../../components/WelcomeTour";
+import { getRoleCopy } from "../../lib/roleCopy";
 import type { HouseholdRequest, HouseholdTask, PointsLedgerEntry } from "../../types";
 
 function welcomeKey(profileId: string): string {
@@ -51,6 +52,7 @@ export function HomeScreen() {
 
   if (!profile || !household) return null;
 
+  const copy = getRoleCopy(profile.role);
   const totals = totalsByMember(ledger);
   const husband = members.find((m) => m.role === "husband");
   const husbandAvailable = husband ? pointsSummaryForMember(ledger, husband.id).available : 0;
@@ -97,7 +99,7 @@ export function HomeScreen() {
             to="/app/requests"
             className="mt-6 block rounded-2xl border border-neutral-200 bg-white p-4 active:scale-[0.99]"
           >
-            <p className="font-display text-sm font-semibold">☕ Waiting on you</p>
+            <p className="font-display text-sm font-semibold">{copy.homeRequestsCard}</p>
             <p className="font-body mt-0.5 text-sm text-neutral-500">
               {myOpenRequests.length === 0
                 ? "No open requests -- nice."
@@ -109,7 +111,7 @@ export function HomeScreen() {
             to="/app/tasks"
             className="mt-3 block rounded-2xl border border-neutral-200 bg-white p-4 active:scale-[0.99]"
           >
-            <p className="font-display text-sm font-semibold">✅ On your honey-do list</p>
+            <p className="font-display text-sm font-semibold">{copy.homeTasksCard}</p>
             <p className="font-body mt-0.5 text-sm text-neutral-500">
               {myOpenTasks.length === 0
                 ? "All caught up."
@@ -152,8 +154,9 @@ export function HomeScreen() {
                 to="/app/rewards"
                 className="font-body mt-3 block rounded-lg bg-brand-light px-3 py-2 text-xs text-brand-dark"
               >
-                🎁 {husband.id === profile.id ? "You have" : `${husband.display_name} has`} {husbandAvailable} points
-                available to redeem — see Rewards
+                {husband.id === profile.id
+                  ? `🎁 You have ${husbandAvailable} points -- cash in your rewards`
+                  : `🎁 ${husband.display_name} has ${husbandAvailable} points -- see what he can redeem`}
               </Link>
             )}
           </div>

@@ -13,6 +13,8 @@ import {
 } from "../../lib/api";
 import { URGENCY_INFO, sortByUrgency } from "../../lib/askMeta";
 import { guessEmoji } from "../../lib/emojiGuess";
+import { getRoleCopy } from "../../lib/roleCopy";
+import { SectionIntro } from "../../components/SectionIntro";
 import type { AskUrgency, CustomAskTemplate, HouseholdTask, TaskStatus } from "../../types";
 
 type Filter = "for_me" | "from_me" | "all";
@@ -76,6 +78,8 @@ export function TasksScreen() {
   }, [partner]);
 
   if (!profile || !household) return null;
+
+  const copy = getRoleCopy(profile.role);
 
   function memberName(id: string | null) {
     if (!id) return "Anyone";
@@ -159,6 +163,16 @@ export function TasksScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
+      <SectionIntro
+        storageKey={`husband-app:intro:tasks:${profile.id}`}
+        emoji="✅"
+        title={profile.role === "wife" ? "Assign a new to-do item" : "New to-do item"}
+        body={
+          profile.role === "wife"
+            ? "Add chores and attach points to them. He'll see them here, and you'll both watch the points add up as he clears them."
+            : "Chores land here with points attached. Start it, finish it, or decline it with a reason if you're not able to get to it."
+        }
+      />
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Tasks</h1>
         <button
@@ -166,7 +180,7 @@ export function TasksScreen() {
           onClick={() => setShowForm((v) => !v)}
           className="font-display bg-brand rounded-full px-4 py-2 text-sm font-semibold text-white"
         >
-          {showForm ? "Cancel" : "New task"}
+          {showForm ? "Cancel" : copy.tasksButton}
         </button>
       </div>
 
@@ -309,7 +323,7 @@ export function TasksScreen() {
         {loading ? (
           <p className="font-body text-center text-neutral-500">Loading…</p>
         ) : filtered.length === 0 ? (
-          <p className="font-body py-8 text-center text-neutral-500">No tasks here.</p>
+          <p className="font-body py-8 text-center text-neutral-500">{copy.tasksEmptyState}</p>
         ) : (
           filtered.map((t) => (
             <div key={t.id} className="rounded-2xl border border-neutral-200 bg-white p-4">

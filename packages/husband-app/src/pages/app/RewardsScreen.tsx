@@ -11,6 +11,8 @@ import {
   redeemReward,
 } from "../../lib/api";
 import { guessEmoji } from "../../lib/emojiGuess";
+import { getRoleCopy } from "../../lib/roleCopy";
+import { SectionIntro } from "../../components/SectionIntro";
 import type { PointsLedgerEntry, Reward, RewardRedemption } from "../../types";
 
 function timeAgo(iso: string): string {
@@ -58,6 +60,8 @@ export function RewardsScreen() {
   }, [household]);
 
   if (!profile || !household) return null;
+
+  const copy = getRoleCopy(profile.role);
 
   const husband = members.find((m) => m.role === "husband");
   const husbandSummary = husband ? pointsSummaryForMember(ledger, husband.id) : null;
@@ -117,6 +121,16 @@ export function RewardsScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
+      <SectionIntro
+        storageKey={`husband-app:intro:rewards:${profile.id}`}
+        emoji="🎁"
+        title={copy.rewardsHeading}
+        body={
+          profile.role === "wife"
+            ? "Add rewards for him to redeem -- pre-planned or a special one-off request on the spot. You'll see his running tally and everything he's redeemed."
+            : "Every point you've earned adds up here. Once you've got enough, cash one in -- it's logged for you both to see."
+        }
+      />
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Rewards</h1>
         <button
@@ -223,7 +237,7 @@ export function RewardsScreen() {
                     onClick={() => handleRedeem(reward.id)}
                     className="font-display bg-brand rounded-full px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
                   >
-                    {redeemingId === reward.id ? "Redeeming…" : "Redeem"}
+                    {redeemingId === reward.id ? "Redeeming…" : copy.rewardsRedeemCta}
                   </button>
                   <button
                     type="button"
