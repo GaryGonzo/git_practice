@@ -63,7 +63,7 @@ const SCENARIOS = [
     emoji: "🧺",
     title: "Sunday chores",
     image: "/scenario-laundry.jpg",
-    body: "She adds \"Fold the laundry\" and \"Take the dog to the vet\" to the list with points attached. He clears both, taps done, and the scoreboard updates.",
+    body: "She adds \"Fold the laundry\" and \"Take the dog for a walk\" to the list with points attached. He clears both, taps done, and the scoreboard updates.",
   },
 ];
 
