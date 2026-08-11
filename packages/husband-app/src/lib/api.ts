@@ -98,7 +98,7 @@ export async function deleteRequest(requestId: string): Promise<void> {
 }
 
 export async function declineRequest(requestId: string, note?: string | null): Promise<void> {
-  const { error } = await supabase.rpc("decline_request", { target_request_id: requestId, note: note ?? null });
+  const { error } = await supabase.rpc("decline_request", { target_request_id: requestId, decline_reason: note ?? null });
   if (error) throw error;
 }
 
