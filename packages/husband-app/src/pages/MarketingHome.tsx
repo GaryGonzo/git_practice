@@ -50,19 +50,19 @@ const SCENARIOS = [
   {
     emoji: "🌅",
     title: "Tuesday morning",
-    image: "https://picsum.photos/seed/morning-coffee-cup/640/420",
+    image: "/scenario-coffee.jpg",
     body: "She taps \"Coffee\" and adds a note — oat milk latte, extra hot. He gets the alert, already knows exactly what to make, and it's in her hands before she's even out of bed.",
   },
   {
     emoji: "🎉",
     title: "No occasion at all",
-    image: "https://picsum.photos/seed/surprise-flowers-gift/640/420",
+    image: "/scenario-flowers.jpg",
     body: "He wants to surprise her with her Starbucks order but has never actually asked what it is. He opens Notes, finds it saved from months ago, and orders it on the way home.",
   },
   {
     emoji: "🧺",
     title: "Sunday chores",
-    image: "https://picsum.photos/seed/laundry-basket-home/640/420",
+    image: "/scenario-laundry.jpg",
     body: "She adds \"Fold the laundry\" and \"Take the dog to the vet\" to the list with points attached. He clears both, taps done, and the scoreboard updates.",
   },
 ];
@@ -149,7 +149,7 @@ export function MarketingHome() {
               </Link>
             </div>
             <img
-              src="https://picsum.photos/seed/husband-app-hero-couple/1200/500"
+              src="/hero.jpg"
               alt=""
               loading="lazy"
               className="mt-12 h-56 w-full rounded-2xl object-cover sm:h-72"
