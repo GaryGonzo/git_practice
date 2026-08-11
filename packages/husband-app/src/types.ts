@@ -138,3 +138,11 @@ export interface RewardRedemption {
   points_spent: number;
   created_at: string;
 }
+
+export interface AdminUserRow {
+  id: string;
+  display_name: string;
+  email: string | null;
+  role: HouseholdRole;
+  created_at: string;
+}

@@ -11,6 +11,7 @@ import { NotesScreen } from "./pages/app/NotesScreen";
 import { NotificationsScreen } from "./pages/app/NotificationsScreen";
 import { RewardsScreen } from "./pages/app/RewardsScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
+import { AdminScreen } from "./pages/app/AdminScreen";
 import { SignupChooserScreen } from "./pages/auth/SignupChooserScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
@@ -48,6 +49,7 @@ function App() {
         <Route path="notifications" element={<NotificationsScreen />} />
         <Route path="rewards" element={<RewardsScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
+        <Route path="admin" element={<AdminScreen />} />
       </Route>
       <Route path="*" element={<NotFoundScreen />} />
     </Routes>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
 import { awardBonusPoints, listPointsLedger, totalsByMember, uploadAvatar } from "../../lib/api";
@@ -6,8 +7,10 @@ import { PointsSummary } from "../../components/PointsSummary";
 import { Avatar } from "../../components/Avatar";
 import type { PointsLedgerEntry } from "../../types";
 
+const ADMIN_EMAIL = "garygonzo.gg@gmail.com";
+
 export function ProfileScreen() {
-  const { profile, signOut, refreshProfile } = useAuth();
+  const { profile, session, signOut, refreshProfile } = useAuth();
   const { household, members, partner } = useHousehold();
   const [ledger, setLedger] = useState<PointsLedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,6 +193,15 @@ export function ProfileScreen() {
           )}
         </div>
       </div>
+
+      {session?.user.email === ADMIN_EMAIL && (
+        <Link
+          to="/app/admin"
+          className="font-body mt-6 block w-full text-center text-sm text-neutral-400 underline"
+        >
+          Admin
+        </Link>
+      )}
 
       <button
         type="button"

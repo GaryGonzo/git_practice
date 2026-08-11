@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import type {
+  AdminUserRow,
   AskUrgency,
   CustomAskKind,
   CustomAskTemplate,
@@ -361,6 +362,15 @@ export async function listRedemptions(householdId: string): Promise<RewardRedemp
     .select("*")
     .eq("household_id", householdId)
     .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// The admin_list_users RPC is SECURITY DEFINER and checks profiles.is_admin
+// on the caller server-side -- it throws for anyone who isn't flagged as an
+// admin, regardless of what the client sends.
+export async function listAllUsers(): Promise<AdminUserRow[]> {
+  const { data, error } = await supabase.rpc("admin_list_users");
   if (error) throw error;
   return data ?? [];
 }
