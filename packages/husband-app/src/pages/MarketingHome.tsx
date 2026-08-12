@@ -309,8 +309,8 @@ export function MarketingHome() {
               Everything the two of you need, in one place
             </p>
             <p className="font-body mx-auto mt-3 max-w-2xl text-center text-neutral-600">
-              Five simple tools that turn "can you..." into something that actually gets tracked, celebrated, and
-              paid off -- literally.
+              Five simple tools that turn "can you..." into "already on it, babe" -- and every good deed earns him
+              a little something sweet in return.
             </p>
             <div className="mt-10 flex gap-4 overflow-x-auto pb-4">
               {FEATURES.map((feature) => (
