@@ -88,8 +88,8 @@ const STORY_STEPS = [
       <>
         <p className="font-display text-[10px] font-semibold tracking-widest text-neutral-500 uppercase">Rewards</p>
         <div className="mt-2 rounded-xl border border-neutral-200 p-2.5">
-          <span className="text-2xl">🎮</span>
-          <p className="font-display mt-1 text-sm font-semibold">Video game hour</p>
+          <span className="text-2xl">🍻</span>
+          <p className="font-display mt-1 text-sm font-semibold">Guys' night out</p>
           <p className="font-body text-xs text-neutral-500">40 points</p>
           <div className="mt-2 rounded-full bg-brand py-1.5 text-center">
             <span className="font-display text-[10px] font-semibold text-white">Claim reward</span>
