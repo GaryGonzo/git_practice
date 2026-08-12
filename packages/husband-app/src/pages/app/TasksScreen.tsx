@@ -19,7 +19,19 @@ import { SectionIntro } from "../../components/SectionIntro";
 import { CREATE_NEW_KEY, PresetList, type PresetListItem } from "../../components/PresetList";
 import type { AskUrgency, CustomAskTemplate, HouseholdTask, TaskCatalogItem, TaskStatus } from "../../types";
 
-type Filter = "for_me" | "from_me" | "all";
+type Filter = "new" | "pending" | "complete" | "all";
+
+// "New" = not started, "Pending" = started but not done, "Complete" = any
+// finished state (done or declined) -- for the "All" view, items group in
+// that order so what's freshest is always on top.
+const STATUS_GROUP: Record<TaskStatus, Filter> = {
+  open: "new",
+  in_progress: "pending",
+  done: "complete",
+  declined: "complete",
+};
+
+const GROUP_ORDER: Filter[] = ["new", "pending", "complete"];
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
   open: "Open",
@@ -54,7 +66,7 @@ export function TasksScreen() {
   const [catalog, setCatalog] = useState<TaskCatalogItem[]>([]);
   const [templates, setTemplates] = useState<CustomAskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Filter>("for_me");
+  const [filter, setFilter] = useState<Filter>("all");
   const [showForm, setShowForm] = useState(false);
 
   const [pickerKey, setPickerKey] = useState<string | null>(null);
@@ -211,13 +223,10 @@ export function TasksScreen() {
     await refresh();
   }
 
-  const filtered = sortByUrgency(
-    tasks.filter((t) => {
-      if (filter === "for_me") return t.assigned_to === profile.id;
-      if (filter === "from_me") return t.created_by === profile.id;
-      return true;
-    })
-  );
+  const filtered =
+    filter === "all"
+      ? GROUP_ORDER.flatMap((group) => sortByUrgency(tasks.filter((t) => STATUS_GROUP[t.status] === group)))
+      : sortByUrgency(tasks.filter((t) => STATUS_GROUP[t.status] === filter));
 
   const catalogLabels = new Set(catalog.map((c) => c.label));
   const pickerItems: PresetListItem[] = [
@@ -239,16 +248,18 @@ export function TasksScreen() {
       />
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Tasks</h1>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
-          className="font-display bg-brand rounded-full px-4 py-2 text-sm font-semibold text-white"
-        >
-          {showForm ? "Cancel" : copy.tasksButton}
-        </button>
+        {profile.role === "wife" && (
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className="font-display bg-brand rounded-full px-4 py-2 text-sm font-semibold text-white"
+          >
+            {showForm ? "Cancel" : copy.tasksButton}
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {profile.role === "wife" && showForm && (
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 rounded-2xl border border-neutral-200 bg-white p-4">
           <div>
             <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
@@ -364,7 +375,7 @@ export function TasksScreen() {
       )}
 
       <div className="mt-4 flex gap-2">
-        {(["for_me", "from_me", "all"] as Filter[]).map((f) => (
+        {(["new", "pending", "complete", "all"] as Filter[]).map((f) => (
           <button
             key={f}
             type="button"
@@ -373,7 +384,7 @@ export function TasksScreen() {
               filter === f ? "bg-brand text-white" : "bg-neutral-100 text-neutral-600"
             }`}
           >
-            {f === "for_me" ? "For me" : f === "from_me" ? "From me" : "All"}
+            {f === "new" ? "New" : f === "pending" ? "Pending" : f === "complete" ? "Complete" : "All"}
           </button>
         ))}
       </div>

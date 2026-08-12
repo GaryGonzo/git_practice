@@ -208,6 +208,9 @@ export function RewardsScreen() {
   }
 
   const catalogLabels = new Set(catalog.map((c) => c.label));
+  const createdLabels = new Set(rewards.map((r) => r.label));
+  const sortedRewards = [...rewards].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const uninstantiatedPresets = catalog.filter((c) => !createdLabels.has(c.label));
   const pickerItems: PresetListItem[] = [
     ...catalog.map((c) => ({ key: c.key, label: c.label, emoji: c.emoji })),
     ...templates.filter((t) => !catalogLabels.has(t.label)).map((t) => ({ key: `tpl:${t.id}`, label: t.label, emoji: t.emoji })),
@@ -225,16 +228,7 @@ export function RewardsScreen() {
             : "Already-set rewards are ready to claim any time you've got the points. Got something new in mind? Type it in with what you think it's worth -- she'll need to approve it before you can claim it."
         }
       />
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl">Rewards</h1>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
-          className="font-display bg-brand rounded-full px-4 py-2 text-sm font-semibold text-white"
-        >
-          {showForm ? "Cancel" : copy.rewardsCreateButton}
-        </button>
-      </div>
+      <h1 className="font-display text-3xl">Rewards</h1>
 
       {error && <p className="font-body mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
@@ -252,8 +246,19 @@ export function RewardsScreen() {
         </div>
       )}
 
+      <div className="mt-6 flex items-center justify-between">
+        <p className="font-display text-xs font-semibold tracking-widest text-neutral-500 uppercase">Create new reward</p>
+        <button
+          type="button"
+          onClick={() => setShowForm((v) => !v)}
+          className="font-display bg-brand rounded-full px-4 py-2 text-sm font-semibold text-white"
+        >
+          {showForm ? "Cancel" : copy.rewardsCreateButton}
+        </button>
+      </div>
+
       {showForm && (
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4 rounded-2xl border border-neutral-200 bg-white p-4">
+        <form onSubmit={handleSubmit} className="mt-3 space-y-4 rounded-2xl border border-neutral-200 bg-white p-4">
           <div>
             <label className="font-display text-xs font-semibold tracking-wide text-neutral-500 uppercase">
               What is it
@@ -335,112 +340,118 @@ export function RewardsScreen() {
 
       <div className="mt-6">
         <p className="font-display text-xs font-semibold tracking-widest text-neutral-500 uppercase">Catalog</p>
-        <div className="mt-2 space-y-2">
-          {loading ? (
-            <p className="font-body text-center text-neutral-500">Loading…</p>
-          ) : rewards.length === 0 ? (
-            <p className="font-body py-4 text-sm text-neutral-500">No rewards set up yet -- add one above.</p>
-          ) : (
-            rewards.map((reward) =>
+        {loading ? (
+          <p className="font-body mt-2 text-center text-neutral-500">Loading…</p>
+        ) : sortedRewards.length === 0 && uninstantiatedPresets.length === 0 ? (
+          <p className="font-body py-4 text-sm text-neutral-500">No rewards set up yet -- add one above.</p>
+        ) : (
+          <div className="mt-2 flex gap-3 overflow-x-auto pb-2">
+            {sortedRewards.map((reward) =>
               editingRewardId === reward.id ? (
-                <div key={reward.id} className="space-y-2 rounded-xl border border-brand/40 bg-white p-3">
+                <div key={reward.id} className="w-40 shrink-0 space-y-2 rounded-xl border border-brand/40 bg-white p-3">
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={editEmoji}
                       onChange={(e) => setEditEmoji(e.target.value)}
-                      className="font-body w-12 rounded-md border border-neutral-300 px-2 py-1.5 text-center text-lg"
+                      className="font-body w-10 rounded-md border border-neutral-300 px-1.5 py-1.5 text-center text-lg"
                     />
                     <input
                       type="text"
                       value={editLabel}
                       onChange={(e) => setEditLabel(e.target.value)}
-                      className="font-body flex-1 rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+                      className="font-body min-w-0 flex-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
                     />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      max={100000}
-                      value={editPointCost}
-                      onChange={(e) => setEditPointCost(Number(e.target.value))}
-                      className="font-body w-24 rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
-                    />
-                    <span className="font-body text-xs text-neutral-500">points</span>
-                    <div className="ml-auto flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditingRewardId(null)}
-                        className="font-display rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSaveEdit(reward.id)}
-                        className="font-display rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
-                      >
-                        Save
-                      </button>
-                    </div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100000}
+                    value={editPointCost}
+                    onChange={(e) => setEditPointCost(Number(e.target.value))}
+                    className="font-body w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
+                  />
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingRewardId(null)}
+                      className="font-display flex-1 rounded-full bg-neutral-100 px-2 py-1.5 text-xs font-semibold text-neutral-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveEdit(reward.id)}
+                      className="font-display flex-1 rounded-full bg-green-100 px-2 py-1.5 text-xs font-semibold text-green-800"
+                    >
+                      Save
+                    </button>
                   </div>
                 </div>
               ) : (
-                <div key={reward.id} className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{reward.emoji}</span>
-                    <div>
-                      <p className="font-display text-sm font-semibold">{reward.label}</p>
-                      <p className="font-body text-xs text-neutral-500">
-                        {reward.point_cost} points
-                        {reward.status === "pending" && " -- awaiting approval"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {reward.status === "pending" ? (
-                      profile.role === "wife" && (
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(reward.id)}
-                          className="font-display rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800"
-                        >
-                          Approve
-                        </button>
-                      )
-                    ) : (
-                      profile.role === "husband" && (
-                        <button
-                          type="button"
-                          disabled={redeemingId === reward.id || mySummary.available < reward.point_cost}
-                          onClick={() => handleRedeem(reward.id)}
-                          className="font-display bg-brand rounded-full px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-                        >
-                          {redeemingId === reward.id ? "Claiming…" : copy.rewardsRedeemCta}
-                        </button>
-                      )
-                    )}
+                <div key={reward.id} className="w-40 shrink-0 rounded-xl border border-neutral-200 bg-white p-3">
+                  <span className="text-2xl">{reward.emoji}</span>
+                  <p className="font-display mt-1 text-sm font-semibold leading-tight">{reward.label}</p>
+                  <p className="font-body mt-0.5 text-xs text-neutral-500">
+                    {reward.point_cost} points
+                    {reward.status === "pending" && " -- awaiting approval"}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {reward.status === "pending"
+                      ? profile.role === "wife" && (
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(reward.id)}
+                            className="font-display rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800"
+                          >
+                            Approve
+                          </button>
+                        )
+                      : profile.role === "husband" && (
+                          <button
+                            type="button"
+                            disabled={redeemingId === reward.id || mySummary.available < reward.point_cost}
+                            onClick={() => handleRedeem(reward.id)}
+                            className="font-display bg-brand rounded-full px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-40"
+                          >
+                            {redeemingId === reward.id ? "Claiming…" : copy.rewardsRedeemCta}
+                          </button>
+                        )}
                     <button
                       type="button"
                       onClick={() => startEdit(reward)}
-                      className="font-display rounded-full bg-neutral-100 px-2 py-1.5 text-xs font-semibold text-neutral-600"
+                      className="font-display rounded-full bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-600"
                     >
                       ✎
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(reward.id)}
-                      className="font-display rounded-full bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-600"
+                      className="font-display rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-600"
                     >
                       ✕
                     </button>
                   </div>
                 </div>
               )
-            )
-          )}
-        </div>
+            )}
+            {uninstantiatedPresets.map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => {
+                  setShowForm(true);
+                  handlePickItem({ key: preset.key, label: preset.label, emoji: preset.emoji });
+                }}
+                className="w-40 shrink-0 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-3 text-left"
+              >
+                <span className="text-2xl">{preset.emoji}</span>
+                <p className="font-display mt-1 text-sm font-semibold leading-tight text-neutral-600">{preset.label}</p>
+                <p className="font-body mt-1 text-xs text-brand">+ Add this</p>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-6">

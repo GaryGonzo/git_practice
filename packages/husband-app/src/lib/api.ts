@@ -21,6 +21,11 @@ import type {
   TaskStatus,
 } from "../types";
 
+export async function updateHouseholdName(householdId: string, name: string): Promise<void> {
+  const { error } = await supabase.from("households").update({ name }).eq("id", householdId);
+  if (error) throw error;
+}
+
 function oneOrFirst<T>(value: T | T[] | null): T | null {
   if (!value) return null;
   return Array.isArray(value) ? (value[0] ?? null) : value;

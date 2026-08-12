@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthProvider";
 import { useHousehold } from "../../lib/HouseholdProvider";
-import { awardBonusPoints, listPointsLedger, pointsSummaryForMember, uploadAvatar } from "../../lib/api";
+import { awardBonusPoints, listPointsLedger, pointsSummaryForMember, updateHouseholdName, uploadAvatar } from "../../lib/api";
 import { Avatar } from "../../components/Avatar";
 import { getExistingSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "../../lib/push";
 import { InstallReminder } from "../../components/InstallReminder";
@@ -12,7 +12,7 @@ const ADMIN_EMAIL = "garygonzo.gg@gmail.com";
 
 export function ProfileScreen() {
   const { profile, session, signOut, refreshProfile } = useAuth();
-  const { household, members, partner } = useHousehold();
+  const { household, members, partner, refresh: refreshHousehold } = useHousehold();
   const [ledger, setLedger] = useState<PointsLedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -27,6 +27,10 @@ export function ProfileScreen() {
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
   const [bonusError, setBonusError] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
     getExistingSubscription().then((sub) => setPushEnabled(Boolean(sub)));
@@ -65,12 +69,38 @@ export function ProfileScreen() {
   if (!profile || !household) return null;
 
   const husband = members.find((m) => m.role === "husband");
+  const wife = members.find((m) => m.role === "wife");
   const husbandSummary = husband ? pointsSummaryForMember(ledger, husband.id) : null;
 
   async function handleCopy() {
     await navigator.clipboard.writeText(household!.invite_code);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  }
+
+  function startEditName() {
+    setNameInput(household!.name);
+    setNameError(null);
+    setEditingName(true);
+  }
+
+  async function handleSaveName() {
+    const trimmed = nameInput.trim();
+    if (!trimmed) {
+      setNameError("Give it a name.");
+      return;
+    }
+    setSavingName(true);
+    setNameError(null);
+    try {
+      await updateHouseholdName(household!.id, trimmed);
+      await refreshHousehold();
+      setEditingName(false);
+    } catch (err) {
+      setNameError(err instanceof Error ? err.message : "Couldn't save that.");
+    } finally {
+      setSavingName(false);
+    }
   }
 
   async function handleBonus(event: React.FormEvent) {
@@ -119,29 +149,84 @@ export function ProfileScreen() {
         pushError={pushError}
         onEnablePush={handleTogglePush}
       />
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploadingPhoto}
-          className="relative shrink-0"
-          aria-label="Change photo"
-        >
-          <Avatar profile={profile} size={56} />
-          <span className="font-display absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-800 text-xs text-white">
-            📷
-          </span>
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-        <h1 className="font-display text-3xl">{profile.display_name}</h1>
-      </div>
-      {uploadingPhoto && <p className="font-body mt-1 text-xs text-neutral-500">Uploading…</p>}
-      {photoError && <p className="font-body mt-1 text-xs text-red-600">{photoError}</p>}
+      <h1 className="font-display text-3xl">Profile</h1>
+
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
 
       <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
         <p className="font-display text-xs font-semibold tracking-widest text-neutral-500 uppercase">Household</p>
-        <p className="font-display mt-1 text-lg font-semibold">{household.name}</p>
-        <div className="mt-2 flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2">
+        <div className="mt-1 flex items-center justify-between gap-2">
+          {editingName ? (
+            <>
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                className="font-display flex-1 rounded-md border border-neutral-300 px-2 py-1 text-lg font-semibold"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={handleSaveName}
+                disabled={savingName}
+                className="font-display bg-brand shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              >
+                {savingName ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingName(false)}
+                className="font-display shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-lg font-semibold">{household.name}</p>
+              <button
+                type="button"
+                onClick={startEditName}
+                className="font-display shrink-0 rounded-full bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-600"
+                aria-label="Edit household name"
+              >
+                ✎
+              </button>
+            </>
+          )}
+        </div>
+        {nameError && <p className="font-body mt-1 text-xs text-red-600">{nameError}</p>}
+
+        <div className="mt-3 space-y-2">
+          {[wife, husband].filter((m): m is NonNullable<typeof m> => Boolean(m)).map((member) => (
+            <div key={member.id} className="flex items-center gap-3 rounded-lg bg-neutral-50 px-3 py-2">
+              <button
+                type="button"
+                onClick={() => member.id === profile.id && fileInputRef.current?.click()}
+                disabled={member.id !== profile.id || uploadingPhoto}
+                className="relative shrink-0"
+                aria-label={member.id === profile.id ? "Change photo" : undefined}
+              >
+                <Avatar profile={member} size={40} />
+                {member.id === profile.id && (
+                  <span className="font-display absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full bg-neutral-800 text-[10px] text-white">
+                    📷
+                  </span>
+                )}
+              </button>
+              <div>
+                <p className="font-display text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+                  {member.role === "wife" ? "Wife" : "Husband"}
+                </p>
+                <p className="font-display text-sm font-semibold">{member.display_name}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {uploadingPhoto && <p className="font-body mt-2 text-xs text-neutral-500">Uploading…</p>}
+        {photoError && <p className="font-body mt-2 text-xs text-red-600">{photoError}</p>}
+
+        <div className="mt-3 flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2">
           <span className="font-display text-sm tracking-widest">{household.invite_code}</span>
           <button
             type="button"
@@ -153,6 +238,13 @@ export function ProfileScreen() {
         </div>
         <p className="font-body mt-2 text-xs text-neutral-500">Share this code so your partner can join.</p>
       </div>
+
+      <Link
+        to="/app/notes"
+        className="font-display mt-4 block w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-neutral-600"
+      >
+        📝 Notes
+      </Link>
 
       <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
         <p className="font-display text-xs font-semibold tracking-widest text-neutral-500 uppercase">Points</p>

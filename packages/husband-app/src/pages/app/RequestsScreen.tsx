@@ -20,7 +20,20 @@ import { SectionIntro } from "../../components/SectionIntro";
 import { CREATE_NEW_KEY, PresetList, type PresetListItem } from "../../components/PresetList";
 import type { AskUrgency, CustomAskTemplate, HouseholdRequest, PerkCatalogItem, RequestStatus, RequestTier } from "../../types";
 
-type Filter = "for_me" | "from_me" | "all";
+type Filter = "new" | "pending" | "complete" | "all";
+
+// "New" = not started, "Pending" = started but not done, "Complete" = any
+// finished state (done, cancelled, or declined) -- for the "All" view,
+// items group in that order so what's freshest is always on top.
+const STATUS_GROUP: Record<RequestStatus, Filter> = {
+  pending: "new",
+  in_progress: "pending",
+  done: "complete",
+  cancelled: "complete",
+  declined: "complete",
+};
+
+const GROUP_ORDER: Filter[] = ["new", "pending", "complete"];
 
 const STATUS_LABEL: Record<RequestStatus, string> = {
   pending: "Pending",
@@ -57,7 +70,7 @@ export function RequestsScreen() {
   const [catalog, setCatalog] = useState<PerkCatalogItem[]>([]);
   const [templates, setTemplates] = useState<CustomAskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Filter>("for_me");
+  const [filter, setFilter] = useState<Filter>("all");
   const [showForm, setShowForm] = useState(false);
 
   const [pickerKey, setPickerKey] = useState<string | null>(null);
@@ -251,13 +264,10 @@ export function RequestsScreen() {
     await refresh();
   }
 
-  const filtered = sortByUrgency(
-    requests.filter((r) => {
-      if (filter === "for_me") return r.assigned_to === profile.id;
-      if (filter === "from_me") return r.requested_by === profile.id;
-      return true;
-    })
-  );
+  const filtered =
+    filter === "all"
+      ? GROUP_ORDER.flatMap((group) => sortByUrgency(requests.filter((r) => STATUS_GROUP[r.status] === group)))
+      : sortByUrgency(requests.filter((r) => STATUS_GROUP[r.status] === filter));
 
   const catalogLabels = new Set(catalog.map((c) => c.label));
   const pickerItems: PresetListItem[] = [
@@ -428,7 +438,7 @@ export function RequestsScreen() {
       )}
 
       <div className="mt-4 flex gap-2">
-        {(["for_me", "from_me", "all"] as Filter[]).map((f) => (
+        {(["new", "pending", "complete", "all"] as Filter[]).map((f) => (
           <button
             key={f}
             type="button"
@@ -437,7 +447,7 @@ export function RequestsScreen() {
               filter === f ? "bg-brand text-white" : "bg-neutral-100 text-neutral-600"
             }`}
           >
-            {f === "for_me" ? "For me" : f === "from_me" ? "From me" : "All"}
+            {f === "new" ? "New" : f === "pending" ? "Pending" : f === "complete" ? "Complete" : "All"}
           </button>
         ))}
       </div>

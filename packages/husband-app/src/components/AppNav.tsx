@@ -6,7 +6,7 @@ const NAV_ITEMS = [
   { to: "/app", label: "Home", end: true, emoji: "🏠" },
   { to: "/app/requests", label: "Requests", end: false, emoji: "☕" },
   { to: "/app/tasks", label: "Tasks", end: false, emoji: "✅" },
-  { to: "/app/notes", label: "Notes", end: false, emoji: "📝" },
+  { to: "/app/rewards", label: "Rewards", end: false, emoji: "🎁" },
   { to: "/app/profile", label: "Profile", end: false, emoji: "👤" },
 ];
 
