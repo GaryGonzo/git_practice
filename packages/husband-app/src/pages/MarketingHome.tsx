@@ -305,9 +305,16 @@ export function MarketingHome() {
         <section id="features" className="bg-neutral-50">
           <div className="mx-auto max-w-5xl px-6 py-20">
             <h2 className="font-display text-center text-3xl">What you get</h2>
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <p className="font-display text-brand mt-2 text-center text-lg">
+              Everything the two of you need, in one place
+            </p>
+            <p className="font-body mx-auto mt-3 max-w-2xl text-center text-neutral-600">
+              Five simple tools that turn "can you..." into something that actually gets tracked, celebrated, and
+              paid off -- literally.
+            </p>
+            <div className="mt-10 flex gap-4 overflow-x-auto pb-4">
               {FEATURES.map((feature) => (
-                <div key={feature.title} className="rounded-2xl border border-neutral-200 bg-white p-6">
+                <div key={feature.title} className="w-60 shrink-0 rounded-2xl border border-neutral-200 bg-white p-6">
                   <p className="text-3xl">{feature.emoji}</p>
                   <p className="font-display mt-3 text-base font-semibold">{feature.title}</p>
                   <p className="font-body mt-1 text-sm text-neutral-500">{feature.body}</p>
