@@ -1,4 +1,107 @@
 import { Link } from "react-router-dom";
+import type { ReactNode } from "react";
+
+function PhoneFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="w-56 shrink-0 rounded-[2rem] border-[6px] border-neutral-900 bg-neutral-900 p-1.5 shadow-xl">
+      <div className="flex h-4 items-center justify-center">
+        <div className="h-1.5 w-16 rounded-full bg-neutral-700" />
+      </div>
+      <div className="min-h-[300px] rounded-[1.4rem] bg-white p-3">{children}</div>
+    </div>
+  );
+}
+
+const STORY_STEPS = [
+  {
+    caption: "She sends a request, with exactly how she wants it",
+    frame: (
+      <>
+        <p className="font-display text-[10px] font-semibold tracking-widest text-neutral-500 uppercase">Requests</p>
+        <div className="mt-2 rounded-xl border border-neutral-200 p-2.5">
+          <p className="font-display text-sm font-semibold">☕ Coffee</p>
+          <p className="font-body mt-1 text-xs text-neutral-600">
+            "Please make it extra hot, and add 1 tbsp sugar. Thank you!"
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1">
+            <span className="font-display rounded-full bg-neutral-100 px-1.5 py-0.5 text-[9px] font-semibold text-neutral-600">
+              🐣 Quick one
+            </span>
+            <span className="font-display rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-semibold text-blue-800">
+              🙂 Kinda soon
+            </span>
+          </div>
+          <div className="mt-2 flex justify-end">
+            <span className="font-display rounded-full bg-gold/20 px-2 py-0.5 text-[9px] font-semibold text-gold">
+              +5 pts
+            </span>
+          </div>
+        </div>
+      </>
+    ),
+  },
+  {
+    caption: "He's notified the second it lands -- no checking required",
+    frame: (
+      <div className="-m-3 flex h-[300px] flex-col items-center bg-neutral-100 p-3">
+        <p className="font-display mt-2 text-xs text-neutral-400">9:41</p>
+        <div className="mt-5 w-full rounded-xl bg-white p-3 shadow-md">
+          <div className="flex items-center gap-1.5">
+            <span className="text-base">☕</span>
+            <p className="font-display text-[10px] font-semibold text-neutral-500">The Husband App</p>
+          </div>
+          <p className="font-display mt-1 text-sm font-semibold">You have a request</p>
+          <p className="font-body text-xs text-neutral-600">Coffee -- extra hot, 1 tbsp sugar</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    caption: "He delivers it, gets a kiss, taps Done -- points land automatically",
+    frame: (
+      <>
+        <p className="font-display text-[10px] font-semibold tracking-widest text-neutral-500 uppercase">Requests</p>
+        <div className="mt-2 rounded-xl border border-neutral-200 p-2.5">
+          <p className="font-display text-sm font-semibold">☕ Coffee</p>
+          <p className="font-body mt-1 text-xs text-neutral-600">
+            "Please make it extra hot, and add 1 tbsp sugar. Thank you!"
+          </p>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="font-display rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-semibold text-green-800">
+              Done
+            </span>
+            <span className="font-display rounded-full bg-gold/20 px-2 py-0.5 text-[9px] font-semibold text-gold">
+              +5 pts
+            </span>
+          </div>
+        </div>
+        <div className="mt-3 rounded-xl bg-brand-light p-2.5 text-center">
+          <p className="font-display text-xs font-semibold text-brand-dark">🎉 +5 points earned!</p>
+        </div>
+        <p className="mt-2 text-center text-lg">😘</p>
+      </>
+    ),
+  },
+  {
+    caption: "Points add up -- he cashes them in for a reward he picked",
+    frame: (
+      <>
+        <p className="font-display text-[10px] font-semibold tracking-widest text-neutral-500 uppercase">Rewards</p>
+        <div className="mt-2 rounded-xl border border-neutral-200 p-2.5">
+          <span className="text-2xl">🎮</span>
+          <p className="font-display mt-1 text-sm font-semibold">Video game hour</p>
+          <p className="font-body text-xs text-neutral-500">40 points</p>
+          <div className="mt-2 rounded-full bg-brand py-1.5 text-center">
+            <span className="font-display text-[10px] font-semibold text-white">Claim reward</span>
+          </div>
+        </div>
+        <p className="font-body mt-2 text-center text-xs text-neutral-500">
+          She's happy. He's happy. 💛
+        </p>
+      </>
+    ),
+  },
+];
 
 const FEATURES = [
   {
@@ -109,6 +212,9 @@ export function MarketingHome() {
             <a href="#how-it-works" className="font-body text-sm text-neutral-600 hover:text-neutral-900">
               How it works
             </a>
+            <a href="#see-it-in-action" className="font-body text-sm text-neutral-600 hover:text-neutral-900">
+              See it in action
+            </a>
             <a href="#features" className="font-body text-sm text-neutral-600 hover:text-neutral-900">
               Features
             </a>
@@ -169,6 +275,30 @@ export function MarketingHome() {
                 <p className="font-body mt-1 text-sm text-neutral-600">{step.body}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section id="see-it-in-action">
+          <div className="mx-auto max-w-5xl px-6 py-20">
+            <h2 className="font-display text-center text-3xl">See it in action</h2>
+            <p className="font-body mx-auto mt-3 max-w-2xl text-center text-neutral-600">
+              The wife wants coffee in the morning. She sends a request to her husband with a note -- extra hot, 1
+              tbsp sugar, thank you! He has notifications on, so he gets a push the moment it lands. When he has a
+              second, he grabs her the coffee, delivers it, gets a kiss, and taps done -- the points land on their
+              own. As they add up, he redeems them for rewards. She's happy. He's happy. They have fun together
+              using the app.
+            </p>
+            <div className="mt-10 flex gap-6 overflow-x-auto pb-4">
+              {STORY_STEPS.map((step, i) => (
+                <div key={step.caption} className="flex shrink-0 flex-col items-center">
+                  <PhoneFrame>{step.frame}</PhoneFrame>
+                  <p className="font-body mt-4 max-w-56 text-center text-sm text-neutral-600">
+                    <span className="font-display text-brand font-semibold">{i + 1}. </span>
+                    {step.caption}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
