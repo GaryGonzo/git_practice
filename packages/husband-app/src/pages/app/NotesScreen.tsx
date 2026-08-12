@@ -8,7 +8,7 @@ import type { Preference, PreferenceCategory } from "../../types";
 
 const CATEGORY_LABEL: Record<PreferenceCategory, string> = {
   coffee: "☕ Coffee order",
-  starbucks: "🥤 Starbucks order",
+  starbucks: "🥤 Favorite coffee spot",
   general: "💭 General",
 };
 
@@ -97,7 +97,7 @@ export function NotesScreen() {
         storageKey={`husband-app:intro:notes:${profile.id}`}
         emoji="📝"
         title="Standing notes"
-        body="Save your usual coffee order, Starbucks order, or anything else worth remembering -- so a surprise never starts with a question. You each keep your own notes, but you both can see them."
+        body="Save your usual coffee order, your favorite coffee spot order, or anything else worth remembering -- so a surprise never starts with a question. You each keep your own notes, but you both can see them."
       />
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Notes</h1>

@@ -117,7 +117,7 @@ const FEATURES = [
   {
     emoji: "📝",
     title: "Standing notes",
-    body: "Her usual Starbucks order, exactly how she takes her coffee at home — saved once, so a surprise never requires a text asking what she wants.",
+    body: "Her order at her favorite coffee spot, exactly how she takes her coffee at home — saved once, so a surprise never requires a text asking what she wants.",
   },
   {
     emoji: "🏆",
@@ -160,7 +160,7 @@ const SCENARIOS = [
     emoji: "🎉",
     title: "No occasion at all",
     image: "/scenario-flowers.jpg",
-    body: "He wants to surprise her with her Starbucks order but has never actually asked what it is. He opens Notes, finds it saved from months ago, and orders it on the way home.",
+    body: "He wants to surprise her with her order from her favorite coffee spot but has never actually asked what it is. He opens Notes, finds it saved from months ago, and orders it on the way home.",
   },
   {
     emoji: "🧺",
