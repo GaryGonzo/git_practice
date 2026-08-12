@@ -212,11 +212,11 @@ export function MarketingHome() {
             <a href="#how-it-works" className="font-body text-sm text-neutral-600 hover:text-neutral-900">
               How it works
             </a>
-            <a href="#see-it-in-action" className="font-body text-sm text-neutral-600 hover:text-neutral-900">
-              See it in action
-            </a>
             <a href="#features" className="font-body text-sm text-neutral-600 hover:text-neutral-900">
               Features
+            </a>
+            <a href="#see-it-in-action" className="font-body text-sm text-neutral-600 hover:text-neutral-900">
+              See it in action
             </a>
             <a href="#faq" className="font-body text-sm text-neutral-600 hover:text-neutral-900">
               FAQ
@@ -278,6 +278,28 @@ export function MarketingHome() {
           </div>
         </section>
 
+        <section id="features" className="bg-neutral-50">
+          <div className="mx-auto max-w-5xl px-6 py-20">
+            <h2 className="font-display text-center text-3xl">What you get</h2>
+            <p className="font-display text-brand mt-2 text-center text-lg">
+              Everything the two of you need, in one place
+            </p>
+            <p className="font-body mx-auto mt-3 max-w-2xl text-center text-neutral-600">
+              Five simple tools that turn "can you..." into "already on it, babe" -- and every good deed earns him
+              a little something sweet in return.
+            </p>
+            <div className="mt-10 flex gap-4 overflow-x-auto pb-4">
+              {FEATURES.map((feature) => (
+                <div key={feature.title} className="w-60 shrink-0 rounded-2xl border border-neutral-200 bg-white p-6">
+                  <p className="text-3xl">{feature.emoji}</p>
+                  <p className="font-display mt-3 text-base font-semibold">{feature.title}</p>
+                  <p className="font-body mt-1 text-sm text-neutral-500">{feature.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section id="see-it-in-action">
           <div className="mx-auto max-w-5xl px-6 py-20">
             <h2 className="font-display text-center text-3xl">See it in action</h2>
@@ -296,28 +318,6 @@ export function MarketingHome() {
                     <span className="font-display text-brand font-semibold">{i + 1}. </span>
                     {step.caption}
                   </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="features" className="bg-neutral-50">
-          <div className="mx-auto max-w-5xl px-6 py-20">
-            <h2 className="font-display text-center text-3xl">What you get</h2>
-            <p className="font-display text-brand mt-2 text-center text-lg">
-              Everything the two of you need, in one place
-            </p>
-            <p className="font-body mx-auto mt-3 max-w-2xl text-center text-neutral-600">
-              Five simple tools that turn "can you..." into "already on it, babe" -- and every good deed earns him
-              a little something sweet in return.
-            </p>
-            <div className="mt-10 flex gap-4 overflow-x-auto pb-4">
-              {FEATURES.map((feature) => (
-                <div key={feature.title} className="w-60 shrink-0 rounded-2xl border border-neutral-200 bg-white p-6">
-                  <p className="text-3xl">{feature.emoji}</p>
-                  <p className="font-display mt-3 text-base font-semibold">{feature.title}</p>
-                  <p className="font-body mt-1 text-sm text-neutral-500">{feature.body}</p>
                 </div>
               ))}
             </div>
