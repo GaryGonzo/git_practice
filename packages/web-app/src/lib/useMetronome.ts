@@ -59,9 +59,21 @@ export function useMetronome(initialBpm: number) {
   const start = useCallback(async () => {
     const ctx = audioCtxRef.current ?? new AudioContext();
     audioCtxRef.current = ctx;
-    // iOS Safari in particular needs this awaited -- scheduling clicks
-    // before the context has actually finished resuming can silently
-    // produce no sound at all, even though ctx.currentTime looks fine.
+
+    // iOS standalone web apps (added to the Home Screen) are especially
+    // strict here: resume() can resolve and report state "running" while
+    // still producing no actual sound, unless something is *synchronously*
+    // played within the original tap, before any await. This silent,
+    // effectively-instant blip "unlocks" the audio session for the rest of
+    // the session -- a standard mitigation for that WebKit quirk.
+    const unlockOsc = ctx.createOscillator();
+    const unlockGain = ctx.createGain();
+    unlockGain.gain.value = 0;
+    unlockOsc.connect(unlockGain);
+    unlockGain.connect(ctx.destination);
+    unlockOsc.start();
+    unlockOsc.stop(ctx.currentTime + 0.001);
+
     if (ctx.state === "suspended") await ctx.resume();
 
     beatIndexRef.current = 0;
