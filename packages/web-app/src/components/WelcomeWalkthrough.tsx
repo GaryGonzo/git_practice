@@ -1,49 +1,62 @@
-import { useState, type ComponentType } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import { GolfableMark } from "./GolfableMark";
 import { TodayIcon, ProgressIcon, LibraryIcon, ProfileIcon } from "./AppNav";
+import { NotificationPrompt } from "./NotificationPrompt";
+import type { Profile } from "../lib/AuthProvider";
 
 interface WalkthroughStep {
   icon: ComponentType<{ className?: string }> | null;
   title: string;
   body: string;
+  content?: ReactNode;
 }
 
-const STEPS: WalkthroughStep[] = [
-  {
-    icon: null,
-    title: "Welcome to Golfable",
-    body: "Every weekday brings one new drill, shared by everyone training that day. Here's a 30-second look around.",
-  },
-  {
-    icon: TodayIcon,
-    title: "Today's Golfable",
-    body: "Your daily drill lives here -- see the setup, log your score, and know exactly what to do.",
-  },
-  {
-    icon: ProgressIcon,
-    title: "Track Your Progress",
-    body: "Watch your trend on drills you repeat and see your weekly goal fill in as you go.",
-  },
-  {
-    icon: LibraryIcon,
-    title: "Catch Up Anytime",
-    body: "Miss a day? Every past Golfable is saved here and still counts toward your weekly goal.",
-  },
-  {
-    icon: ProfileIcon,
-    title: "Make It Yours",
-    body: "Adjust your tier, weekly goal, and name anytime from your Profile.",
-  },
-];
+function buildSteps(profile: Profile): WalkthroughStep[] {
+  return [
+    {
+      icon: null,
+      title: "Welcome to Golfable",
+      body: "Every weekday brings one new drill, shared by everyone training that day. Here's a 30-second look around.",
+    },
+    {
+      icon: TodayIcon,
+      title: "Today's Golfable",
+      body: "Your daily drill lives here -- see the setup, log your score, and know exactly what to do.",
+    },
+    {
+      icon: ProgressIcon,
+      title: "Track Your Progress",
+      body: "Watch your trend on drills you repeat and see your weekly goal fill in as you go.",
+    },
+    {
+      icon: LibraryIcon,
+      title: "Catch Up Anytime",
+      body: "Miss a day? Every past Golfable is saved here and still counts toward your weekly goal.",
+    },
+    {
+      icon: null,
+      title: "Stay On Track",
+      body: "",
+      content: <NotificationPrompt profile={profile} />,
+    },
+    {
+      icon: ProfileIcon,
+      title: "Make It Yours",
+      body: "Adjust your tier, weekly goal, and name anytime from your Profile.",
+    },
+  ];
+}
 
 interface WelcomeWalkthroughProps {
+  profile: Profile;
   onDone: () => void;
 }
 
-export function WelcomeWalkthrough({ onDone }: WelcomeWalkthroughProps) {
+export function WelcomeWalkthrough({ profile, onDone }: WelcomeWalkthroughProps) {
+  const [steps] = useState(() => buildSteps(profile));
   const [step, setStep] = useState(0);
-  const current = STEPS[step];
-  const isLast = step === STEPS.length - 1;
+  const current = steps[step];
+  const isLast = step === steps.length - 1;
   const Icon = current.icon;
 
   return (
@@ -53,10 +66,14 @@ export function WelcomeWalkthrough({ onDone }: WelcomeWalkthroughProps) {
           {Icon ? <Icon className="text-brand h-8 w-8" /> : <GolfableMark className="h-10 w-10" />}
         </div>
         <h2 className="font-display mt-4 text-2xl tracking-wide">{current.title}</h2>
-        <p className="font-body mt-2 text-sm text-neutral-600">{current.body}</p>
+        {current.content ? (
+          <div className="mt-2 text-left">{current.content}</div>
+        ) : (
+          <p className="font-body mt-2 text-sm text-neutral-600">{current.body}</p>
+        )}
 
         <div className="mt-6 flex justify-center gap-1.5">
-          {STEPS.map((_, i) => (
+          {steps.map((_, i) => (
             <div key={i} className={`h-1.5 w-1.5 rounded-full ${i === step ? "bg-brand" : "bg-neutral-200"}`} />
           ))}
         </div>

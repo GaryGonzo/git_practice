@@ -2,5 +2,9 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build --workspace=@golfable/web-app",
   "outputDirectory": "packages/web-app/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "crons": [
+    { "path": "/api/send-daily-notifications", "schedule": "30 17 * * *" },
+    { "path": "/api/send-daily-notifications", "schedule": "30 18 * * *" }
+  ]
 }

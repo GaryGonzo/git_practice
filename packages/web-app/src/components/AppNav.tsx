@@ -96,7 +96,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-neutral-50 pb-16">
       {profile && !profile.has_seen_walkthrough ? (
-        <WelcomeWalkthrough onDone={dismissWalkthrough} />
+        <WelcomeWalkthrough profile={profile} onDone={dismissWalkthrough} />
       ) : (
         profile &&
         showWelcomeBack && (

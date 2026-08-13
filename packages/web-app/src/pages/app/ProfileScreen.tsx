@@ -3,6 +3,31 @@ import { useNavigate, Link } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { useAuth, type Profile } from "../../lib/AuthProvider";
 import { updateProfile, uploadAvatar, getAvatarSignedUrl } from "../../lib/golfableApi";
+import { NotificationPrompt } from "../../components/NotificationPrompt";
+import { PUSH_ENABLED_KEY } from "../../lib/push";
+
+const NOTIF_PROMPT_VIEWS_KEY = "golfable_profile_notif_views";
+const NOTIF_PROMPT_MAX_VIEWS = 5;
+
+function ProfileNotificationBanner({ profile }: { profile: Profile }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem(PUSH_ENABLED_KEY) === "true") return;
+    const views = Number(localStorage.getItem(NOTIF_PROMPT_VIEWS_KEY) ?? "0");
+    if (views >= NOTIF_PROMPT_MAX_VIEWS) return;
+    localStorage.setItem(NOTIF_PROMPT_VIEWS_KEY, String(views + 1));
+    setVisible(true);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+      <NotificationPrompt profile={profile} onSubscribed={() => setVisible(false)} />
+    </div>
+  );
+}
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
@@ -300,6 +325,7 @@ export function ProfileScreen() {
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <h1 className="font-display text-2xl tracking-wide">Profile</h1>
       <AvatarUploader profile={profile} onUploaded={refreshProfile} />
+      <ProfileNotificationBanner profile={profile} />
       <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
         <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
           Name
