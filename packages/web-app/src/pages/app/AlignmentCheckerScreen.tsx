@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
-const MIN_GAP_PERCENT = 4;
-const MAX_GAP_PERCENT = 35;
-const DEFAULT_GAP_PERCENT = 12;
-const GAP_STEP = 2;
-
 function BackIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
@@ -39,7 +34,6 @@ function CameraIcon({ className }: { className?: string }) {
 type CameraState = "idle" | "starting" | "active" | "error";
 
 export function AlignmentCheckerScreen() {
-  const [gapPercent, setGapPercent] = useState(DEFAULT_GAP_PERCENT);
   const [cameraState, setCameraState] = useState<CameraState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -51,6 +45,18 @@ export function AlignmentCheckerScreen() {
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
+
+  // The <video> element only exists in the DOM once cameraState is
+  // "active" (it's behind a conditional render below), so videoRef.current
+  // is still null at the moment getUserMedia resolves -- attaching the
+  // stream has to wait for this effect, which runs after that element has
+  // actually mounted, or the video plays nothing and just shows black.
+  useEffect(() => {
+    if (cameraState === "active" && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [cameraState]);
 
   async function startCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -66,10 +72,6 @@ export function AlignmentCheckerScreen() {
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
       setCameraState("active");
     } catch {
       setErrorMessage("Couldn't access your camera -- check that Golfable has camera permission.");
@@ -83,10 +85,6 @@ export function AlignmentCheckerScreen() {
     setCameraState("idle");
   }
 
-  function adjustGap(delta: number) {
-    setGapPercent((g) => Math.min(MAX_GAP_PERCENT, Math.max(MIN_GAP_PERCENT, g + delta)));
-  }
-
   if (cameraState === "active") {
     return (
       <div className="fixed inset-0 z-50 bg-black">
@@ -94,10 +92,6 @@ export function AlignmentCheckerScreen() {
 
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_6px_rgba(0,0,0,0.9)]" />
-          <div
-            className="absolute inset-y-0 w-0.5 bg-white shadow-[0_0_6px_rgba(0,0,0,0.9)]"
-            style={{ left: `${50 - gapPercent}%` }}
-          />
           <div className="font-label absolute top-1/4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-sm font-semibold text-white">
             Target Line
           </div>
@@ -110,29 +104,6 @@ export function AlignmentCheckerScreen() {
         >
           <CloseIcon className="h-5 w-5" />
         </button>
-
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pt-10 pb-8">
-          <p className="font-label text-center text-xs font-semibold tracking-widest text-white/70 uppercase">
-            Stance Line Spacing
-          </p>
-          <div className="mt-2 flex items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => adjustGap(-GAP_STEP)}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-lg font-semibold text-white"
-            >
-              −
-            </button>
-            <span className="font-display w-16 text-center text-2xl text-white">{gapPercent}%</span>
-            <button
-              type="button"
-              onClick={() => adjustGap(GAP_STEP)}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-lg font-semibold text-white"
-            >
-              +
-            </button>
-          </div>
-        </div>
       </div>
     );
   }
@@ -151,10 +122,8 @@ export function AlignmentCheckerScreen() {
 
       <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
         <p className="font-body text-sm text-neutral-600">
-          The center line is your <span className="font-semibold">target line</span> -- line it up through the ball
-          toward where you're aiming. The second line is your{" "}
-          <span className="font-semibold">stance line</span>: check that your feet, hips, and shoulders all run
-          parallel to it, like a set of railroad tracks pointing just left of target (for a right-handed golfer).
+          The line is your <span className="font-semibold">target line</span> -- line it up through the ball toward
+          where you're aiming, then use it to check your feet, hips, and shoulders are aligned the way you want.
         </p>
       </div>
 

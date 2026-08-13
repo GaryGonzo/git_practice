@@ -78,6 +78,10 @@ export function MetronomeScreen() {
 
       <h1 className="font-display mt-3 text-2xl tracking-wide">Metronome</h1>
       <p className="font-body text-sm text-neutral-500">Dial in a consistent swing tempo.</p>
+      <p className="font-body mt-1 text-xs text-neutral-400">
+        Don't hear anything? Check that Silent/Ring mode is off -- phones mute web app sound the same as any other
+        notification.
+      </p>
 
       <div className="mt-6 flex rounded-full border border-neutral-200 bg-white p-0.5">
         {(["regular", "putting"] as Mode[]).map((m) => (

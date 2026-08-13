@@ -4,7 +4,7 @@ import { useAuth } from "../../lib/AuthProvider";
 import {
   deleteClubDistance,
   getClubDistances,
-  logClubDistance,
+  logClubDistances,
   type ClubDistanceEntry,
 } from "../../lib/golfableApi";
 
@@ -28,6 +28,7 @@ const CLUBS = [
   "LW",
 ];
 
+const SWINGS_PER_SESSION = 5;
 const RECENT_LOG_LIMIT = 10;
 
 function BackIcon({ className }: { className?: string }) {
@@ -77,14 +78,100 @@ function summarize(entries: ClubDistanceEntry[]): ClubSummary[] {
   return summaries.sort((a, b) => b.avgYards - a.avgYards);
 }
 
+interface SwingWizardProps {
+  club: string;
+  onCancel: () => void;
+  onDone: (distances: number[]) => Promise<void>;
+}
+
+function SwingWizard({ club, onCancel, onDone }: SwingWizardProps) {
+  const [swings, setSwings] = useState<(number | null)[]>(Array(SWINGS_PER_SESSION).fill(null));
+  const [step, setStep] = useState(0);
+  const [input, setInput] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isLastStep = step === SWINGS_PER_SESSION - 1;
+
+  async function handleNext() {
+    const value = Number(input);
+    if (!Number.isFinite(value) || value <= 0 || value >= 400) {
+      setError("Enter a distance between 1 and 399 yards.");
+      return;
+    }
+    setError(null);
+    const next = [...swings];
+    next[step] = value;
+    setSwings(next);
+
+    if (isLastStep) {
+      setSaving(true);
+      try {
+        await onDone(next.filter((d): d is number => d !== null));
+      } catch {
+        setError("Couldn't save these swings -- try again.");
+        setSaving(false);
+      }
+      return;
+    }
+
+    setStep((s) => s + 1);
+    setInput("");
+  }
+
+  const averageSoFar = swings.slice(0, step).filter((d): d is number => d !== null);
+  const runningAvg =
+    averageSoFar.length > 0 ? Math.round(averageSoFar.reduce((s, d) => s + d, 0) / averageSoFar.length) : null;
+
+  return (
+    <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
+      <div className="flex items-center justify-between">
+        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+          {club} -- Swing {step + 1} of {SWINGS_PER_SESSION}
+        </p>
+        <button type="button" onClick={onCancel} className="font-label text-xs font-semibold text-neutral-400">
+          Cancel
+        </button>
+      </div>
+
+      <div className="mt-2 flex gap-1.5">
+        {Array.from({ length: SWINGS_PER_SESSION }, (_, i) => (
+          <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-brand" : "bg-neutral-200"}`} />
+        ))}
+      </div>
+
+      <input
+        type="number"
+        inputMode="numeric"
+        autoFocus
+        placeholder="Yards"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        className="font-display mt-4 w-full rounded-md border border-neutral-300 px-3 py-3 text-center text-3xl"
+      />
+      {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
+      {runningAvg !== null && (
+        <p className="font-body mt-2 text-center text-xs text-neutral-500">Average so far: {runningAvg} yd</p>
+      )}
+
+      <button
+        type="button"
+        onClick={handleNext}
+        disabled={saving || !input}
+        className="font-label bg-brand mt-4 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+      >
+        {saving ? "Saving…" : isLastStep ? "Finish" : "Next Swing"}
+      </button>
+    </div>
+  );
+}
+
 export function GappingScreen() {
   const { profile } = useAuth();
   const [entries, setEntries] = useState<ClubDistanceEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [club, setClub] = useState(CLUBS[0]);
-  const [distance, setDistance] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [inWizard, setInWizard] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -97,23 +184,10 @@ export function GappingScreen() {
 
   if (!profile) return null;
 
-  async function handleLog(event: React.FormEvent) {
-    event.preventDefault();
-    const value = Number(distance);
-    if (!Number.isFinite(value) || value <= 0 || value >= 400) {
-      setError("Enter a distance between 1 and 399 yards.");
-      return;
-    }
-    setError(null);
-    setSaving(true);
-    try {
-      await logClubDistance(profile!.id, club, value);
-      setEntries(await getClubDistances(profile!.id));
-      setDistance("");
-    } catch {
-      setError("Couldn't save that distance -- try again.");
-    }
-    setSaving(false);
+  async function handleWizardDone(distances: number[]) {
+    await logClubDistances(profile!.id, club, distances);
+    setEntries(await getClubDistances(profile!.id));
+    setInWizard(false);
   }
 
   async function handleDelete(id: string) {
@@ -137,16 +211,19 @@ export function GappingScreen() {
 
       <h1 className="font-display mt-3 text-2xl tracking-wide">Club Gapping</h1>
       <p className="font-body text-sm text-neutral-500">
-        Log carry distances from the range to see your average per club and spot any gaps in the bag.
+        Hit {SWINGS_PER_SESSION} balls with a club and log each distance -- we'll track your average and fold in
+        every session you run.
       </p>
 
-      <form onSubmit={handleLog} className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Log a Distance</p>
-        <div className="mt-2 flex gap-2">
+      {inWizard ? (
+        <SwingWizard club={club} onCancel={() => setInWizard(false)} onDone={handleWizardDone} />
+      ) : (
+        <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Club</p>
           <select
             value={club}
             onChange={(e) => setClub(e.target.value)}
-            className="font-body flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            className="font-body mt-2 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           >
             {CLUBS.map((c) => (
               <option key={c} value={c}>
@@ -154,24 +231,15 @@ export function GappingScreen() {
               </option>
             ))}
           </select>
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder="Yards"
-            value={distance}
-            onChange={(e) => setDistance(e.target.value)}
-            className="font-body w-24 rounded-md border border-neutral-300 px-3 py-2 text-sm"
-          />
+          <button
+            type="button"
+            onClick={() => setInWizard(true)}
+            className="font-label bg-brand mt-3 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            Start {SWINGS_PER_SESSION}-Swing Session
+          </button>
         </div>
-        {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={saving || !distance}
-          className="font-label bg-brand mt-3 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          {saving ? "Saving…" : "Log Distance"}
-        </button>
-      </form>
+      )}
 
       <div className="mt-6">
         <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
@@ -180,7 +248,7 @@ export function GappingScreen() {
         {loading ? (
           <p className="font-body text-sm text-neutral-500">Loading…</p>
         ) : summaries.length === 0 ? (
-          <p className="font-body text-sm text-neutral-500">Log a few distances to see your gapping chart.</p>
+          <p className="font-body text-sm text-neutral-500">Run a session to see your gapping chart.</p>
         ) : (
           <div className="space-y-1.5">
             {summaries.map((s) => (

@@ -57,16 +57,6 @@ function GappingIcon({ className }: { className?: string }) {
   );
 }
 
-function PreShotTimerIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M12 9v4l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9.5 2h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 interface Tool {
   to: string;
   name: string;
@@ -110,12 +100,6 @@ const TOOLS: Tool[] = [
     name: "Club Gapping",
     description: "Log carry distances and see your average per club.",
     icon: GappingIcon,
-  },
-  {
-    to: "/app/tools/pre-shot-timer",
-    name: "Pre-Shot Timer",
-    description: "Time your routine and keep it consistent shot to shot.",
-    icon: PreShotTimerIcon,
   },
 ];
 

@@ -65,6 +65,18 @@ export function FairwayFinderScreen() {
     };
   }, []);
 
+  // The <video> element only exists in the DOM once cameraState is
+  // "active" (it's behind a conditional render below), so videoRef.current
+  // is still null at the moment getUserMedia resolves -- attaching the
+  // stream has to wait for this effect, which runs after that element has
+  // actually mounted, or the video plays nothing and just shows black.
+  useEffect(() => {
+    if (cameraState === "active" && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [cameraState]);
+
   async function startCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
       setErrorMessage("Your browser doesn't support camera access.");
@@ -79,10 +91,6 @@ export function FairwayFinderScreen() {
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
       setCameraState("active");
     } catch {
       setErrorMessage("Couldn't access your camera -- check that Golfable has camera permission.");

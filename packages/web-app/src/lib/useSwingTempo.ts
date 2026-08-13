@@ -31,13 +31,23 @@ function motionMagnitude(event: DeviceMotionEvent): number {
   return 0;
 }
 
-// Empirically-picked thresholds for a hand-held phone swing -- these are
-// the first thing to retune against real swings, not device field of view
-// or camera geometry, so there's no calibration UI for them yet.
-const START_THRESHOLD = 45;
-const SETTLE_THRESHOLD = 25;
-const MIN_BACKSWING_MS = 150;
-const TRANSITION_DROP_RATIO = 0.55;
+// Empirically-picked thresholds for a hand-held phone swing -- retuned
+// after real-world testing showed the original version was too trigger-
+// happy on minor/incidental motion. Two changes address that:
+//   1. An exponential moving average smooths out single-sample sensor
+//      noise before it's compared against any threshold at all.
+//   2. Phase transitions require several consecutive samples past the
+//      threshold (DEBOUNCE_SAMPLES) instead of committing on the first
+//      one, and the backswing must have reached a real peak
+//      (MIN_PEAK_FOR_VALID_SWING) before a dip counts as "the top of the
+//      swing" rather than just noise.
+const SMOOTHING_ALPHA = 0.35;
+const START_THRESHOLD = 60;
+const SETTLE_THRESHOLD = 22;
+const MIN_BACKSWING_MS = 200;
+const TRANSITION_DROP_RATIO = 0.5;
+const MIN_PEAK_FOR_VALID_SWING = START_THRESHOLD * 1.4;
+const DEBOUNCE_SAMPLES = 3;
 const MAX_SWING_MS = 3000;
 
 export function useSwingTempo() {
@@ -51,6 +61,9 @@ export function useSwingTempo() {
   const startTimeRef = useRef(0);
   const transitionTimeRef = useRef(0);
   const peakRef = useRef(0);
+  const smoothedRef = useRef(0);
+  const debounceCountRef = useRef(0);
+  const pendingEventTimeRef = useRef(0);
   const timeoutRef = useRef<number | null>(null);
 
   const clearSwingTimeout = useCallback(() => {
@@ -62,6 +75,7 @@ export function useSwingTempo() {
     clearSwingTimeout();
     phaseRef.current = "idle";
     peakRef.current = 0;
+    debounceCountRef.current = 0;
     setPhase("idle");
     setBackswingMs(null);
     setDownswingMs(null);
@@ -69,7 +83,9 @@ export function useSwingTempo() {
 
   const handleMotion = useCallback(
     (event: DeviceMotionEvent) => {
-      const magnitude = motionMagnitude(event);
+      const raw = motionMagnitude(event);
+      smoothedRef.current += SMOOTHING_ALPHA * (raw - smoothedRef.current);
+      const magnitude = smoothedRef.current;
       const now = performance.now();
 
       if (phaseRef.current === "idle" || phaseRef.current === "result") {
@@ -77,6 +93,7 @@ export function useSwingTempo() {
           phaseRef.current = "backswing";
           startTimeRef.current = now;
           peakRef.current = magnitude;
+          debounceCountRef.current = 0;
           setBackswingMs(null);
           setDownswingMs(null);
           setPhase("backswing");
@@ -90,11 +107,26 @@ export function useSwingTempo() {
         peakRef.current = Math.max(peakRef.current, magnitude);
         const elapsed = now - startTimeRef.current;
         // The natural pause at the top of the backswing shows up as a dip
-        // in angular velocity -- that dip is the transition to downswing.
-        if (elapsed > MIN_BACKSWING_MS && magnitude < peakRef.current * TRANSITION_DROP_RATIO) {
-          transitionTimeRef.current = now;
-          setBackswingMs(elapsed);
+        // in angular velocity -- that dip is the transition to downswing,
+        // but only once the backswing was a real motion (cleared a real
+        // peak), not just noise that happened to cross the start line.
+        const isPlausibleTransition =
+          elapsed > MIN_BACKSWING_MS &&
+          peakRef.current > MIN_PEAK_FOR_VALID_SWING &&
+          magnitude < peakRef.current * TRANSITION_DROP_RATIO;
+
+        if (isPlausibleTransition) {
+          if (debounceCountRef.current === 0) pendingEventTimeRef.current = now;
+          debounceCountRef.current += 1;
+        } else {
+          debounceCountRef.current = 0;
+        }
+
+        if (debounceCountRef.current >= DEBOUNCE_SAMPLES) {
+          transitionTimeRef.current = pendingEventTimeRef.current;
+          setBackswingMs(pendingEventTimeRef.current - startTimeRef.current);
           peakRef.current = magnitude;
+          debounceCountRef.current = 0;
           phaseRef.current = "downswing";
           setPhase("downswing");
         }
@@ -103,8 +135,17 @@ export function useSwingTempo() {
 
       if (phaseRef.current === "downswing") {
         peakRef.current = Math.max(peakRef.current, magnitude);
+
         if (magnitude < SETTLE_THRESHOLD) {
-          setDownswingMs(now - transitionTimeRef.current);
+          if (debounceCountRef.current === 0) pendingEventTimeRef.current = now;
+          debounceCountRef.current += 1;
+        } else {
+          debounceCountRef.current = 0;
+        }
+
+        if (debounceCountRef.current >= DEBOUNCE_SAMPLES) {
+          setDownswingMs(pendingEventTimeRef.current - transitionTimeRef.current);
+          debounceCountRef.current = 0;
           phaseRef.current = "result";
           setPhase("result");
           clearSwingTimeout();

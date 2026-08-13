@@ -389,10 +389,14 @@ export interface ClubDistanceEntry {
   createdAt: string;
 }
 
-export async function logClubDistance(userId: string, club: string, distanceYards: number): Promise<void> {
+// Inserts every swing from a session in one round trip -- each stays its
+// own row, so the per-club average (computed client-side from all rows)
+// naturally folds new sessions into the running average rather than
+// overwriting it.
+export async function logClubDistances(userId: string, club: string, distancesYards: number[]): Promise<void> {
   const { error } = await supabase
     .from("club_distances")
-    .insert({ user_id: userId, club, distance_yards: distanceYards });
+    .insert(distancesYards.map((distance_yards) => ({ user_id: userId, club, distance_yards })));
   if (error) throw error;
 }
 
