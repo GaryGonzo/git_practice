@@ -1,14 +1,30 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMetronome } from "../../lib/useMetronome";
 
 const MIN_BPM = 40;
 const MAX_BPM = 240;
-const DEFAULT_BPM = 80;
-const TEMPO_PRESETS = [
-  { label: "Slow", bpm: 60 },
-  { label: "Medium", bpm: 80 },
-  { label: "Fast", bpm: 100 },
+
+type Mode = "regular" | "putting";
+
+// Grounded in the most widely-cited golf tempo research: backswing-to-
+// downswing ratio holds at roughly 3:1 for the full swing (the "Tour
+// Tempo" finding, from video analysis of pro swings, popularized by John
+// Novosel's book of the same name) and roughly 2:1 for putting (commonly
+// cited alongside it, e.g. by Golf Digest and short-game instructors).
+// These BPM values are a reasonable, commonly-recommended starting point
+// for that rhythm on a simple click metronome, not a universal constant --
+// the slider below is there so anyone can dial in their own feel.
+const REGULAR_PRESETS = [
+  { label: "Full Swing", bpm: 76 },
+  { label: "Chipping", bpm: 100 },
 ];
+const PUTTING_PRESETS = [{ label: "Putting", bpm: 70 }];
+
+const MODE_COPY: Record<Mode, string> = {
+  regular: "Full swing and chipping both hold roughly a 3:1 backswing-to-downswing tempo.",
+  putting: "Putting strokes run closer to a 2:1 backstroke-to-throughstroke tempo.",
+};
 
 function BackIcon({ className }: { className?: string }) {
   return (
@@ -36,7 +52,15 @@ function PauseIcon({ className }: { className?: string }) {
 }
 
 export function MetronomeScreen() {
-  const { bpm, setBpm, isPlaying, start, stop, beatFlash } = useMetronome(DEFAULT_BPM);
+  const [mode, setMode] = useState<Mode>("regular");
+  const { bpm, setBpm, isPlaying, start, stop, beatFlash } = useMetronome(REGULAR_PRESETS[0].bpm);
+
+  const presets = mode === "regular" ? REGULAR_PRESETS : PUTTING_PRESETS;
+
+  function selectMode(next: Mode) {
+    setMode(next);
+    setBpm(next === "regular" ? REGULAR_PRESETS[0].bpm : PUTTING_PRESETS[0].bpm);
+  }
 
   function adjust(delta: number) {
     setBpm((b) => Math.min(MAX_BPM, Math.max(MIN_BPM, b + delta)));
@@ -55,7 +79,23 @@ export function MetronomeScreen() {
       <h1 className="font-display mt-3 text-2xl tracking-wide">Metronome</h1>
       <p className="font-body text-sm text-neutral-500">Dial in a consistent swing tempo.</p>
 
-      <div className="mt-10 flex flex-col items-center">
+      <div className="mt-6 flex rounded-full border border-neutral-200 bg-white p-0.5">
+        {(["regular", "putting"] as Mode[]).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => selectMode(m)}
+            className={`font-label flex-1 rounded-full px-3 py-1.5 text-sm font-semibold capitalize ${
+              mode === m ? "bg-brand text-white" : "text-neutral-500"
+            }`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+      <p className="font-body mt-2 text-xs text-neutral-500">{MODE_COPY[mode]}</p>
+
+      <div className="mt-8 flex flex-col items-center">
         <div className="relative flex h-28 w-28 items-center justify-center">
           {isPlaying && (
             <span key={beatFlash} className="bg-brand/50 absolute inline-flex h-full w-full animate-ping rounded-full" />
@@ -96,9 +136,9 @@ export function MetronomeScreen() {
         />
 
         <div className="mt-4 flex gap-2">
-          {TEMPO_PRESETS.map((preset) => (
+          {presets.map((preset) => (
             <button
-              key={preset.bpm}
+              key={preset.label}
               type="button"
               onClick={() => setBpm(preset.bpm)}
               className={`font-label rounded-full border px-3 py-1.5 text-sm font-semibold ${
