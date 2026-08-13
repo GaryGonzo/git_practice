@@ -29,6 +29,16 @@ function GreenReaderIcon({ className }: { className?: string }) {
   );
 }
 
+function SwingTempoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M12 21a8.5 8.5 0 1 0-6-14.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M4 3v4h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 8v5l3.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 interface Tool {
   to: string;
   name: string;
@@ -54,6 +64,12 @@ const TOOLS: Tool[] = [
     name: "Green Reader",
     description: "Lay your phone flat on the green to read its slope.",
     icon: GreenReaderIcon,
+  },
+  {
+    to: "/app/tools/swing-tempo",
+    name: "Swing Tempo",
+    description: "Measure your backswing-to-downswing ratio against the tour-average 3:1.",
+    icon: SwingTempoIcon,
   },
 ];
 
