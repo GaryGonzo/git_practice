@@ -381,3 +381,37 @@ export async function getAdminUserOverview(): Promise<AdminUserOverview[]> {
     lastActive: (row.last_active as string) ?? null,
   }));
 }
+
+export interface ClubDistanceEntry {
+  id: string;
+  club: string;
+  distanceYards: number;
+  createdAt: string;
+}
+
+export async function logClubDistance(userId: string, club: string, distanceYards: number): Promise<void> {
+  const { error } = await supabase
+    .from("club_distances")
+    .insert({ user_id: userId, club, distance_yards: distanceYards });
+  if (error) throw error;
+}
+
+export async function deleteClubDistance(id: string): Promise<void> {
+  const { error } = await supabase.from("club_distances").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function getClubDistances(userId: string): Promise<ClubDistanceEntry[]> {
+  const { data } = await supabase
+    .from("club_distances")
+    .select("id, club, distance_yards, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (!data) return [];
+  return data.map((row) => ({
+    id: row.id as string,
+    club: row.club as string,
+    distanceYards: row.distance_yards as number,
+    createdAt: row.created_at as string,
+  }));
+}

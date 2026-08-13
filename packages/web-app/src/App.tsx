@@ -14,6 +14,9 @@ import { MetronomeScreen } from "./pages/app/MetronomeScreen";
 import { FairwayFinderScreen } from "./pages/app/FairwayFinderScreen";
 import { GreenReaderScreen } from "./pages/app/GreenReaderScreen";
 import { SwingTempoScreen } from "./pages/app/SwingTempoScreen";
+import { AlignmentCheckerScreen } from "./pages/app/AlignmentCheckerScreen";
+import { GappingScreen } from "./pages/app/GappingScreen";
+import { PreShotTimerScreen } from "./pages/app/PreShotTimerScreen";
 import { AdminScreen } from "./pages/app/AdminScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
@@ -48,6 +51,9 @@ function App() {
         <Route path="tools/fairway-finder" element={<FairwayFinderScreen />} />
         <Route path="tools/green-reader" element={<GreenReaderScreen />} />
         <Route path="tools/swing-tempo" element={<SwingTempoScreen />} />
+        <Route path="tools/alignment-checker" element={<AlignmentCheckerScreen />} />
+        <Route path="tools/gapping" element={<GappingScreen />} />
+        <Route path="tools/pre-shot-timer" element={<PreShotTimerScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
         <Route
           path="admin"

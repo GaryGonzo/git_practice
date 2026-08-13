@@ -39,6 +39,34 @@ function SwingTempoIcon({ className }: { className?: string }) {
   );
 }
 
+function AlignmentIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M9 3v18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M15 3v18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="1 3.5" />
+    </svg>
+  );
+}
+
+function GappingIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M5 20V10M11 20V6M17 20v-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M3 20h18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PreShotTimerIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 9v4l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.5 2h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 interface Tool {
   to: string;
   name: string;
@@ -70,6 +98,24 @@ const TOOLS: Tool[] = [
     name: "Swing Tempo",
     description: "Measure your backswing-to-downswing ratio against the tour-average 3:1.",
     icon: SwingTempoIcon,
+  },
+  {
+    to: "/app/tools/alignment-checker",
+    name: "Alignment Checker",
+    description: "Prop your camera down the target line and check your setup is square.",
+    icon: AlignmentIcon,
+  },
+  {
+    to: "/app/tools/gapping",
+    name: "Club Gapping",
+    description: "Log carry distances and see your average per club.",
+    icon: GappingIcon,
+  },
+  {
+    to: "/app/tools/pre-shot-timer",
+    name: "Pre-Shot Timer",
+    description: "Time your routine and keep it consistent shot to shot.",
+    icon: PreShotTimerIcon,
   },
 ];
 
