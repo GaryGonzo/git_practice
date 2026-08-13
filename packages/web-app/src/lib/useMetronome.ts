@@ -56,10 +56,13 @@ export function useMetronome(initialBpm: number) {
     timerRef.current = window.setTimeout(scheduler, SCHEDULER_INTERVAL_MS);
   }, [scheduleClick]);
 
-  const start = useCallback(() => {
+  const start = useCallback(async () => {
     const ctx = audioCtxRef.current ?? new AudioContext();
     audioCtxRef.current = ctx;
-    if (ctx.state === "suspended") ctx.resume();
+    // iOS Safari in particular needs this awaited -- scheduling clicks
+    // before the context has actually finished resuming can silently
+    // produce no sound at all, even though ctx.currentTime looks fine.
+    if (ctx.state === "suspended") await ctx.resume();
 
     beatIndexRef.current = 0;
     nextNoteTimeRef.current = ctx.currentTime + 0.05;
