@@ -10,6 +10,16 @@ function MetronomeIcon({ className }: { className?: string }) {
   );
 }
 
+function FairwayFinderIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M4 20 10 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M20 20 14 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8 20h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 interface Tool {
   to: string;
   name: string;
@@ -23,6 +33,12 @@ const TOOLS: Tool[] = [
     name: "Metronome",
     description: "Dial in a consistent swing tempo with adjustable BPM.",
     icon: MetronomeIcon,
+  },
+  {
+    to: "/app/tools/fairway-finder",
+    name: "Fairway Finder",
+    description: "Point your camera downrange and see boundary lines for any fairway width.",
+    icon: FairwayFinderIcon,
   },
 ];
 

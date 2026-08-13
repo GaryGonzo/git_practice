@@ -11,6 +11,7 @@ import { ProfileScreen } from "./pages/app/ProfileScreen";
 import { LeaderboardScreen } from "./pages/app/LeaderboardScreen";
 import { ToolsScreen } from "./pages/app/ToolsScreen";
 import { MetronomeScreen } from "./pages/app/MetronomeScreen";
+import { FairwayFinderScreen } from "./pages/app/FairwayFinderScreen";
 import { AdminScreen } from "./pages/app/AdminScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
@@ -42,6 +43,7 @@ function App() {
         <Route path="leaderboard/:drillId/:date" element={<LeaderboardScreen />} />
         <Route path="tools" element={<ToolsScreen />} />
         <Route path="tools/metronome" element={<MetronomeScreen />} />
+        <Route path="tools/fairway-finder" element={<FairwayFinderScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
         <Route
           path="admin"
