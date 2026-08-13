@@ -20,6 +20,15 @@ function FairwayFinderIcon({ className }: { className?: string }) {
   );
 }
 
+function GreenReaderIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="3" y="9" width="18" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="2.25" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 interface Tool {
   to: string;
   name: string;
@@ -39,6 +48,12 @@ const TOOLS: Tool[] = [
     name: "Fairway Finder",
     description: "Point your camera downrange and see boundary lines for any fairway width.",
     icon: FairwayFinderIcon,
+  },
+  {
+    to: "/app/tools/green-reader",
+    name: "Green Reader",
+    description: "Lay your phone flat on the green to read its slope.",
+    icon: GreenReaderIcon,
   },
 ];
 
