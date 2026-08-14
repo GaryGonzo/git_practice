@@ -47,6 +47,8 @@ function ChevronRightIcon({ className }: { className?: string }) {
 export interface DrillResult {
   score: number;
   lastAttempt: number | null;
+  personalBest: number | null;
+  isNewPersonalBest: boolean;
   rank: number;
   rankLabel: string;
   rankSublabel: string;
@@ -165,6 +167,13 @@ export function DrillFreshView({
                 </>
               )}
             </p>
+            {result.personalBest !== null && (
+              <p
+                className={`font-label mt-2 text-sm font-semibold ${result.isNewPersonalBest ? "text-gold" : "text-white/70"}`}
+              >
+                {result.isNewPersonalBest ? "🎉 New Personal Best!" : `Personal Best: ${result.personalBest}/${maxScore}`}
+              </p>
+            )}
           </div>
 
           {result.rank > 0 &&

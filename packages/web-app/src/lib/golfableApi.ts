@@ -111,16 +111,43 @@ export async function getTodaysDrill(): Promise<{ drill: Drill; maxScore: number
   return getDrillForDate(todayISO());
 }
 
+// Unlike getDrillForDate, this isn't scoped to the shared daily calendar --
+// Choose Your Own Golfable lets a member play any drill in the library,
+// logged against today's date.
+export async function getDrillById(drillId: string): Promise<{ drill: Drill; maxScore: number } | null> {
+  const { data: drillRow } = await supabase.from("drills").select("*").eq("id", drillId).single<DrillRow>();
+  if (!drillRow) return null;
+  return { drill: toDrill(drillRow), maxScore: drillRow.max_score };
+}
+
+export async function getPersonalBest(userId: string, drillId: string): Promise<number | null> {
+  const { data } = await supabase
+    .from("scores")
+    .select("score")
+    .eq("user_id", userId)
+    .eq("drill_id", drillId)
+    .order("score", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.score ?? null;
+}
+
 // Counts by when a score was logged, not which date the drill was originally
 // scheduled for -- so catching up an old Golfable from the Library still
-// counts toward this week's goal.
+// counts toward this week's goal. Counts distinct Pacific calendar days
+// with at least one score, not total score rows, so playing several drills
+// in one sitting (a daily Golfable plus a couple of Choose Your Own picks,
+// say) only ever contributes one day toward the weekly goal.
 export async function getSessionsThisWeek(userId: string): Promise<number> {
-  const { count } = await supabase
+  const { data } = await supabase
     .from("scores")
-    .select("id", { count: "exact", head: true })
+    .select("created_at")
     .eq("user_id", userId)
     .gte("created_at", startOfWeekISO());
-  return count ?? 0;
+  if (!data) return 0;
+  const dayFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: GOLFABLE_TZ });
+  const days = new Set(data.map((row) => dayFormatter.format(new Date(row.created_at as string))));
+  return days.size;
 }
 
 export async function getMyScoreForDate(userId: string, drillId: string, date: string): Promise<number | null> {

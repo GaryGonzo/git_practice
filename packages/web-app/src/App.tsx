@@ -17,6 +17,7 @@ import { GreenReaderScreen } from "./pages/app/GreenReaderScreen";
 import { SwingTempoScreen } from "./pages/app/SwingTempoScreen";
 import { AlignmentCheckerScreen } from "./pages/app/AlignmentCheckerScreen";
 import { GappingScreen } from "./pages/app/GappingScreen";
+import { ChooseGolfableScreen } from "./pages/app/ChooseGolfableScreen";
 import { ChallengesScreen } from "./pages/app/ChallengesScreen";
 import { NewChallengeScreen } from "./pages/app/NewChallengeScreen";
 import { ChallengeDetailScreen } from "./pages/app/ChallengeDetailScreen";
@@ -49,6 +50,8 @@ function App() {
         <Route path="progress" element={<ProgressScreen />} />
         <Route path="library" element={<LibraryScreen />} />
         <Route path="library/:date" element={<TodayScreen />} />
+        <Route path="choose" element={<ChooseGolfableScreen />} />
+        <Route path="play/:drillId" element={<TodayScreen />} />
         <Route path="leaderboard/:drillId/:date" element={<LeaderboardScreen />} />
         <Route path="tools" element={<ToolsScreen />} />
         <Route path="tools/metronome" element={<MetronomeScreen />} />

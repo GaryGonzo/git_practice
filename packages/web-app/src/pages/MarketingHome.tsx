@@ -230,6 +230,11 @@ const FAQS = [
       "No pressure. Head to your Library to catch up on any past Golfable and still count it toward your weekly goal.",
   },
   {
+    question: "Do I have to play the daily Golfable?",
+    answer:
+      "Nope. Today's Golfable is there if you want to follow the program, but you can also use Choose Your Own Golfable to pick any drill in the library, any time. Either way it tracks your personal best and counts toward your weekly goal.",
+  },
+  {
     question: "Do I need to be a good golfer to play?",
     answer:
       "Not at all. Every tier -- including High -- gets its own realistic targets, so beginners get just as much out of it as scratch players.",
@@ -316,6 +321,17 @@ function BadgeCheckIcon({ className }: { className?: string }) {
   );
 }
 
+function ChooseIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 const MEMBER_BENEFITS: {
   icon: ComponentType<{ className?: string }>;
   title: string;
@@ -350,6 +366,12 @@ const MEMBER_BENEFITS: {
     icon: TrendUpIcon,
     title: "Real Progress, Tracked",
     body: "Watch your trend on drills you repeat and see your weekly goal fill in, week after week.",
+    accent: "brand",
+  },
+  {
+    icon: ChooseIcon,
+    title: "Build Your Own Program",
+    body: "Prefer to pick and choose? Play any drill in the library whenever you want — it still counts toward your weekly goal.",
     accent: "brand",
   },
   {
@@ -499,6 +521,43 @@ export function MarketingHome() {
                   <p className="font-body mt-1.5 text-sm text-neutral-600">{item.body}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
+              Two Ways to Train
+            </h2>
+            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+              Follow the program, or build your own
+            </h3>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
+              Just like CrossFit's daily WOD, some golfers show up and do exactly what's prescribed. Others
+              like to pick their own workout. Golfable works either way.
+            </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-lg border border-neutral-200 bg-white p-5">
+                <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
+                  <CalendarCheckIcon className="h-5 w-5" />
+                </div>
+                <h4 className="font-label mt-3 text-base font-semibold">Today's Golfable</h4>
+                <p className="font-body mt-1.5 text-sm text-neutral-600">
+                  One shared drill, the same for every golfer training that day. Show up, play it, log
+                  your score — no decisions required.
+                </p>
+              </div>
+              <div className="rounded-lg border border-neutral-200 bg-white p-5">
+                <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
+                  <ChooseIcon className="h-5 w-5" />
+                </div>
+                <h4 className="font-label mt-3 text-base font-semibold">Choose Your Own Golfable</h4>
+                <p className="font-body mt-1.5 text-sm text-neutral-600">
+                  Want to build your own program? Pick any drill in the library, any time. It updates your
+                  personal best and counts toward your weekly goal, exactly like the daily Golfable.
+                </p>
+              </div>
             </div>
           </div>
         </section>

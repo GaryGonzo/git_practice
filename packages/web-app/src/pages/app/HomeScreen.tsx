@@ -30,6 +30,17 @@ function ChevronRightIcon({ className }: { className?: string }) {
   );
 }
 
+function ChooseIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 function ChallengeIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -112,6 +123,20 @@ export function HomeScreen() {
           No Golfable scheduled for today yet — check back soon.
         </div>
       )}
+
+      <Link
+        to="/app/choose"
+        className="mt-3 flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4"
+      >
+        <div className="bg-brand/10 flex h-10 w-10 flex-none items-center justify-center rounded-full">
+          <ChooseIcon className="text-brand h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-label text-sm font-semibold">Choose Your Own Golfable</p>
+          <p className="font-body text-xs text-neutral-500">Build your own program -- pick any drill in the library</p>
+        </div>
+        <ChevronRightIcon className="h-4 w-4 flex-none text-neutral-400" />
+      </Link>
 
       <div className="mt-4 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
         <div>

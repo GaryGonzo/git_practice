@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { Drill } from "@golfable/shared";
-import { TIER_INFO } from "@golfable/shared";
+import { CATEGORY_INFO, TIER_INFO } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
 import { CelebrationToast, randomScoreMessage } from "../../components/CelebrationToast";
 import { useAuth } from "../../lib/AuthProvider";
 import {
   getDrillForDate,
+  getDrillById,
   getSessionsThisWeek,
   getMyScoreForDate,
   getLastAttemptScore,
+  getPersonalBest,
   submitScore,
   getTierLeaderboard,
   todayISO,
@@ -38,15 +40,18 @@ const GOAL_PARTICLES = ["🏆", "🎉", "🙌", "✨"];
 export function TodayScreen() {
   const { session, profile } = useAuth();
   const userId = session!.user.id;
-  const { date: dateParam } = useParams();
-  const date = dateParam ?? todayISO();
-  const isToday = date === todayISO();
+  const { date: dateParam, drillId: drillIdParam } = useParams();
+  const isChooseYourOwn = Boolean(drillIdParam);
+  const date = isChooseYourOwn ? todayISO() : (dateParam ?? todayISO());
+  const isToday = !isChooseYourOwn && date === todayISO();
 
   const [loading, setLoading] = useState(true);
   const [drill, setDrill] = useState<Drill | null>(null);
   const [maxScore, setMaxScore] = useState(0);
   const [sessionsThisWeek, setSessionsThisWeek] = useState(0);
   const [lastAttempt, setLastAttempt] = useState<number | null>(null);
+  const [personalBest, setPersonalBest] = useState<number | null>(null);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
   const [submittedScore, setSubmittedScore] = useState<number | null>(null);
   const [scoreInput, setScoreInput] = useState("");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -63,8 +68,9 @@ export function TodayScreen() {
       setSubmittedScore(null);
       setScoreInput("");
       setLeaderboard([]);
+      setIsNewPersonalBest(false);
 
-      const found = await getDrillForDate(date);
+      const found = isChooseYourOwn ? await getDrillById(drillIdParam!) : await getDrillForDate(date);
       if (!found) {
         setDrill(null);
         setLoading(false);
@@ -73,13 +79,15 @@ export function TodayScreen() {
       setDrill(found.drill);
       setMaxScore(found.maxScore);
 
-      const [weekCount, existingScore, last] = await Promise.all([
+      const [weekCount, existingScore, last, best] = await Promise.all([
         getSessionsThisWeek(userId),
         getMyScoreForDate(userId, found.drill.id, date),
         getLastAttemptScore(userId, found.drill.id, date),
+        getPersonalBest(userId, found.drill.id),
       ]);
       setSessionsThisWeek(weekCount);
       setLastAttempt(last);
+      setPersonalBest(best);
       if (existingScore !== null) {
         setSubmittedScore(existingScore);
         const board = await getTierLeaderboard(found.drill.id, profile.tier, date);
@@ -87,7 +95,7 @@ export function TodayScreen() {
       }
       setLoading(false);
     })();
-  }, [profile, userId, date]);
+  }, [profile, userId, date, isChooseYourOwn, drillIdParam]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -99,10 +107,16 @@ export function TodayScreen() {
     setSubmitError(null);
     try {
       await submitScore(userId, drill.id, value, date);
-      const board = await getTierLeaderboard(drill.id, profile.tier, date);
-      const reachedGoalNow = sessionsThisWeek < profile.weekly_goal && sessionsThisWeek + 1 >= profile.weekly_goal;
+      const [board, newWeekCount] = await Promise.all([
+        getTierLeaderboard(drill.id, profile.tier, date),
+        getSessionsThisWeek(userId),
+      ]);
+      const reachedGoalNow = sessionsThisWeek < profile.weekly_goal && newWeekCount >= profile.weekly_goal;
+      const newPersonalBest = personalBest === null || value > personalBest;
       setSubmittedScore(value);
-      setSessionsThisWeek((n) => n + 1);
+      setSessionsThisWeek(newWeekCount);
+      setIsNewPersonalBest(newPersonalBest);
+      setPersonalBest((prev) => (prev === null || value > prev ? value : prev));
       setLeaderboard(board);
       setScoreCelebration(randomScoreMessage(profile.first_name));
       if (reachedGoalNow) setPendingGoalCelebration(true);
@@ -113,11 +127,14 @@ export function TodayScreen() {
     }
   }
 
-  const backLink = !isToday && (
+  const backLink = (!isToday || isChooseYourOwn) && (
     <div className="mx-auto max-w-md px-4 pt-4">
-      <Link to="/app/library" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
+      <Link
+        to={isChooseYourOwn ? "/app/choose" : "/app/library"}
+        className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500"
+      >
         <BackIcon className="h-4 w-4" />
-        Back to Library
+        {isChooseYourOwn ? "Back to Choose Your Own" : "Back to Library"}
       </Link>
     </div>
   );
@@ -137,9 +154,11 @@ export function TodayScreen() {
         {backLink}
         <div className="mx-auto max-w-md px-4 pt-6 pb-24 text-center">
           <p className="font-body text-neutral-600">
-            {isToday
-              ? "No Golfable is scheduled for today yet — check back soon."
-              : "No Golfable was scheduled for this date."}
+            {isChooseYourOwn
+              ? "Couldn't find that drill."
+              : isToday
+                ? "No Golfable is scheduled for today yet — check back soon."
+                : "No Golfable was scheduled for this date."}
           </p>
         </div>
       </div>
@@ -189,7 +208,11 @@ export function TodayScreen() {
         submitting={submitting}
         error={submitError}
         eyebrow={
-          isToday ? "Today's Golfable" : `${submittedScore === null ? "Catching Up" : "Completed"} · ${formatDate(date)}`
+          isChooseYourOwn
+            ? `Choose Your Own · ${CATEGORY_INFO[drill.category].label}`
+            : isToday
+              ? "Today's Golfable"
+              : `${submittedScore === null ? "Catching Up" : "Completed"} · ${formatDate(date)}`
         }
         subtitle={
           isToday
@@ -204,9 +227,15 @@ export function TodayScreen() {
             : {
                 score: submittedScore,
                 lastAttempt,
+                personalBest,
+                isNewPersonalBest,
                 rank,
-                rankLabel: `You're #${rank} in ${tierLabel} ${isToday ? "today" : `on ${formatDate(date)}`}`,
-                rankSublabel: isToday ? "Resets tomorrow with the next Golfable" : "Logged from the Library",
+                rankLabel: `You're #${rank} in ${tierLabel} ${isToday || isChooseYourOwn ? "today" : `on ${formatDate(date)}`}`,
+                rankSublabel: isChooseYourOwn
+                  ? "From Choose Your Own"
+                  : isToday
+                    ? "Resets tomorrow with the next Golfable"
+                    : "Logged from the Library",
                 leaderboardHref: `/app/leaderboard/${drill.id}/${date}`,
               }
         }

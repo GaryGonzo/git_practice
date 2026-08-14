@@ -4,6 +4,17 @@ import { TodayIcon, ProgressIcon, LibraryIcon, ProfileIcon } from "./AppNav";
 import { NotificationPrompt } from "./NotificationPrompt";
 import type { Profile } from "../lib/AuthProvider";
 
+function ChooseIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 interface WalkthroughStep {
   icon: ComponentType<{ className?: string }> | null;
   title: string;
@@ -22,6 +33,11 @@ function buildSteps(profile: Profile): WalkthroughStep[] {
       icon: TodayIcon,
       title: "Today's Golfable",
       body: "Your daily drill lives here -- see the setup, log your score, and know exactly what to do.",
+    },
+    {
+      icon: ChooseIcon,
+      title: "Or Build Your Own",
+      body: "Rather pick your own drills? Choose Your Own Golfable lets you play anything in the library, anytime -- it tracks your personal best and counts toward your weekly goal just like the daily drill (one Golfable a day toward that goal, however many you play).",
     },
     {
       icon: ProgressIcon,
