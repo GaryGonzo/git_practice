@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { supabase } from "../../lib/supabaseClient";
 
 export function SignupScreen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get("next");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -32,7 +34,10 @@ export function SignupScreen() {
           weekly_goal: weeklyGoal,
           marketing_opt_in: marketingOptIn,
         },
-        emailRedirectTo: `${window.location.origin}/login`,
+        // Carries the intended destination (e.g. a challenge invite) through
+        // the email round-trip -- LoginScreen reads this same `next` param
+        // once supabase-js picks the session up from the confirmation link.
+        emailRedirectTo: `${window.location.origin}/login${next ? `?next=${encodeURIComponent(next)}` : ""}`,
       },
     });
 
@@ -51,7 +56,7 @@ export function SignupScreen() {
     // member has to click the link we just emailed them before they can log
     // in, so show that instead of bouncing them into a signed-out /app.
     if (data.session) {
-      navigate("/app");
+      navigate(next ?? "/app");
     } else {
       setAwaitingConfirmation(true);
     }
@@ -69,7 +74,7 @@ export function SignupScreen() {
           Don't see it after a couple minutes? Check your spam or junk folder.
         </p>
         <Link
-          to="/login"
+          to={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
           className="font-label bg-brand mt-6 inline-block rounded-md px-5 py-2.5 text-sm font-semibold text-white"
         >
           Go to log in
@@ -205,7 +210,7 @@ export function SignupScreen() {
 
       <p className="font-body mt-4 text-center text-sm text-neutral-500">
         Already have an account?{" "}
-        <Link to="/login" className="text-brand underline">
+        <Link to={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="text-brand underline">
           Log in
         </Link>
       </p>

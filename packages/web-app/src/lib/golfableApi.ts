@@ -436,6 +436,7 @@ export interface Challenge {
   id: string;
   code: string;
   creatorId: string;
+  creatorFirstName: string;
   drill: Drill;
   maxScore: number;
   wager: string | null;
@@ -451,15 +452,18 @@ interface ChallengeRow {
   note: string | null;
   created_at: string;
   drills: DrillRow | DrillRow[] | null;
+  profiles: { first_name: string } | { first_name: string }[] | null;
 }
 
 function toChallenge(row: ChallengeRow): Challenge | null {
   const drillRow = oneDrillRow(row.drills);
   if (!drillRow) return null;
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   return {
     id: row.id,
     code: row.code,
     creatorId: row.creator_id,
+    creatorFirstName: profile?.first_name ?? "Someone",
     drill: toDrill(drillRow),
     maxScore: drillRow.max_score,
     wager: row.wager,
@@ -508,7 +512,7 @@ export async function createChallenge(
 export async function getChallengeByCode(code: string): Promise<Challenge | null> {
   const { data } = await supabase
     .from("challenges")
-    .select("id, code, creator_id, wager, note, created_at, drills(*)")
+    .select("id, code, creator_id, wager, note, created_at, drills(*), profiles(first_name)")
     .eq("code", code.trim().toUpperCase())
     .maybeSingle();
   if (!data) return null;
@@ -518,7 +522,7 @@ export async function getChallengeByCode(code: string): Promise<Challenge | null
 export async function getChallenge(id: string): Promise<Challenge | null> {
   const { data } = await supabase
     .from("challenges")
-    .select("id, code, creator_id, wager, note, created_at, drills(*)")
+    .select("id, code, creator_id, wager, note, created_at, drills(*), profiles(first_name)")
     .eq("id", id)
     .maybeSingle();
   if (!data) return null;

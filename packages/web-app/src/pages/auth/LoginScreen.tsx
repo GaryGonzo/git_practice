@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/AuthProvider";
 import { JUST_LOGGED_IN_KEY } from "../../lib/sessionFlags";
@@ -7,6 +7,8 @@ import { JUST_LOGGED_IN_KEY } from "../../lib/sessionFlags";
 export function LoginScreen() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get("next");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,9 +21,9 @@ export function LoginScreen() {
   useEffect(() => {
     if (session) {
       sessionStorage.setItem(JUST_LOGGED_IN_KEY, "1");
-      navigate("/app");
+      navigate(next ?? "/app");
     }
-  }, [session, navigate]);
+  }, [session, navigate, next]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -36,7 +38,7 @@ export function LoginScreen() {
       return;
     }
     sessionStorage.setItem(JUST_LOGGED_IN_KEY, "1");
-    navigate("/app");
+    navigate(next ?? "/app");
   }
 
   return (
@@ -88,7 +90,7 @@ export function LoginScreen() {
 
       <p className="font-body mt-4 text-center text-sm text-neutral-500">
         No account yet?{" "}
-        <Link to="/signup" className="text-brand underline">
+        <Link to={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-brand underline">
           Create one
         </Link>
       </p>

@@ -46,7 +46,7 @@ export function ChallengeDetailScreen() {
   const [scoreInput, setScoreInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<"code" | "link" | null>(null);
 
   const refreshParticipants = useCallback(async () => {
     if (!id) return;
@@ -103,14 +103,15 @@ export function ChallengeDetailScreen() {
   const topScore = participants[0]?.score ?? null;
   const winners = allSubmitted && topScore !== null ? participants.filter((p) => p.score === topScore) : [];
 
-  async function handleCopyCode() {
+  async function handleCopy(field: "code" | "link") {
+    const text = field === "code" ? challenge!.code : `${window.location.origin}/join/${challenge!.code}`;
     try {
-      await navigator.clipboard.writeText(challenge!.code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 1500);
     } catch {
       // Clipboard access can fail silently (permissions, insecure context) --
-      // the code is already visible on screen either way.
+      // the code/link is already visible on screen either way.
     }
   }
 
@@ -184,7 +185,7 @@ export function ChallengeDetailScreen() {
 
       <button
         type="button"
-        onClick={handleCopyCode}
+        onClick={() => handleCopy("code")}
         className="font-label mt-4 flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3"
       >
         <span className="text-xs font-semibold tracking-widest text-neutral-500 uppercase">Invite Code</span>
@@ -193,7 +194,17 @@ export function ChallengeDetailScreen() {
           <CopyIcon className="h-4 w-4 text-neutral-400" />
         </span>
       </button>
-      {copied && <p className="font-body mt-1 text-center text-xs text-neutral-500">Copied!</p>}
+      {copiedField === "code" && <p className="font-body mt-1 text-center text-xs text-neutral-500">Copied!</p>}
+
+      <button
+        type="button"
+        onClick={() => handleCopy("link")}
+        className="font-label mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-600"
+      >
+        <CopyIcon className="h-4 w-4 text-neutral-400" />
+        Copy Invite Link
+      </button>
+      {copiedField === "link" && <p className="font-body mt-1 text-center text-xs text-neutral-500">Copied!</p>}
 
       <div className="mt-6">
         <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
