@@ -30,6 +30,21 @@ function ChevronRightIcon({ className }: { className?: string }) {
   );
 }
 
+function ChallengeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M7 4h10v4a5 5 0 0 1-5 5 5 5 0 0 1-5-5V4Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M12 13v3m-3 4h6m-3-4v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function HomeScreen() {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -122,6 +137,20 @@ export function HomeScreen() {
           <p className="font-body text-xs text-neutral-500">Metronome & more</p>
         </Link>
       </div>
+
+      <Link
+        to="/app/challenges"
+        className="border-gold/40 bg-gold/5 mt-4 flex items-center gap-3 rounded-lg border p-4"
+      >
+        <div className="bg-gold/15 flex h-10 w-10 flex-none items-center justify-center rounded-full">
+          <ChallengeIcon className="text-gold h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-label text-sm font-semibold">Challenge a Friend</p>
+          <p className="font-body text-xs text-neutral-500">Pick a drill, invite friends on the range, live scores</p>
+        </div>
+        <ChevronRightIcon className="h-4 w-4 flex-none text-neutral-400" />
+      </Link>
 
       {!loading && drill && (
         <div className="mt-8">

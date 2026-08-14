@@ -1,4 +1,4 @@
-import type { Drill, HandicapTier } from "@golfable/shared";
+import type { Drill, HandicapTier, SkillCategory } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
 
 interface DrillRow {
@@ -418,4 +418,208 @@ export async function getClubDistances(userId: string): Promise<ClubDistanceEntr
     distanceYards: row.distance_yards as number,
     createdAt: row.created_at as string,
   }));
+}
+
+// Unlike getDrillForDate/getPastGolfables/getUpcomingGolfables, this isn't
+// scoped to the shared daily calendar -- Challenge Mode lets you pick any
+// drill in the library to compete on, so it needs the whole (optionally
+// category-filtered) list.
+export async function getAllDrills(category?: SkillCategory): Promise<{ drill: Drill; maxScore: number }[]> {
+  let query = supabase.from("drills").select("*").order("name", { ascending: true });
+  if (category) query = query.eq("category", category);
+  const { data } = await query;
+  if (!data) return [];
+  return (data as DrillRow[]).map((row) => ({ drill: toDrill(row), maxScore: row.max_score }));
+}
+
+export interface Challenge {
+  id: string;
+  code: string;
+  creatorId: string;
+  drill: Drill;
+  maxScore: number;
+  wager: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+interface ChallengeRow {
+  id: string;
+  code: string;
+  creator_id: string;
+  wager: string | null;
+  note: string | null;
+  created_at: string;
+  drills: DrillRow | DrillRow[] | null;
+}
+
+function toChallenge(row: ChallengeRow): Challenge | null {
+  const drillRow = oneDrillRow(row.drills);
+  if (!drillRow) return null;
+  return {
+    id: row.id,
+    code: row.code,
+    creatorId: row.creator_id,
+    drill: toDrill(drillRow),
+    maxScore: drillRow.max_score,
+    wager: row.wager,
+    note: row.note,
+    createdAt: row.created_at,
+  };
+}
+
+// Short, unambiguous (no 0/O/1/I/L) codes -- meant to be read aloud or
+// texted at the range, not typed carefully at a desk.
+const CHALLENGE_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const CHALLENGE_CODE_LENGTH = 5;
+
+function generateChallengeCode(): string {
+  let code = "";
+  for (let i = 0; i < CHALLENGE_CODE_LENGTH; i++) {
+    code += CHALLENGE_CODE_ALPHABET[Math.floor(Math.random() * CHALLENGE_CODE_ALPHABET.length)];
+  }
+  return code;
+}
+
+// No friends graph needed to "invite" someone -- creating a challenge just
+// mints a shareable code and joins the creator as its first participant.
+export async function createChallenge(
+  creatorId: string,
+  drillId: string,
+  wager: string | null,
+  note: string | null
+): Promise<{ id: string; code: string }> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = generateChallengeCode();
+    const { data, error } = await supabase
+      .from("challenges")
+      .insert({ creator_id: creatorId, drill_id: drillId, code, wager, note })
+      .select("id, code")
+      .single();
+    if (!error && data) {
+      await joinChallenge(data.id as string, creatorId);
+      return { id: data.id as string, code: data.code as string };
+    }
+    if (error && error.code !== "23505") throw error; // 23505 = unique_violation on the code -- retry with a new one
+  }
+  throw new Error("Couldn't generate a unique challenge code -- try again.");
+}
+
+export async function getChallengeByCode(code: string): Promise<Challenge | null> {
+  const { data } = await supabase
+    .from("challenges")
+    .select("id, code, creator_id, wager, note, created_at, drills(*)")
+    .eq("code", code.trim().toUpperCase())
+    .maybeSingle();
+  if (!data) return null;
+  return toChallenge(data as unknown as ChallengeRow);
+}
+
+export async function getChallenge(id: string): Promise<Challenge | null> {
+  const { data } = await supabase
+    .from("challenges")
+    .select("id, code, creator_id, wager, note, created_at, drills(*)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  return toChallenge(data as unknown as ChallengeRow);
+}
+
+// Upsert with ignoreDuplicates so re-entering a code you've already joined
+// (or the creator revisiting their own challenge) is a harmless no-op
+// instead of a unique-constraint error.
+export async function joinChallenge(challengeId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("challenge_participants")
+    .upsert({ challenge_id: challengeId, user_id: userId }, { onConflict: "challenge_id,user_id", ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+export interface ChallengeParticipant {
+  userId: string;
+  firstName: string;
+  score: number | null;
+}
+
+export async function getChallengeParticipants(challengeId: string): Promise<ChallengeParticipant[]> {
+  const { data } = await supabase
+    .from("challenge_participants")
+    .select("user_id, score, profiles!inner(first_name)")
+    .eq("challenge_id", challengeId);
+  if (!data) return [];
+  return data
+    .map((row) => {
+      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+      return {
+        userId: row.user_id as string,
+        firstName: profile.first_name as string,
+        score: (row.score as number | null) ?? null,
+      };
+    })
+    .sort((a, b) => {
+      if (a.score === null && b.score === null) return 0;
+      if (a.score === null) return 1;
+      if (b.score === null) return -1;
+      return b.score - a.score;
+    });
+}
+
+export async function submitChallengeScore(challengeId: string, userId: string, score: number): Promise<void> {
+  const { error } = await supabase
+    .from("challenge_participants")
+    .update({ score, submitted_at: new Date().toISOString() })
+    .eq("challenge_id", challengeId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+export interface ChallengeSummary {
+  id: string;
+  code: string;
+  drillName: string;
+  category: SkillCategory;
+  participantCount: number;
+  myScore: number | null;
+  createdAt: string;
+}
+
+export async function getMyChallenges(userId: string): Promise<ChallengeSummary[]> {
+  const { data: participantRows } = await supabase
+    .from("challenge_participants")
+    .select("challenge_id, score")
+    .eq("user_id", userId);
+  if (!participantRows || participantRows.length === 0) return [];
+
+  const challengeIds = participantRows.map((r) => r.challenge_id as string);
+  const myScoreByChallenge = new Map(participantRows.map((r) => [r.challenge_id as string, r.score as number | null]));
+
+  const { data: challengeRows } = await supabase
+    .from("challenges")
+    .select("id, code, created_at, drills(name, category)")
+    .in("id", challengeIds)
+    .order("created_at", { ascending: false });
+  if (!challengeRows) return [];
+
+  const { data: allParticipants } = await supabase
+    .from("challenge_participants")
+    .select("challenge_id")
+    .in("challenge_id", challengeIds);
+  const countByChallenge = new Map<string, number>();
+  (allParticipants ?? []).forEach((row) => {
+    const id = row.challenge_id as string;
+    countByChallenge.set(id, (countByChallenge.get(id) ?? 0) + 1);
+  });
+
+  return challengeRows.map((row) => {
+    const drillRow = Array.isArray(row.drills) ? row.drills[0] : row.drills;
+    return {
+      id: row.id as string,
+      code: row.code as string,
+      drillName: (drillRow?.name as string) ?? "Unknown Drill",
+      category: (drillRow?.category as SkillCategory) ?? "driver",
+      participantCount: countByChallenge.get(row.id as string) ?? 1,
+      myScore: myScoreByChallenge.get(row.id as string) ?? null,
+      createdAt: row.created_at as string,
+    };
+  });
 }

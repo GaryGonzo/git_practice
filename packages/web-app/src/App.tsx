@@ -16,6 +16,9 @@ import { GreenReaderScreen } from "./pages/app/GreenReaderScreen";
 import { SwingTempoScreen } from "./pages/app/SwingTempoScreen";
 import { AlignmentCheckerScreen } from "./pages/app/AlignmentCheckerScreen";
 import { GappingScreen } from "./pages/app/GappingScreen";
+import { ChallengesScreen } from "./pages/app/ChallengesScreen";
+import { NewChallengeScreen } from "./pages/app/NewChallengeScreen";
+import { ChallengeDetailScreen } from "./pages/app/ChallengeDetailScreen";
 import { AdminScreen } from "./pages/app/AdminScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
@@ -52,6 +55,9 @@ function App() {
         <Route path="tools/swing-tempo" element={<SwingTempoScreen />} />
         <Route path="tools/alignment-checker" element={<AlignmentCheckerScreen />} />
         <Route path="tools/gapping" element={<GappingScreen />} />
+        <Route path="challenges" element={<ChallengesScreen />} />
+        <Route path="challenges/new" element={<NewChallengeScreen />} />
+        <Route path="challenges/:id" element={<ChallengeDetailScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
         <Route
           path="admin"
