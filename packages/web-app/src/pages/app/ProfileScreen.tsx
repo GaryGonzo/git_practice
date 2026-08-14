@@ -123,11 +123,10 @@ function FacebookIcon({ className }: { className?: string }) {
   );
 }
 
-function PlayIcon({ className }: { className?: string }) {
+function TikTokIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M10 8.3l6.5 3.7-6.5 3.7v-7.4Z" fill="currentColor" />
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M16.6 5.82a4.28 4.28 0 0 1-3.28-4.32h-3.14v14.6a2.6 2.6 0 1 1-2.6-2.6c.28 0 .55.04.8.12V10.5a5.75 5.75 0 1 0 5 5.7V9.4a7.4 7.4 0 0 0 4.3 1.37V7.6a4.3 4.3 0 0 1-1.08-1.78Z" />
     </svg>
   );
 }
@@ -153,16 +152,6 @@ function formatMemberSince(iso: string): string {
 }
 
 const TIKTOK_HANDLE = "golfablegames";
-const TIKTOK_POSTS = [
-  "https://www.tiktok.com/@golfablegames/video/7641981066168880414",
-  "https://www.tiktok.com/@golfablegames/photo/7654358271163174175",
-  "https://www.tiktok.com/@golfablegames/photo/7649399288216309023",
-  "https://www.tiktok.com/@golfablegames/photo/7649779091914181901",
-  "https://www.tiktok.com/@golfablegames/video/7642720526951107870",
-  "https://www.tiktok.com/@golfablegames/video/7646804815716158733",
-  "https://www.tiktok.com/@golfablegames/video/7646628639349542158",
-  "https://www.tiktok.com/@golfablegames/photo/7647915560553958669",
-];
 
 export function ProfileScreen() {
   const { profile, signOut, refreshProfile } = useAuth();
@@ -408,41 +397,24 @@ export function ProfileScreen() {
         )}
       </div>
 
-      <div className="mt-8">
-        <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+      <div className="mt-8 rounded-lg border border-neutral-200 bg-white p-5 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 text-white">
+          <TikTokIcon className="h-7 w-7" />
+        </div>
+        <h2 className="font-label mt-3 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
           On TikTok
         </h2>
-        <p className="font-body mb-3 text-sm text-neutral-600">
-          New drills, real attempts, and the occasional shank.
+        <p className="font-body mx-auto mt-1 mb-4 max-w-xs text-sm text-neutral-600">
+          Follow for updates, videos, real attempts, and more.
         </p>
         <a
           href={`https://www.tiktok.com/@${TIKTOK_HANDLE}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-label mb-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
+          className="font-label inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
         >
           Follow @{TIKTOK_HANDLE}
         </a>
-        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
-          {TIKTOK_POSTS.map((url) => {
-            const isPhoto = url.includes("/photo/");
-            return (
-              <a
-                key={url}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-none flex-col items-center justify-center gap-2 rounded-xl border-2 border-neutral-200 bg-neutral-900 text-white shadow-sm"
-                style={{ width: 130, height: 260 }}
-              >
-                <PlayIcon className="h-10 w-10" />
-                <span className="font-label text-xs font-semibold tracking-wide text-white/70 uppercase">
-                  {isPhoto ? "Photo" : "Video"}
-                </span>
-              </a>
-            );
-          })}
-        </div>
       </div>
 
       <div className="mt-8">
