@@ -235,6 +235,16 @@ const FAQS = [
       "Nope. Today's Golfable is there if you want to follow the program, but you can also use Choose Your Own Golfable to pick any drill in the library, any time. Either way it tracks your personal best and counts toward your weekly goal.",
   },
   {
+    question: "Can I compete with my friends?",
+    answer:
+      "Yes -- Challenge a Friend lets you pick any drill, share a join code, and see a live scoreboard update as everyone plays. You can add an optional wager too, just for fun -- no real money changes hands.",
+  },
+  {
+    question: "What are the Training Tools?",
+    answer:
+      "A free set of practice aids built into the app: a swing-tempo metronome, a camera-based fairway finder and alignment checker, a green-slope reader, a swing tempo tracker, and club gapping to log your average carry distance per club.",
+  },
+  {
     question: "Do I need to be a good golfer to play?",
     answer:
       "Not at all. Every tier -- including High -- gets its own realistic targets, so beginners get just as much out of it as scratch players.",
@@ -331,6 +341,111 @@ function ChooseIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+function ChallengeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M7 4h10v4a5 5 0 0 1-5 5 5 5 0 0 1-5-5V4Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M12 13v3m-3 4h6m-3-4v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function MetronomeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M8 20h8l-2.2-14h-3.6L8 20Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M10.5 9.5 15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9 20h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FairwayFinderToolIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M4 20 10 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M20 20 14 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8 20h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function GreenReaderIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="3" y="9" width="18" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="2.25" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function SwingTempoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M12 21a8.5 8.5 0 1 0-6-14.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M4 3v4h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 8v5l3.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function AlignmentIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M9 3v18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M15 3v18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="1 3.5" />
+    </svg>
+  );
+}
+
+function GappingIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M5 20V10M11 20V6M17 20v-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M3 20h18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const TRAINING_TOOLS: { icon: ComponentType<{ className?: string }>; name: string; body: string }[] = [
+  {
+    icon: MetronomeIcon,
+    name: "Metronome",
+    body: "Dial in a consistent swing tempo with adjustable BPM.",
+  },
+  {
+    icon: FairwayFinderToolIcon,
+    name: "Fairway Finder",
+    body: "Point your camera downrange and see boundary lines for any fairway width.",
+  },
+  {
+    icon: GreenReaderIcon,
+    name: "Green Reader",
+    body: "Lay your phone flat on the green to read its slope.",
+  },
+  {
+    icon: SwingTempoIcon,
+    name: "Swing Tempo",
+    body: "Measure your backswing-to-downswing ratio against the tour-average 3:1.",
+  },
+  {
+    icon: AlignmentIcon,
+    name: "Alignment Checker",
+    body: "Prop your camera down the target line and check your setup is square.",
+  },
+  {
+    icon: GappingIcon,
+    name: "Club Gapping",
+    body: "Log carry distances and see your average per club.",
+  },
+];
 
 const MEMBER_BENEFITS: {
   icon: ComponentType<{ className?: string }>;
@@ -565,6 +680,34 @@ export function MarketingHome() {
         <section className="px-6 py-16">
           <div className="mx-auto max-w-3xl">
             <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
+              Training Tools
+            </h2>
+            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+              Your phone, turned into a practice aid
+            </h3>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
+              A free set of tools that live right in the app — no extra gadgets required.
+            </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {TRAINING_TOOLS.map((tool) => {
+                const Icon = tool.icon;
+                return (
+                  <div key={tool.name} className="rounded-lg border border-neutral-200 bg-white p-5">
+                    <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-label mt-3 text-base font-semibold">{tool.name}</h4>
+                    <p className="font-body mt-1.5 text-sm text-neutral-600">{tool.body}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
               A Peek Inside the App
             </h2>
             <p className="font-body mx-auto mt-2 max-w-xl text-center text-sm text-neutral-600">
@@ -671,6 +814,24 @@ export function MarketingHome() {
                 <span className="font-display mr-2 text-2xl align-middle">7/10</span>
                 You're #3 in Mid today
               </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-3xl">
+            <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+              <div className="bg-gold/15 flex h-14 w-14 flex-none items-center justify-center rounded-full">
+                <ChallengeIcon className="text-gold h-7 w-7" />
+              </div>
+              <div>
+                <h2 className="font-display text-2xl tracking-wide">Challenge a Friend</h2>
+                <p className="font-body mt-1 text-neutral-600">
+                  Heading to the range together? Pick any drill from the library, share a 5-character
+                  code, and compete on a live-updating scoreboard as everyone plays. Add an optional wager
+                  — just for fun, no real money changes hands.
+                </p>
+              </div>
             </div>
           </div>
         </section>
