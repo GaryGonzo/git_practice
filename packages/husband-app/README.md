@@ -35,7 +35,9 @@ Real Web Push (a notification that shows up even when the app isn't open) needs 
 beyond the app code itself:
 
 1. **VITE_VAPID_PUBLIC_KEY** — added as a Vercel environment variable (Production + Preview),
-   same place as the Supabase ones.
+   same place as the Supabase ones. The `VITE_` prefix is required -- Vite only bundles
+   env vars into the client build if the name starts with it, so `VAPID_PUBLIC_KEY` (no
+   prefix) silently does nothing here even though it's a valid Supabase secret name.
 2. **`send-push` Edge Function** (`supabase/functions/send-push`) — deployed in the Supabase
    dashboard under Edge Functions. **Disable JWT verification** for this function specifically —
    it's only ever called by Supabase's own Database Webhook, never by end users.
