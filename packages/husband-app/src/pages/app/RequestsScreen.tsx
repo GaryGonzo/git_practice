@@ -37,7 +37,7 @@ const GROUP_ORDER: Filter[] = ["new", "pending", "complete"];
 
 const STATUS_LABEL: Record<RequestStatus, string> = {
   pending: "Pending",
-  in_progress: "In progress",
+  in_progress: "Accepted",
   done: "Done",
   cancelled: "Cancelled",
   declined: "Declined",
@@ -284,7 +284,7 @@ export function RequestsScreen() {
         body={
           profile.role === "wife"
             ? "Pick something from the menu or type your own, add a note for exactly how you want it, and send it straight to him. You'll see the status update in real time."
-            : "When she needs something -- coffee, breakfast in bed, anything -- it'll show up here. Tap Start when you're on it, Mark done when it's delivered, or Decline with a quick reason if you can't."
+            : "When she needs something -- coffee, breakfast in bed, anything -- it'll show up here. Tap Accept when you're on it, Mark done when it's delivered, or Decline with a quick reason if you can't."
         }
       />
       <div className="flex items-center justify-between">
@@ -565,7 +565,7 @@ export function RequestsScreen() {
                       onClick={() => handleStatus(r.id, "in_progress")}
                       className="font-display rounded-full bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-800"
                     >
-                      Start
+                      Accept
                     </button>
                   )}
                   {r.assigned_to === profile.id && !isTerminal(r.status) && (

@@ -466,7 +466,7 @@ export function TasksScreen() {
                       onClick={() => handleStart(t.id)}
                       className="font-display rounded-full bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-800"
                     >
-                      Accepted
+                      Accept
                     </button>
                   )}
                   {!isTerminal(t.status) && (
