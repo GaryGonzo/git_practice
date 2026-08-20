@@ -6,6 +6,14 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "object" && err !== null && "message" in err && typeof (err as { message: unknown }).message === "string") {
+    return (err as { message: string }).message;
+  }
+  return fallback;
+}
+
 export function AdminScreen() {
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +22,7 @@ export function AdminScreen() {
   useEffect(() => {
     listAllUsers()
       .then(setUsers)
-      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't load users."))
+      .catch((err) => setError(errorMessage(err, "Couldn't load users.")))
       .finally(() => setLoading(false));
   }, []);
 
