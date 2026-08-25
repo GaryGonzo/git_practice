@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { useAuth, type Profile } from "../../lib/AuthProvider";
-import { updateProfile, uploadAvatar, getAvatarSignedUrl } from "../../lib/golfableApi";
+import { updateProfile, uploadAvatar, getAvatarSignedUrl, getStudioByOwnerId, type Studio } from "../../lib/golfableApi";
 import { NotificationPrompt } from "../../components/NotificationPrompt";
 import { PUSH_ENABLED_KEY } from "../../lib/push";
 
@@ -165,6 +165,12 @@ export function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [surprise, setSurprise] = useState<string | null>(null);
+  const [ownedStudio, setOwnedStudio] = useState<Studio | null>(null);
+
+  useEffect(() => {
+    if (!profile) return;
+    getStudioByOwnerId(profile.id).then(setOwnedStudio);
+  }, [profile]);
 
   if (!profile) return null;
   const tierInfo = TIER_INFO[profile.tier];
@@ -364,6 +370,15 @@ export function ProfileScreen() {
       >
         Sign out
       </button>
+
+      {ownedStudio && (
+        <Link
+          to="/app/studio-admin"
+          className="font-label mt-3 block w-full rounded-md border border-neutral-300 px-4 py-2.5 text-center text-sm font-semibold text-neutral-600"
+        >
+          Manage {ownedStudio.name}
+        </Link>
+      )}
 
       {profile.is_admin && (
         <Link

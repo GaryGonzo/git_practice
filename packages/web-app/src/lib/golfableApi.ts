@@ -654,3 +654,162 @@ export async function getMyChallenges(userId: string): Promise<ChallengeSummary[
     };
   });
 }
+
+export interface Studio {
+  id: string;
+  name: string;
+  slug: string;
+  ownerUserId: string;
+  createdAt: string;
+}
+
+interface StudioRow {
+  id: string;
+  name: string;
+  slug: string;
+  owner_user_id: string;
+  created_at: string;
+}
+
+function toStudio(row: StudioRow): Studio {
+  return { id: row.id, name: row.name, slug: row.slug, ownerUserId: row.owner_user_id, createdAt: row.created_at };
+}
+
+export async function getStudioBySlug(slug: string): Promise<Studio | null> {
+  const { data } = await supabase.from("studios").select("*").eq("slug", slug).maybeSingle<StudioRow>();
+  return data ? toStudio(data) : null;
+}
+
+export async function getStudioById(studioId: string): Promise<Studio | null> {
+  const { data } = await supabase.from("studios").select("*").eq("id", studioId).maybeSingle<StudioRow>();
+  return data ? toStudio(data) : null;
+}
+
+// A member belongs to at most one studio -- joining a new one just
+// overwrites the old value, same shape as any other profile field.
+export async function joinStudio(userId: string, studioId: string): Promise<void> {
+  const { error } = await supabase.from("profiles").update({ studio_id: studioId }).eq("id", userId);
+  if (error) throw error;
+}
+
+// Same shape as getGlobalLeaderboard, but filtered to one studio's roster
+// instead of every Golfable member -- this is what a studio's members see
+// as their primary, private leaderboard.
+export async function getStudioLeaderboard(
+  studioId: string,
+  drillId: string,
+  date: string,
+  limit: number
+): Promise<LeaderboardEntry[]> {
+  const { data } = await supabase
+    .from("scores")
+    .select("user_id, score, profiles!inner(first_name, studio_id)")
+    .eq("drill_id", drillId)
+    .eq("date", date)
+    .eq("profiles.studio_id", studioId)
+    .order("score", { ascending: false })
+    .limit(limit);
+
+  if (!data) return [];
+  return data.map((row) => {
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return { userId: row.user_id as string, firstName: profile.first_name as string, score: row.score as number };
+  });
+}
+
+export interface StudioRosterEntry {
+  id: string;
+  firstName: string;
+  lastName: string;
+  tier: HandicapTier;
+  weeklyGoal: number;
+  createdAt: string;
+  totalScores: number;
+  sessionsThisWeek: number;
+  lastActive: string | null;
+}
+
+// Admin-only from the studio owner's side: throws if the caller doesn't
+// own target_studio_id (enforced server-side in the RPC, not just hidden
+// client-side).
+export async function getStudioRoster(studioId: string): Promise<StudioRosterEntry[]> {
+  const { data, error } = await supabase.rpc("studio_roster", { target_studio_id: studioId });
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+    id: row.id as string,
+    firstName: row.first_name as string,
+    lastName: row.last_name as string,
+    tier: row.tier as HandicapTier,
+    weeklyGoal: row.weekly_goal as number,
+    createdAt: row.created_at as string,
+    totalScores: Number(row.total_scores),
+    sessionsThisWeek: Number(row.sessions_this_week),
+    lastActive: (row.last_active as string) ?? null,
+  }));
+}
+
+// Used by the Profile screen to decide whether to show a "Manage your
+// studio" entry point -- most members get null back here.
+export async function getStudioByOwnerId(ownerUserId: string): Promise<Studio | null> {
+  const { data } = await supabase.from("studios").select("*").eq("owner_user_id", ownerUserId).maybeSingle<StudioRow>();
+  return data ? toStudio(data) : null;
+}
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// Site-admin only (enforced by the "only admins can create studios" RLS
+// policy) -- generates a URL-safe slug from the name, retrying with a
+// numeric suffix if it's already taken.
+export async function createStudio(name: string, ownerUserId: string): Promise<Studio> {
+  const base = slugify(name) || "studio";
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const slug = attempt === 0 ? base : `${base}-${attempt + 1}`;
+    const { data, error } = await supabase
+      .from("studios")
+      .insert({ name, slug, owner_user_id: ownerUserId })
+      .select("*")
+      .single<StudioRow>();
+    if (!error && data) return toStudio(data);
+    if (error && error.code !== "23505") throw error; // 23505 = unique_violation on the slug -- retry with a suffix
+  }
+  throw new Error("Couldn't generate a unique studio URL -- try a different name.");
+}
+
+export interface StudioOverview extends Studio {
+  ownerFirstName: string;
+  ownerLastName: string;
+  memberCount: number;
+}
+
+// Site-admin's studio list: studios + profiles are both publicly readable,
+// so this is a plain composed query rather than a security-definer RPC.
+export async function getStudiosOverview(): Promise<StudioOverview[]> {
+  const { data: studioRows } = await supabase
+    .from("studios")
+    .select("*, profiles!owner_user_id(first_name, last_name)")
+    .order("created_at", { ascending: false });
+  if (!studioRows || studioRows.length === 0) return [];
+
+  const { data: memberRows } = await supabase.from("profiles").select("studio_id").not("studio_id", "is", null);
+  const countByStudio = new Map<string, number>();
+  (memberRows ?? []).forEach((row) => {
+    const id = row.studio_id as string;
+    countByStudio.set(id, (countByStudio.get(id) ?? 0) + 1);
+  });
+
+  return studioRows.map((row) => {
+    const owner = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return {
+      ...toStudio(row as StudioRow),
+      ownerFirstName: (owner?.first_name as string) ?? "Unknown",
+      ownerLastName: (owner?.last_name as string) ?? "",
+      memberCount: countByStudio.get(row.id as string) ?? 0,
+    };
+  });
+}

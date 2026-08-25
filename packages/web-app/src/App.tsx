@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { MarketingHome } from "./pages/MarketingHome";
 import { JoinChallengeScreen } from "./pages/JoinChallengeScreen";
+import { StudioInviteScreen } from "./pages/StudioInviteScreen";
 import { AppShell } from "./components/AppNav";
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireAdmin } from "./components/RequireAdmin";
@@ -22,6 +23,7 @@ import { ChallengesScreen } from "./pages/app/ChallengesScreen";
 import { NewChallengeScreen } from "./pages/app/NewChallengeScreen";
 import { ChallengeDetailScreen } from "./pages/app/ChallengeDetailScreen";
 import { AdminScreen } from "./pages/app/AdminScreen";
+import { StudioAdminScreen } from "./pages/app/StudioAdminScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
 import { ForgotPasswordScreen } from "./pages/auth/ForgotPasswordScreen";
@@ -33,6 +35,7 @@ function App() {
     <Routes>
       <Route path="/" element={<MarketingHome />} />
       <Route path="/join/:code" element={<JoinChallengeScreen />} />
+      <Route path="/my-studio/:slug" element={<StudioInviteScreen />} />
       <Route path="/signup" element={<SignupScreen />} />
       <Route path="/login" element={<LoginScreen />} />
       <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
@@ -64,6 +67,7 @@ function App() {
         <Route path="challenges/new" element={<NewChallengeScreen />} />
         <Route path="challenges/:id" element={<ChallengeDetailScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
+        <Route path="studio-admin" element={<StudioAdminScreen />} />
         <Route
           path="admin"
           element={

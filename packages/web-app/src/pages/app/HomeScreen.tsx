@@ -9,8 +9,11 @@ import {
   getGlobalLeaderboard,
   getMyScoreForDate,
   getSessionsThisWeek,
+  getStudioById,
+  getStudioLeaderboard,
   todayISO,
   type LeaderboardEntry,
+  type Studio,
 } from "../../lib/golfableApi";
 
 const LEADERBOARD_LIMIT = 5;
@@ -64,17 +67,25 @@ export function HomeScreen() {
   const [score, setScore] = useState<number | null>(null);
   const [sessionsThisWeek, setSessionsThisWeek] = useState(0);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [studio, setStudio] = useState<Studio | null>(null);
 
   useEffect(() => {
     if (!profile) return;
     (async () => {
       setLoading(true);
+      const studioResult = profile.studio_id ? await getStudioById(profile.studio_id) : null;
+      setStudio(studioResult);
+
       const found = await getDrillForDate(todayISO());
       if (found) {
         setDrill(found.drill);
         setMaxScore(found.maxScore);
         setScore(await getMyScoreForDate(profile.id, found.drill.id, todayISO()));
-        setLeaderboard(await getGlobalLeaderboard(found.drill.id, todayISO(), LEADERBOARD_LIMIT));
+        setLeaderboard(
+          studioResult
+            ? await getStudioLeaderboard(studioResult.id, found.drill.id, todayISO(), LEADERBOARD_LIMIT)
+            : await getGlobalLeaderboard(found.drill.id, todayISO(), LEADERBOARD_LIMIT)
+        );
       } else {
         setDrill(null);
         setLeaderboard([]);
@@ -90,6 +101,9 @@ export function HomeScreen() {
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">Welcome back</p>
       <h1 className="font-display text-3xl tracking-wide">{profile.first_name}</h1>
+      {studio && (
+        <p className="font-label text-brand mt-1 text-xs font-semibold tracking-wide">Golfable × {studio.name}</p>
+      )}
 
       {loading ? (
         <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-8 text-center font-body text-neutral-500">
@@ -180,11 +194,11 @@ export function HomeScreen() {
       {!loading && drill && (
         <div className="mt-8">
           <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-            Live Leaderboard
+            {studio ? `${studio.name} Leaderboard` : "Live Leaderboard"}
           </h2>
           {leaderboard.length === 0 ? (
             <div className="rounded-lg border border-neutral-200 bg-white p-6 text-center font-body text-sm text-neutral-500">
-              No scores logged yet today — be the first!
+              {studio ? "No scores logged yet today at your studio — be the first!" : "No scores logged yet today — be the first!"}
             </div>
           ) : (
             <div className="space-y-2">
@@ -221,7 +235,7 @@ export function HomeScreen() {
             to={`/app/leaderboard/${drill.id}/${todayISO()}`}
             className="font-label text-brand mt-3 block text-center text-sm font-semibold"
           >
-            View Full Leaderboard →
+            {studio ? "View National Golfable Leaderboard →" : "View Full Leaderboard →"}
           </Link>
         </div>
       )}

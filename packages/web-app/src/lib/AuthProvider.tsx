@@ -14,6 +14,7 @@ export interface Profile {
   has_seen_walkthrough: boolean;
   is_admin: boolean;
   avatar_path: string | null;
+  studio_id: string | null;
 }
 
 interface AuthState {
