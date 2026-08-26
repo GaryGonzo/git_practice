@@ -8,6 +8,21 @@ import {
   type StudioOverview,
 } from "../../lib/golfableApi";
 
+const INDIVIDUAL_TIER_PRICE: Record<string, string> = {
+  free: "Free forever",
+  tier_799: "$7.99/mo",
+  tier_1499: "$14.99/mo",
+  tier_1999: "$19.99/mo",
+};
+
+function membershipLabel(u: AdminUserOverview): string {
+  if (u.studioName) return `Studio: ${u.studioName}`;
+  if (!u.individualTier) return "Not yet assigned";
+  const price = INDIVIDUAL_TIER_PRICE[u.individualTier] ?? u.individualTier;
+  if (u.individualTier === "free") return price;
+  return `${price} — ${u.subscriptionStatus === "active" ? "active" : "not subscribed"}`;
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
@@ -210,12 +225,13 @@ export function AdminScreen() {
           />
 
           <div className="mt-4 overflow-x-auto rounded-lg border border-neutral-200 bg-white">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[1000px] text-left text-sm">
               <thead>
                 <tr className="font-label border-b border-neutral-200 text-xs font-semibold tracking-wide text-neutral-500 uppercase">
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Tier</th>
+                  <th className="px-4 py-3">Membership</th>
                   <th className="px-4 py-3">Signed Up</th>
                   <th className="px-4 py-3">This Week</th>
                   <th className="px-4 py-3">Total Scores</th>
@@ -231,6 +247,7 @@ export function AdminScreen() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-neutral-600">{u.email}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-neutral-600">{TIER_INFO[u.tier].label}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-neutral-600">{membershipLabel(u)}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-neutral-600">{formatDate(u.createdAt)}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-neutral-600">
                       {u.sessionsThisWeek}/{u.weeklyGoal}

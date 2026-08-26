@@ -387,6 +387,9 @@ export interface AdminUserOverview {
   totalScores: number;
   sessionsThisWeek: number;
   lastActive: string | null;
+  studioName: string | null;
+  individualTier: string | null;
+  subscriptionStatus: string | null;
 }
 
 // Admin-only: throws if the caller isn't flagged is_admin (enforced
@@ -406,6 +409,9 @@ export async function getAdminUserOverview(): Promise<AdminUserOverview[]> {
     totalScores: Number(row.total_scores),
     sessionsThisWeek: Number(row.sessions_this_week),
     lastActive: (row.last_active as string) ?? null,
+    studioName: (row.studio_name as string) ?? null,
+    individualTier: (row.individual_tier as string) ?? null,
+    subscriptionStatus: (row.subscription_status as string) ?? null,
   }));
 }
 
