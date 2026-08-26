@@ -194,7 +194,7 @@ export function TermsScreen() {
 
         <Section title="16. Governing Law">
           <p>
-            These Terms are governed by the laws of the State of [YOUR STATE], without regard to its conflict
+            These Terms are governed by the laws of the State of Oregon, without regard to its conflict
             of law principles, unless otherwise required by the law of your jurisdiction.
           </p>
         </Section>
@@ -202,8 +202,8 @@ export function TermsScreen() {
         <Section title="17. Contact Us">
           <p>
             Questions about these Terms? Reach us at{" "}
-            <a href="mailto:support@golfable.co" className="text-brand underline">
-              support@golfable.co
+            <a href="mailto:golfable541@gmail.com" className="text-brand underline">
+              golfable541@gmail.com
             </a>
             .
           </p>
