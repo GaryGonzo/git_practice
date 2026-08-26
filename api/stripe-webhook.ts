@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // "empty", "trailing whitespace", and "wrong value entirely" apart
   // without exposing anything sensitive.
   console.log(
-    `stripe-webhook: configured secret length=${secret.length}, prefix=${JSON.stringify(secret.slice(0, 10))}, signature header present=${Boolean(signature)}, body bytes=${rawBody.length}`
+    `stripe-webhook: configured secret length=${secret.length}, prefix=${JSON.stringify(secret.slice(0, 10))}, sha256=${crypto.createHash("sha256").update(secret).digest("hex")}, signature header present=${Boolean(signature)}, body bytes=${rawBody.length}`
   );
 
   // One-off diagnostic: manually replicate Stripe's own HMAC computation
