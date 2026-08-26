@@ -2,7 +2,11 @@
 -- (if any) covers them, or which individual cohort tier and subscription
 -- status they're in. Lets the admin see who's paying what at a glance.
 
-create or replace function admin_user_overview()
+-- Postgres won't let CREATE OR REPLACE change a function's return columns,
+-- so the existing overload has to be dropped first.
+drop function if exists admin_user_overview();
+
+create function admin_user_overview()
 returns table (
   id uuid,
   first_name text,
