@@ -10,6 +10,7 @@ import {
   assignIndividualTier,
   createCheckoutSession,
   createPortalSession,
+  leaveStudio,
   type Studio,
 } from "../../lib/golfableApi";
 import { NotificationPrompt } from "../../components/NotificationPrompt";
@@ -146,21 +147,51 @@ const TIER_PRICE_LABEL: Record<string, string> = {
   tier_1999: "$19.99/mo",
 };
 
-function SubscriptionSection({ profile, accessToken }: { profile: Profile; accessToken: string }) {
+function SubscriptionSection({
+  profile,
+  accessToken,
+  onRefresh,
+}: {
+  profile: Profile;
+  accessToken: string;
+  onRefresh: () => Promise<void>;
+}) {
   const [tier, setTier] = useState<string | null>(profile.individual_tier);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (profile.studio_id || profile.individual_tier) return;
     assignIndividualTier(profile.id).then(setTier);
   }, [profile.id, profile.studio_id, profile.individual_tier]);
 
+  async function handleLeave() {
+    setLeaving(true);
+    setError(null);
+    try {
+      await leaveStudio();
+      await onRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't leave the studio -- try again.");
+    }
+    setLeaving(false);
+  }
+
   if (profile.studio_id) {
     return (
       <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
         <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Membership</p>
         <p className="font-body mt-1 text-sm text-neutral-700">Your studio covers your access -- no billing needed.</p>
+        <button
+          type="button"
+          onClick={handleLeave}
+          disabled={leaving}
+          className="font-label mt-3 text-sm font-semibold text-red-600 underline disabled:opacity-60"
+        >
+          {leaving ? "Leaving…" : "Leave studio"}
+        </button>
+        {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
       </div>
     );
   }
@@ -429,7 +460,9 @@ export function ProfileScreen() {
         <p className="font-display text-xl">{formatMemberSince(profile.created_at)}</p>
       </div>
 
-      {session && <SubscriptionSection profile={profile} accessToken={session.access_token} />}
+      {session && (
+        <SubscriptionSection profile={profile} accessToken={session.access_token} onRefresh={refreshProfile} />
+      )}
 
       <button
         type="button"

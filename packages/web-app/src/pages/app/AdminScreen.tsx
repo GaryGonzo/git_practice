@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { TIER_INFO } from "@golfable/shared";
+import { useAuth } from "../../lib/AuthProvider";
 import {
   getAdminUserOverview,
   getStudiosOverview,
   createStudio,
+  cancelStudio,
+  getStudioRoster,
   type AdminUserOverview,
   type StudioOverview,
+  type StudioRosterEntry,
 } from "../../lib/golfableApi";
 
 const INDIVIDUAL_TIER_PRICE: Record<string, string> = {
@@ -40,7 +44,7 @@ function CopyIcon({ className }: { className?: string }) {
   );
 }
 
-function StudiosSection({ users }: { users: AdminUserOverview[] }) {
+function StudiosSection({ users, accessToken }: { users: AdminUserOverview[]; accessToken: string }) {
   const [studios, setStudios] = useState<StudioOverview[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
@@ -48,6 +52,11 @@ function StudiosSection({ users }: { users: AdminUserOverview[] }) {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [canceling, setCanceling] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [roster, setRoster] = useState<StudioRosterEntry[]>([]);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterError, setRosterError] = useState<string | null>(null);
 
   async function refresh() {
     setStudios(await getStudiosOverview());
@@ -67,7 +76,7 @@ function StudiosSection({ users }: { users: AdminUserOverview[] }) {
     }
     setCreating(true);
     try {
-      await createStudio(name.trim(), ownerId);
+      await createStudio(accessToken, name.trim(), ownerId);
       setName("");
       setOwnerId("");
       await refresh();
@@ -75,6 +84,34 @@ function StudiosSection({ users }: { users: AdminUserOverview[] }) {
       setError(err instanceof Error ? err.message : "Couldn't create that studio -- try again.");
     }
     setCreating(false);
+  }
+
+  async function handleCancel(studio: StudioOverview) {
+    if (!confirm(`Cancel ${studio.name}? All ${studio.memberCount} member(s) will lose their free access.`)) return;
+    setCanceling(studio.id);
+    try {
+      await cancelStudio(studio.id);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't cancel that studio -- try again.");
+    }
+    setCanceling(null);
+  }
+
+  async function handleToggleRoster(studioId: string) {
+    if (expandedId === studioId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(studioId);
+    setRosterError(null);
+    setRosterLoading(true);
+    try {
+      setRoster(await getStudioRoster(studioId));
+    } catch (err) {
+      setRosterError(err instanceof Error ? err.message : "Couldn't load this studio's members.");
+    }
+    setRosterLoading(false);
   }
 
   async function handleCopy(slug: string) {
@@ -131,36 +168,110 @@ function StudiosSection({ users }: { users: AdminUserOverview[] }) {
       {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
 
       <div className="mt-4 overflow-x-auto rounded-lg border border-neutral-200 bg-white">
-        <table className="w-full min-w-[700px] text-left text-sm">
+        <table className="w-full min-w-[900px] text-left text-sm">
           <thead>
             <tr className="font-label border-b border-neutral-200 text-xs font-semibold tracking-wide text-neutral-500 uppercase">
               <th className="px-4 py-3">Studio</th>
               <th className="px-4 py-3">Owner</th>
               <th className="px-4 py-3">Members</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Created</th>
               <th className="px-4 py-3">Join Link</th>
+              <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="font-body divide-y divide-neutral-100">
             {studios.map((s) => (
-              <tr key={s.id}>
-                <td className="px-4 py-3 font-semibold whitespace-nowrap text-neutral-900">{s.name}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-neutral-600">
-                  {s.ownerFirstName} {s.ownerLastName}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-neutral-600">{s.memberCount}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-neutral-600">{formatDate(s.createdAt)}</td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(s.slug)}
-                    className="font-label inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-600"
-                  >
-                    <CopyIcon className="h-4 w-4 text-neutral-400" />
-                    {copiedSlug === s.slug ? "Copied!" : `/my-studio/${s.slug}`}
-                  </button>
-                </td>
-              </tr>
+              <Fragment key={s.id}>
+                <tr>
+                  <td className="px-4 py-3 font-semibold whitespace-nowrap text-neutral-900">{s.name}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-neutral-600">
+                    {s.ownerFirstName} {s.ownerLastName}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-neutral-600">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleRoster(s.id)}
+                      className="font-label text-brand font-semibold underline"
+                    >
+                      {s.memberCount} {expandedId === s.id ? "▲" : "▼"}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {s.canceledAt ? (
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                        Canceled {formatDate(s.canceledAt)}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                        Active
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-neutral-600">{formatDate(s.createdAt)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(s.slug)}
+                      className="font-label inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-600"
+                    >
+                      <CopyIcon className="h-4 w-4 text-neutral-400" />
+                      {copiedSlug === s.slug ? "Copied!" : `/my-studio/${s.slug}`}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {!s.canceledAt && (
+                      <button
+                        type="button"
+                        onClick={() => handleCancel(s)}
+                        disabled={canceling === s.id}
+                        className="font-label text-sm font-semibold text-red-600 underline disabled:opacity-60"
+                      >
+                        {canceling === s.id ? "Canceling…" : "Cancel"}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+                {expandedId === s.id && (
+                  <tr>
+                    <td colSpan={7} className="bg-neutral-50 px-4 py-3">
+                      {rosterLoading && <p className="font-body text-sm text-neutral-500">Loading members…</p>}
+                      {rosterError && <p className="font-body text-sm text-red-600">{rosterError}</p>}
+                      {!rosterLoading && !rosterError && roster.length === 0 && (
+                        <p className="font-body text-sm text-neutral-500">No members yet.</p>
+                      )}
+                      {!rosterLoading && !rosterError && roster.length > 0 && (
+                        <table className="w-full min-w-[500px] text-left text-sm">
+                          <thead>
+                            <tr className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                              <th className="py-1 pr-4">Name</th>
+                              <th className="py-1 pr-4">Tier</th>
+                              <th className="py-1 pr-4">Joined</th>
+                              <th className="py-1 pr-4">This Week</th>
+                              <th className="py-1 pr-4">Total Scores</th>
+                            </tr>
+                          </thead>
+                          <tbody className="font-body divide-y divide-neutral-200">
+                            {roster.map((m) => (
+                              <tr key={m.id}>
+                                <td className="py-1 pr-4 font-semibold whitespace-nowrap text-neutral-900">
+                                  {m.firstName} {m.lastName}
+                                </td>
+                                <td className="py-1 pr-4 whitespace-nowrap text-neutral-600">{TIER_INFO[m.tier].label}</td>
+                                <td className="py-1 pr-4 whitespace-nowrap text-neutral-600">{formatDate(m.createdAt)}</td>
+                                <td className="py-1 pr-4 whitespace-nowrap text-neutral-600">
+                                  {m.sessionsThisWeek}/{m.weeklyGoal}
+                                </td>
+                                <td className="py-1 pr-4 whitespace-nowrap text-neutral-600">{m.totalScores}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -173,6 +284,7 @@ function StudiosSection({ users }: { users: AdminUserOverview[] }) {
 }
 
 export function AdminScreen() {
+  const { session } = useAuth();
   const [users, setUsers] = useState<AdminUserOverview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -272,7 +384,7 @@ export function AdminScreen() {
             )}
           </div>
 
-          <StudiosSection users={users} />
+          {session && <StudiosSection users={users} accessToken={session.access_token} />}
         </>
       )}
     </div>

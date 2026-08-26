@@ -83,10 +83,22 @@ export function StudioAdminScreen() {
         {roster.length} member{roster.length === 1 ? "" : "s"} total
       </p>
 
-      <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Join link</p>
-        <p className="font-body mt-1 truncate text-sm text-neutral-700">{joinLink}</p>
-      </div>
+      {studio.canceledAt && (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="font-label text-xs font-semibold tracking-widest text-red-600 uppercase">Canceled</p>
+          <p className="font-body mt-1 text-sm text-red-700">
+            This studio was canceled on {formatDate(studio.canceledAt)}. Members no longer get free access through
+            it.
+          </p>
+        </div>
+      )}
+
+      {!studio.canceledAt && (
+        <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Join link</p>
+          <p className="font-body mt-1 truncate text-sm text-neutral-700">{joinLink}</p>
+        </div>
+      )}
 
       {error && <p className="font-body mt-4 text-sm text-red-600">{error}</p>}
 

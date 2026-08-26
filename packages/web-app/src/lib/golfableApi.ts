@@ -667,6 +667,7 @@ export interface Studio {
   slug: string;
   ownerUserId: string;
   createdAt: string;
+  canceledAt: string | null;
 }
 
 interface StudioRow {
@@ -675,10 +676,18 @@ interface StudioRow {
   slug: string;
   owner_user_id: string;
   created_at: string;
+  canceled_at: string | null;
 }
 
 function toStudio(row: StudioRow): Studio {
-  return { id: row.id, name: row.name, slug: row.slug, ownerUserId: row.owner_user_id, createdAt: row.created_at };
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    ownerUserId: row.owner_user_id,
+    createdAt: row.created_at,
+    canceledAt: row.canceled_at ?? null,
+  };
 }
 
 export async function getStudioBySlug(slug: string): Promise<Studio | null> {
@@ -692,9 +701,31 @@ export async function getStudioById(studioId: string): Promise<Studio | null> {
 }
 
 // A member belongs to at most one studio -- joining a new one just
-// overwrites the old value, same shape as any other profile field.
-export async function joinStudio(userId: string, studioId: string): Promise<void> {
-  const { error } = await supabase.from("profiles").update({ studio_id: studioId }).eq("id", userId);
+// overwrites the old value. Goes through the server because it also has
+// to cancel any existing individual Stripe subscription (studio_id itself
+// is service-role-only to write, see 0026_studio_lifecycle.sql).
+export async function joinStudio(accessToken: string, studioId: string): Promise<void> {
+  const res = await fetch("/api/join-studio", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ studioId }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't join that studio -- try again.");
+}
+
+// Leaving is pure self-service -- no billing to unwind, since a studio
+// member isn't individually billed while covered. They'll be walked
+// through checkout again next time they open Profile.
+export async function leaveStudio(): Promise<void> {
+  const { error } = await supabase.rpc("leave_studio");
+  if (error) throw error;
+}
+
+// Admin-only: ends the studio's coverage for every member at once, same
+// effect as if each of them left individually.
+export async function cancelStudio(studioId: string): Promise<void> {
+  const { error } = await supabase.rpc("cancel_studio", { target_studio_id: studioId });
   if (error) throw error;
 }
 
@@ -761,30 +792,19 @@ export async function getStudioByOwnerId(ownerUserId: string): Promise<Studio | 
   return data ? toStudio(data) : null;
 }
 
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-// Site-admin only (enforced by the "only admins can create studios" RLS
-// policy) -- generates a URL-safe slug from the name, retrying with a
-// numeric suffix if it's already taken.
-export async function createStudio(name: string, ownerUserId: string): Promise<Studio> {
-  const base = slugify(name) || "studio";
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const slug = attempt === 0 ? base : `${base}-${attempt + 1}`;
-    const { data, error } = await supabase
-      .from("studios")
-      .insert({ name, slug, owner_user_id: ownerUserId })
-      .select("*")
-      .single<StudioRow>();
-    if (!error && data) return toStudio(data);
-    if (error && error.code !== "23505") throw error; // 23505 = unique_violation on the slug -- retry with a suffix
-  }
-  throw new Error("Couldn't generate a unique studio URL -- try a different name.");
+// Site-admin only. Goes through the server (not a direct table insert)
+// because it also has to set the owner's studio_id and cancel any
+// individual subscription they already had -- both of those touch
+// service-role-only columns and Stripe. See api/create-studio.ts.
+export async function createStudio(accessToken: string, name: string, ownerUserId: string): Promise<Studio> {
+  const res = await fetch("/api/create-studio", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ name, ownerUserId }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't create that studio -- try again.");
+  return { ...body, canceledAt: null } as Studio;
 }
 
 export interface StudioOverview extends Studio {

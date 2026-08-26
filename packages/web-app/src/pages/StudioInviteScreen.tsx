@@ -24,6 +24,7 @@ export function StudioInviteScreen() {
 
   const [studio, setStudio] = useState<Studio | null | undefined>(undefined);
   const [joining, setJoining] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -34,23 +35,27 @@ export function StudioInviteScreen() {
   // logged in is the explicit "I want to join this studio" action, so it
   // sets studio_id right away rather than waiting for a separate confirm step.
   useEffect(() => {
-    if (!studio || !profile || profile.studio_id === studio.id) return;
+    if (!studio || studio.canceledAt || !profile || !session || profile.studio_id === studio.id) return;
     setJoining(true);
-    joinStudio(profile.id, studio.id)
+    setError(null);
+    joinStudio(session.access_token, studio.id)
       .then(refreshProfile)
+      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't join that studio -- try again."))
       .finally(() => setJoining(false));
-  }, [studio, profile, refreshProfile]);
+  }, [studio, profile, session, refreshProfile]);
 
   if (studio === undefined) {
     return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
   }
 
-  if (studio === null) {
+  if (studio === null || studio.canceledAt) {
     return (
       <div className="mx-auto max-w-sm px-6 py-16 text-center">
         <h1 className="font-display text-3xl tracking-wide">Studio Not Found</h1>
         <p className="font-body mt-3 text-sm text-neutral-600">
-          This studio link isn't valid, or the studio has been removed.
+          {studio?.canceledAt
+            ? "This studio is no longer active."
+            : "This studio link isn't valid, or the studio has been removed."}
         </p>
         <Link to="/" className="font-label text-brand mt-6 inline-block text-sm font-semibold underline">
           Go to Golfable
@@ -86,7 +91,9 @@ export function StudioInviteScreen() {
         >
           {joining ? "Joining…" : "Go to Golfable"}
         </Link>
-      ) : (
+      ) : null}
+      {error && <p className="font-body mt-3 text-sm text-red-600">{error}</p>}
+      {!session && (
         <>
           <Link
             to={`/signup?next=${encodeURIComponent(nextPath)}`}

@@ -73,7 +73,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       metadata: { supabase_user_id: user.id },
     });
     customerId = customer.id;
-    await supabase.from("profiles").update({ stripe_customer_id: customerId }).eq("id", user.id);
+    // stripe_customer_id is service-role-only to write (see
+    // 0026_studio_lifecycle.sql), so this can't go through the
+    // user-scoped `supabase` client above.
+    const service = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    await service.from("profiles").update({ stripe_customer_id: customerId }).eq("id", user.id);
   }
 
   const origin = (req.headers.origin as string) || "https://golfable.co";
