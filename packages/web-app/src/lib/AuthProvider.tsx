@@ -15,6 +15,8 @@ export interface Profile {
   is_admin: boolean;
   avatar_path: string | null;
   studio_id: string | null;
+  individual_tier: string | null;
+  subscription_status: string | null;
 }
 
 interface AuthState {

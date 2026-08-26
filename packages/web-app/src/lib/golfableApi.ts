@@ -813,3 +813,37 @@ export async function getStudiosOverview(): Promise<StudioOverview[]> {
     };
   });
 }
+
+// --- Individual billing -------------------------------------------------
+
+// Assigns (once) and returns this member's individual pricing tier --
+// 'free', 'tier_799', 'tier_1499', or 'tier_1999'. Returns null for a
+// studio member, who's covered by their studio's flat fee instead.
+export async function assignIndividualTier(userId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("assign_individual_tier", { target_user_id: userId });
+  if (error) throw error;
+  return data;
+}
+
+// Both of these call a Vercel serverless function (not Supabase directly)
+// since creating a Checkout/Portal session requires the Stripe secret key,
+// which never reaches the browser.
+export async function createCheckoutSession(accessToken: string): Promise<string> {
+  const res = await fetch("/api/create-checkout-session", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't start checkout.");
+  return body.url as string;
+}
+
+export async function createPortalSession(accessToken: string): Promise<string> {
+  const res = await fetch("/api/create-portal-session", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't open billing portal.");
+  return body.url as string;
+}

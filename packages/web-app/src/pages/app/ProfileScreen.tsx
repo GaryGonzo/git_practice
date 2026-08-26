@@ -2,7 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { useAuth, type Profile } from "../../lib/AuthProvider";
-import { updateProfile, uploadAvatar, getAvatarSignedUrl, getStudioByOwnerId, type Studio } from "../../lib/golfableApi";
+import {
+  updateProfile,
+  uploadAvatar,
+  getAvatarSignedUrl,
+  getStudioByOwnerId,
+  assignIndividualTier,
+  createCheckoutSession,
+  createPortalSession,
+  type Studio,
+} from "../../lib/golfableApi";
 import { NotificationPrompt } from "../../components/NotificationPrompt";
 import { PUSH_ENABLED_KEY } from "../../lib/push";
 
@@ -131,6 +140,78 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
+const TIER_PRICE_LABEL: Record<string, string> = {
+  tier_799: "$7.99/mo",
+  tier_1499: "$14.99/mo",
+  tier_1999: "$19.99/mo",
+};
+
+function SubscriptionSection({ profile, accessToken }: { profile: Profile; accessToken: string }) {
+  const [tier, setTier] = useState<string | null>(profile.individual_tier);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile.studio_id || profile.individual_tier) return;
+    assignIndividualTier(profile.id).then(setTier);
+  }, [profile.id, profile.studio_id, profile.individual_tier]);
+
+  if (profile.studio_id) {
+    return (
+      <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Membership</p>
+        <p className="font-body mt-1 text-sm text-neutral-700">Your studio covers your access -- no billing needed.</p>
+      </div>
+    );
+  }
+
+  if (!tier || tier === "free") {
+    return (
+      <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Membership</p>
+        <p className="font-body mt-1 text-sm text-neutral-700">
+          {tier === "free" ? "Founding member -- free forever." : "Loading…"}
+        </p>
+      </div>
+    );
+  }
+
+  async function handleAction() {
+    setBusy(true);
+    setError(null);
+    try {
+      const url =
+        profile.subscription_status === "active"
+          ? await createPortalSession(accessToken)
+          : await createCheckoutSession(accessToken);
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong -- try again.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+      <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Membership</p>
+      <p className="font-body mt-1 text-sm text-neutral-700">
+        {profile.subscription_status === "active"
+          ? `Active -- ${TIER_PRICE_LABEL[tier]}`
+          : `${TIER_PRICE_LABEL[tier]} -- not yet subscribed`}
+      </p>
+      {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
+      <button
+        type="button"
+        onClick={handleAction}
+        disabled={busy}
+        className="font-label bg-brand mt-3 rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+      >
+        {busy ? "Redirecting…" : profile.subscription_status === "active" ? "Manage Billing" : "Subscribe"}
+      </button>
+    </div>
+  );
+}
+
 const SURPRISES = [
   "Your handicap doesn't care about your ego. Neither does the ball.",
   "Somewhere right now, someone is three-putting from four feet. You are not alone.",
@@ -154,7 +235,7 @@ function formatMemberSince(iso: string): string {
 const TIKTOK_HANDLE = "golfablegames";
 
 export function ProfileScreen() {
-  const { profile, signOut, refreshProfile } = useAuth();
+  const { session, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   const [editing, setEditing] = useState(false);
@@ -341,20 +422,14 @@ export function ProfileScreen() {
         </p>
         <p className="font-display text-xl">{profile.weekly_goal} Golfables / week</p>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-            Member Since
-          </p>
-          <p className="font-display text-xl">{formatMemberSince(profile.created_at)}</p>
-        </div>
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-            Membership
-          </p>
-          <p className="font-display text-gold text-xl">Founder</p>
-        </div>
+      <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+          Member Since
+        </p>
+        <p className="font-display text-xl">{formatMemberSince(profile.created_at)}</p>
       </div>
+
+      {session && <SubscriptionSection profile={profile} accessToken={session.access_token} />}
 
       <button
         type="button"
