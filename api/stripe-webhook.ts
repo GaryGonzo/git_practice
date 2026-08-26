@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import getRawBody from "raw-body";
+import crypto from "crypto";
 
 // Stripe needs the raw, unparsed request body to verify the webhook
 // signature -- Vercel's default JSON body parsing would break that.
@@ -31,6 +32,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log(
     `stripe-webhook: configured secret length=${secret.length}, prefix=${JSON.stringify(secret.slice(0, 10))}, signature header present=${Boolean(signature)}, body bytes=${rawBody.length}`
   );
+
+  // One-off diagnostic: manually replicate Stripe's own HMAC computation
+  // to see which piece disagrees -- the timestamp/signature extracted
+  // from the header, or the hash computed over our raw body -- since
+  // constructEvent() only reports pass/fail, not why.
+  if (typeof signature === "string") {
+    const parts = Object.fromEntries(signature.split(",").map((p) => p.split("=") as [string, string]));
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(`${parts.t}.${rawBody.toString("utf8")}`)
+      .digest("hex");
+    console.log(
+      `stripe-webhook: signature header parsed t=${parts.t} v1=${parts.v1?.slice(0, 12)}…, our computed=${expected.slice(0, 12)}…, match=${expected === parts.v1}, body head=${JSON.stringify(rawBody.toString("utf8").slice(0, 80))}, body tail=${JSON.stringify(rawBody.toString("utf8").slice(-40))}`
+    );
+  }
 
   let event: Stripe.Event;
   try {
