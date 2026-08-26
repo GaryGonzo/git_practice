@@ -27,9 +27,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const signature = req.headers["stripe-signature"];
   const rawBody = await readRawBody(req);
 
+  const secret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+  // Never log the full secret -- length and prefix are enough to tell
+  // "empty", "trailing whitespace", and "wrong value entirely" apart
+  // without exposing anything sensitive.
+  console.log(
+    `stripe-webhook: configured secret length=${secret.length}, prefix=${JSON.stringify(secret.slice(0, 10))}, signature header present=${Boolean(signature)}, body bytes=${rawBody.length}`
+  );
+
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, signature as string, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(rawBody, signature as string, secret);
   } catch (err) {
     console.error("stripe-webhook: signature verification failed", (err as Error).message);
     res.status(400).json({ error: `signature verification failed: ${(err as Error).message}` });
