@@ -31,9 +31,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature as string, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
+    console.error("stripe-webhook: signature verification failed", (err as Error).message);
     res.status(400).json({ error: `signature verification failed: ${(err as Error).message}` });
     return;
   }
+
+  console.log(`stripe-webhook: received ${event.type} (${event.id})`);
 
   // Service-role client: webhooks have no user session to authenticate
   // as, and need to update any member's row based on their Stripe IDs.
@@ -44,23 +47,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.supabase_user_id;
       if (userId && session.subscription) {
-        await supabase
+        const { error, count } = await supabase
           .from("profiles")
-          .update({
-            stripe_subscription_id: session.subscription as string,
-            subscription_status: "active",
-          })
+          .update(
+            {
+              stripe_subscription_id: session.subscription as string,
+              subscription_status: "active",
+            },
+            { count: "exact" }
+          )
           .eq("id", userId);
+        console.log(`stripe-webhook: checkout.session.completed for user ${userId} -- rows updated: ${count}`, error ?? "");
+      } else {
+        console.log("stripe-webhook: checkout.session.completed missing supabase_user_id or subscription, skipped");
       }
       break;
     }
     case "customer.subscription.updated":
     case "customer.subscription.deleted": {
       const subscription = event.data.object as Stripe.Subscription;
-      await supabase
+      const { error, count } = await supabase
         .from("profiles")
-        .update({ subscription_status: subscription.status })
+        .update({ subscription_status: subscription.status }, { count: "exact" })
         .eq("stripe_subscription_id", subscription.id);
+      console.log(
+        `stripe-webhook: ${event.type} for subscription ${subscription.id} (status ${subscription.status}) -- rows updated: ${count}`,
+        error ?? ""
+      );
       break;
     }
     default:
