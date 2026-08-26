@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { MarketingHome } from "./pages/MarketingHome";
 import { JoinChallengeScreen } from "./pages/JoinChallengeScreen";
 import { StudioInviteScreen } from "./pages/StudioInviteScreen";
+import { TermsScreen } from "./pages/TermsScreen";
 import { AppShell } from "./components/AppNav";
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireAdmin } from "./components/RequireAdmin";
@@ -36,6 +37,7 @@ function App() {
       <Route path="/" element={<MarketingHome />} />
       <Route path="/join/:code" element={<JoinChallengeScreen />} />
       <Route path="/my-studio/:slug" element={<StudioInviteScreen />} />
+      <Route path="/terms" element={<TermsScreen />} />
       <Route path="/signup" element={<SignupScreen />} />
       <Route path="/login" element={<LoginScreen />} />
       <Route path="/forgot-password" element={<ForgotPasswordScreen />} />

@@ -1040,6 +1040,9 @@ export function MarketingHome() {
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
           <GolfableMark className="h-9 w-9" tone="on-dark" />
           <p className="font-body text-sm text-white/40">{CAPTION_HASHTAGS}</p>
+          <Link to="/terms" className="font-label text-sm font-semibold text-white/50 underline">
+            Terms of Service
+          </Link>
         </div>
       </footer>
     </div>
