@@ -873,3 +873,22 @@ export async function createPortalSession(accessToken: string): Promise<string> 
   if (!res.ok) throw new Error(body.error ?? "Couldn't open billing portal.");
   return body.url as string;
 }
+
+export interface TestNotificationResult {
+  sent: number;
+  staleRemoved: number;
+  errors: string[];
+}
+
+// Sends a push to the caller's own subscriptions only -- independent of
+// the daily cron send, so it works as both a "did this turn on?" check
+// and a VAPID-key diagnostic.
+export async function sendTestNotification(accessToken: string): Promise<TestNotificationResult> {
+  const res = await fetch("/api/send-test-notification", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't send a test notification.");
+  return body as TestNotificationResult;
+}

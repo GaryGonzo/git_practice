@@ -23,7 +23,14 @@ function ProfileNotificationBanner({ profile }: { profile: Profile }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(PUSH_ENABLED_KEY) === "true") return;
+    // Once subscribed this is no longer a nag -- it's the permanent
+    // "notifications are on, send a test" status row, so it stays visible
+    // regardless of the view-count cap below (that cap only limits how
+    // many times we ask someone who hasn't subscribed yet).
+    if (localStorage.getItem(PUSH_ENABLED_KEY) === "true") {
+      setVisible(true);
+      return;
+    }
     const views = Number(localStorage.getItem(NOTIF_PROMPT_VIEWS_KEY) ?? "0");
     if (views >= NOTIF_PROMPT_MAX_VIEWS) return;
     localStorage.setItem(NOTIF_PROMPT_VIEWS_KEY, String(views + 1));
