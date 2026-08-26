@@ -1,21 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import getRawBody from "raw-body";
 
 // Stripe needs the raw, unparsed request body to verify the webhook
 // signature -- Vercel's default JSON body parsing would break that.
 export const config = {
   api: { bodyParser: false },
 };
-
-function readRawBody(req: VercelRequest): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    req.on("data", (chunk) => chunks.push(chunk));
-    req.on("end", () => resolve(Buffer.concat(chunks)));
-    req.on("error", reject);
-  });
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -25,7 +17,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const signature = req.headers["stripe-signature"];
-  const rawBody = await readRawBody(req);
+  // Signature verification kept failing on a byte-for-byte identical
+  // secret -- manually draining `req` via .on("data") was silently
+  // producing a body that didn't hash-match the original bytes Stripe
+  // signed. `raw-body` is what Vercel's own docs use for this exact
+  // problem (see vercel.com/docs/headers/request-headers).
+  const rawBody = await getRawBody(req);
 
   const secret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
   // Never log the full secret -- length and prefix are enough to tell
