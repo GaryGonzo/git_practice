@@ -21,6 +21,13 @@ type PushState = "unsupported" | "subscribed" | "denied" | "not-installed" | "re
 
 function getPushState(): PushState {
   if (localStorage.getItem(PUSH_ENABLED_KEY) === "true") return "subscribed";
+  // On iOS, PushManager doesn't exist in window at all until the app has
+  // been added to the Home Screen -- pushSupported() would report "false"
+  // (indistinguishable from a browser that truly can't do push) for every
+  // first-time visitor, before they've had a chance to install. Check
+  // iOS's install state first so the "add to Home Screen" instructions
+  // actually reach them instead of the prompt silently rendering nothing.
+  if (isIOS() && !isStandalone()) return "not-installed";
   if (!pushSupported()) return "unsupported";
   if (notificationPermission() === "denied") return "denied";
   if (!isStandalone()) return "not-installed";
