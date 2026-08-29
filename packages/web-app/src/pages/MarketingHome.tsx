@@ -217,6 +217,21 @@ const HOW_IT_WORKS = [
   },
 ];
 
+const FRICTIONLESS = [
+  {
+    title: "Same clubs, same balls",
+    body: "No new equipment. Bring exactly what you already take to the range or course.",
+  },
+  {
+    title: "Same amount of time",
+    body: "A Golfable takes minutes -- it's not an extra practice session, it's the one you're already doing.",
+  },
+  {
+    title: "Same swing",
+    body: "We don't touch your mechanics. Just the same reps you already hit, now with a score attached.",
+  },
+];
+
 const FAQS = [
   {
     question: "What is Golfable?",
@@ -327,6 +342,14 @@ function CalendarCheckIcon({ className }: { className?: string }) {
       <path d="M4 9.5h16" stroke="currentColor" strokeWidth="1.6" />
       <path d="M8 3v3.5M16 3v3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <path d="M8.5 13.8l2 2 4-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -694,6 +717,49 @@ export function MarketingHome() {
             Golfable doesn't touch your mechanics — it changes how you practice and train, so the
             improvement is real and it lasts.
           </p>
+        </section>
+
+        <section className="bg-neutral-50 px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
+            <Eyebrow>Sound Familiar?</Eyebrow>
+            <h3 className="font-display mt-3 text-center text-4xl tracking-wide sm:text-5xl">
+              You've hit that putting drill a hundred times.
+              <br className="hidden sm:block" /> Do you know if it's working?
+            </h3>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
+              Golfable didn't invent new drills. It's a curated program of the ones you probably already
+              know — the putting gate, the fairway finder, the up-and-down ladder — done in a way that's
+              scored, tracked, and just competitive enough that you can actually see whether you're
+              getting better.
+            </p>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-3">
+              {FRICTIONLESS.map((item) => (
+                <div key={item.title} className="rounded-xl border border-neutral-200 bg-white p-5 text-center shadow-sm">
+                  <div className="bg-brand/10 text-brand mx-auto flex h-11 w-11 items-center justify-center rounded-full">
+                    <CheckIcon className="h-5 w-5" />
+                  </div>
+                  <h4 className="font-label mt-3 text-base font-semibold">{item.title}</h4>
+                  <p className="font-body mt-1.5 text-sm text-neutral-600">{item.body}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="font-body mx-auto mt-8 max-w-lg text-center text-neutral-600">
+              You're not adding a new habit. You're doing the practice you already do — just deliberately,
+              with a number attached, so the reps you're already putting in finally add up to something
+              you can see.
+            </p>
+
+            <div className="mt-6 flex justify-center">
+              <Link
+                to="/signup"
+                className="font-label bg-brand inline-block rounded-md px-7 py-3.5 text-sm font-semibold text-white shadow-lg"
+              >
+                Join free — see your first score in minutes
+              </Link>
+            </div>
+          </Reveal>
         </section>
 
         <section className="bg-white px-6 py-20 sm:py-28">
