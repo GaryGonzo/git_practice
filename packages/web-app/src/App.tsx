@@ -9,6 +9,7 @@ import { RequireAdmin } from "./components/RequireAdmin";
 import { HomeScreen } from "./pages/app/HomeScreen";
 import { TodayScreen } from "./pages/app/TodayScreen";
 import { ProgressScreen } from "./pages/app/ProgressScreen";
+import { GolfableScoreDetailScreen } from "./pages/app/GolfableScoreDetailScreen";
 import { LibraryScreen } from "./pages/app/LibraryScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
 import { MyBagScreen } from "./pages/app/MyBagScreen";
@@ -54,6 +55,8 @@ function App() {
         <Route index element={<HomeScreen />} />
         <Route path="today" element={<TodayScreen />} />
         <Route path="progress" element={<ProgressScreen />} />
+        <Route path="golfable-score" element={<GolfableScoreDetailScreen />} />
+        <Route path="golfable-score/:category" element={<GolfableScoreDetailScreen />} />
         <Route path="library" element={<LibraryScreen />} />
         <Route path="library/:date" element={<TodayScreen />} />
         <Route path="choose" element={<ChooseGolfableScreen />} />

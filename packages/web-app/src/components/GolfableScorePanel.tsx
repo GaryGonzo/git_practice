@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { CATEGORY_INFO, SKILL_CATEGORIES } from "@golfable/shared";
 import { computeGolfableScores, GOLFABLE_SCORE_MIN_ATTEMPTS, type ScoreHistoryEntry } from "../lib/golfableApi";
 import { CategoryIcon } from "./CategoryIcon";
@@ -18,19 +19,22 @@ export function GolfableScorePanel({ history }: { history: ScoreHistoryEntry[] }
   return (
     <div>
       {overallScore !== null ? (
-        <div className="bg-brand rounded-lg p-4 text-center text-white">
+        <Link to="/app/golfable-score" className="bg-brand block rounded-lg p-4 text-center text-white active:opacity-90">
           <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
             Golfable Score
           </p>
           <p className="font-display text-4xl">{overallScore}</p>
-        </div>
+        </Link>
       ) : (
-        <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-4 text-center">
+        <Link
+          to="/app/golfable-score"
+          className="block rounded-lg border border-dashed border-neutral-300 bg-white p-4 text-center active:bg-neutral-50"
+        >
           <p className="font-label text-sm font-semibold text-neutral-600">Golfable Score not unlocked yet</p>
           <p className="font-body mt-1 text-xs text-neutral-500">
             Play {GOLFABLE_SCORE_MIN_ATTEMPTS}+ Golfables in every category below to unlock it.
           </p>
-        </div>
+        </Link>
       )}
 
       <div className="mt-2 grid grid-cols-2 gap-2">
@@ -39,7 +43,11 @@ export function GolfableScorePanel({ history }: { history: ScoreHistoryEntry[] }
           const score = categoryScores[category];
           const attempts = categoryAttempts[category];
           return (
-            <div key={category} className="rounded-lg border border-neutral-200 bg-white p-3 text-center">
+            <Link
+              key={category}
+              to={`/app/golfable-score/${category}`}
+              className="rounded-lg border border-neutral-200 bg-white p-3 text-center active:bg-neutral-50"
+            >
               <div
                 className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
               >
@@ -55,7 +63,7 @@ export function GolfableScorePanel({ history }: { history: ScoreHistoryEntry[] }
                   {attempts}/{GOLFABLE_SCORE_MIN_ATTEMPTS} logged
                 </p>
               )}
-            </div>
+            </Link>
           );
         })}
       </div>

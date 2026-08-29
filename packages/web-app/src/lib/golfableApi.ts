@@ -347,6 +347,17 @@ export interface ScoreHistoryEntry {
 
 // A category needs 3+ logged attempts before its Golfable Score populates.
 export const GOLFABLE_SCORE_MIN_ATTEMPTS = 3;
+// ...but only ever the 10 most recent count toward it, so an old bad
+// stretch eventually rolls off and improvement is actually reachable.
+export const GOLFABLE_SCORE_WINDOW = 10;
+
+// getScoreHistory already orders newest-first, so slicing after filtering
+// keeps the most recent GOLFABLE_SCORE_WINDOW attempts in that category.
+// Exported so the score-detail page can list exactly the attempts that
+// produced the number, without redefining "which ones count" a second time.
+export function recentCategoryAttempts(history: ScoreHistoryEntry[], category: SkillCategory): ScoreHistoryEntry[] {
+  return history.filter((h) => h.drill.category === category).slice(0, GOLFABLE_SCORE_WINDOW);
+}
 
 export interface GolfableScores {
   categoryScores: Record<SkillCategory, number | null>;
@@ -356,14 +367,14 @@ export interface GolfableScores {
 
 // Shared by Home and Progress so the two screens can never drift on the
 // formula: each category is the average of score/maxScore (as a 0-100)
-// across every attempt ever logged there, live off the same score history
-// both screens already fetch -- never stored, so it's always current.
+// across its most recent attempts, live off the same score history both
+// screens already fetch -- never stored, so it's always current.
 export function computeGolfableScores(history: ScoreHistoryEntry[]): GolfableScores {
   const categoryScores = {} as Record<SkillCategory, number | null>;
   const categoryAttempts = {} as Record<SkillCategory, number>;
 
   for (const category of SKILL_CATEGORIES) {
-    const entries = history.filter((h) => h.drill.category === category);
+    const entries = recentCategoryAttempts(history, category);
     categoryAttempts[category] = entries.length;
     if (entries.length < GOLFABLE_SCORE_MIN_ATTEMPTS) {
       categoryScores[category] = null;
