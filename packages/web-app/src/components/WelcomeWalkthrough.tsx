@@ -32,6 +32,29 @@ function ChallengeIcon({ className }: { className?: string }) {
   );
 }
 
+function BagIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M7 21V10a5 5 0 0 1 10 0v11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M5 21h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9 10V4M12 10V3M15 10V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function StarIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8L12 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function StudioIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -74,12 +97,22 @@ function buildSteps(profile: Profile, studio: Studio | null): WalkthroughStep[] 
     {
       icon: ChallengeIcon,
       title: "More Ways to Play",
-      body: "Start a Challenge to compete with friends over a stretch of drills, or sharpen up with the practice Tools -- metronome, fairway finder, swing tempo, and more.",
+      body: "Start a Challenge to compete with up to 4 friends on the same drill, or sharpen up with the practice Tools -- metronome, fairway finder, swing tempo, and more.",
     },
     {
       icon: ProgressIcon,
       title: "Track Your Progress",
-      body: "Watch your trend on drills you repeat and see your weekly goal fill in as you go.",
+      body: "Watch your trend on drills you repeat, and check your Golfable Score on Home -- a live score for each category, plus one overall number, built from your last 10 rounds.",
+    },
+    {
+      icon: BagIcon,
+      title: "Set Up Your Game",
+      body: "Add your handicap and your typical yardage per club in Profile -- unlocks personalized club suggestions and tracks your improvement over time.",
+    },
+    {
+      icon: StarIcon,
+      title: "Find Your Next Golfable",
+      body: "Rate a Golfable after you play it to build your Favorites, or rate your own game in Profile to get Golfables recommended just for you in Choose Your Own.",
     },
     {
       icon: LibraryIcon,
