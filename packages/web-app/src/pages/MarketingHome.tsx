@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { track } from "@vercel/analytics/react";
 import type { Drill } from "@golfable/shared";
 import {
   SKILL_CATEGORIES,
@@ -17,6 +18,13 @@ import { FOUNDER_SPOTS, getFounderSpotsRemaining } from "../lib/golfableApi";
 // banner for a live countdown -- the scarcity reads as more real once it's
 // closer to true.
 const COUNTDOWN_THRESHOLD = 0.3;
+
+// One event name for every join CTA on this page, split out by `location`
+// so Vercel Web Analytics can show clicks per button rather than just one
+// combined count.
+function trackCta(location: string) {
+  track("cta_click", { location });
+}
 
 const CATEGORY_BG: Record<string, string> = {
   driver: "bg-driver",
@@ -169,7 +177,15 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
 
 // A short, high-contrast CTA moment dropped between content sections so a
 // join button is never more than a couple sections away on the scroll.
-function CtaBand({ heading, tone = "brand" }: { heading: string; tone?: "brand" | "brand-dark" }) {
+function CtaBand({
+  heading,
+  tone = "brand",
+  location,
+}: {
+  heading: string;
+  tone?: "brand" | "brand-dark";
+  location: string;
+}) {
   return (
     <section className={tone === "brand" ? "bg-brand px-6 py-14 text-center" : "bg-brand-dark px-6 py-14 text-center"}>
       <Reveal className="mx-auto max-w-lg">
@@ -177,6 +193,7 @@ function CtaBand({ heading, tone = "brand" }: { heading: string; tone?: "brand" 
         <Link
           to="/signup"
           className="font-label bg-gold text-brand-dark mt-5 inline-block rounded-md px-7 py-3.5 text-sm font-semibold shadow-lg"
+          onClick={() => trackCta(location)}
         >
           Join free — no card required
         </Link>
@@ -645,7 +662,7 @@ export function MarketingHome() {
             : showCountdown
               ? `ONLY ${spotsRemaining} FOUNDER SPOT${spotsRemaining === 1 ? "" : "S"} LEFT — FREE FOREVER.`
               : "100 FOUNDER SPOTS — FREE FOREVER."}{" "}
-          <Link to="/signup" className="underline underline-offset-2">
+          <Link to="/signup" className="underline underline-offset-2" onClick={() => trackCta("banner")}>
             {spotsFull ? "Join the waitlist" : "Claim yours"}
           </Link>
         </p>
@@ -666,6 +683,7 @@ export function MarketingHome() {
           <Link
             to="/signup"
             className="font-label rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
+            onClick={() => trackCta("header")}
           >
             Join Free
           </Link>
@@ -700,6 +718,7 @@ export function MarketingHome() {
             <Link
               to="/signup"
               className="font-label bg-gold text-brand-dark mt-8 inline-block rounded-md px-7 py-3.5 text-sm font-semibold shadow-lg"
+              onClick={() => trackCta("hero")}
             >
               Join free — no card required
             </Link>
@@ -755,6 +774,7 @@ export function MarketingHome() {
               <Link
                 to="/signup"
                 className="font-label bg-brand inline-block rounded-md px-7 py-3.5 text-sm font-semibold text-white shadow-lg"
+                onClick={() => trackCta("friction")}
               >
                 Join free — see your first score in minutes
               </Link>
@@ -850,7 +870,7 @@ export function MarketingHome() {
           </Reveal>
         </section>
 
-        <CtaBand heading="See it for yourself — play your first Golfable today." />
+        <CtaBand heading="See it for yourself — play your first Golfable today." location="cta-band-two-ways" />
 
         <section className="border-brand/10 bg-brand/5 border-y px-6 py-20 sm:py-28">
           <Reveal className="mx-auto max-w-3xl">
@@ -937,7 +957,7 @@ export function MarketingHome() {
           </Reveal>
         </section>
 
-        <CtaBand heading="Every skill category, one home for your training." />
+        <CtaBand heading="Every skill category, one home for your training." location="cta-band-peek-app" />
 
         <section className="relative overflow-hidden px-6 py-16">
           <div
@@ -1035,7 +1055,7 @@ export function MarketingHome() {
           </Reveal>
         </section>
 
-        <CtaBand heading="Bring your crew. Compete for free." tone="brand-dark" />
+        <CtaBand heading="Bring your crew. Compete for free." tone="brand-dark" location="cta-band-challenge" />
 
         <section className="bg-white px-6 py-20 sm:py-28">
           <Reveal className="mx-auto max-w-3xl">
@@ -1094,7 +1114,7 @@ export function MarketingHome() {
           </Reveal>
         </section>
 
-        <CtaBand heading="Founding member spots are going fast." />
+        <CtaBand heading="Founding member spots are going fast." location="cta-band-benefits" />
 
         <section className="bg-white px-6 py-20 sm:py-28">
           <Reveal className="mx-auto max-w-2xl">
@@ -1149,6 +1169,7 @@ export function MarketingHome() {
               className="mx-auto mt-6 flex max-w-sm gap-2"
               onSubmit={(event) => {
                 event.preventDefault();
+                trackCta("final-form");
                 // TODO: wire to a Supabase table (e.g. `waitlist`) once the project is provisioned.
                 console.log("waitlist signup:", email);
               }}
