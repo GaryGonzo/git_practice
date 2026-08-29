@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { Drill } from "@golfable/shared";
 import {
@@ -184,6 +184,55 @@ function StarIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 20 20" fill="currentColor" className={className} aria-hidden="true">
       <path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9L1.5 7.6l5.9-.7L10 1.5z" />
     </svg>
+  );
+}
+
+// Fades + rises each section into view the first time it crosses into the
+// viewport -- gives the page a sense of motion when scrolling instead of
+// everything just being present at once.
+function Reveal({ children, className = "" }: { children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${
+        visible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+      } ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Eyebrow({ children, tone = "light" }: { children: ReactNode; tone?: "light" | "dark" }) {
+  return (
+    <div className="flex justify-center">
+      <span
+        className={`font-label inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-widest uppercase ${
+          tone === "dark" ? "bg-white/10 text-white" : "border-brand/15 bg-brand/5 text-brand border"
+        }`}
+      >
+        {children}
+      </span>
+    </div>
   );
 }
 
@@ -646,30 +695,41 @@ export function MarketingHome() {
       </header>
 
       <main>
-        <section className="relative overflow-hidden px-6 py-24 text-center sm:py-32">
+        <section className="relative flex min-h-[92vh] items-center overflow-hidden px-6 py-24 text-center">
           <div
             className="absolute inset-0"
             style={{
               backgroundImage: "url(/hero-course.png)",
               backgroundSize: "cover",
               backgroundPosition: "center 60%",
+              animation: "ken-burns 22s ease-in-out infinite alternate",
             }}
           />
-          <div className="absolute inset-0 bg-white/55" />
-          <div className="relative">
-            <h1 className="font-display text-5xl tracking-wide sm:text-6xl">
-              Practice. <span className="text-brand">Gamified.</span>
+          <div className="from-brand-dark/80 absolute inset-0 bg-gradient-to-t via-black/30 to-black/10" />
+          <div className="relative w-full">
+            <div className="flex justify-center">
+              <span className="font-label inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold tracking-widest text-white uppercase backdrop-blur-sm">
+                100 Founder Spots — Free Forever
+              </span>
+            </div>
+            <h1 className="font-display mt-5 text-5xl tracking-wide text-white sm:text-7xl">
+              Practice. <span className="text-gold">Gamified.</span>
             </h1>
-            <p className="font-body mx-auto mt-4 max-w-xl text-lg text-neutral-700">
+            <p className="font-body mx-auto mt-4 max-w-xl text-lg text-white/85">
               Intelligently and intuitively programmed practice — scored, tracked, competitive, and
               gamified — built to make real progress in your golf game.
             </p>
             <Link
               to="/signup"
-              className="font-label bg-brand mt-8 inline-block rounded-md px-6 py-3 text-sm font-semibold text-white"
+              className="font-label bg-gold text-brand-dark mt-8 inline-block rounded-md px-7 py-3.5 text-sm font-semibold shadow-lg"
             >
               Join free — no card required
             </Link>
+          </div>
+          <div className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 animate-bounce sm:block">
+            <svg viewBox="0 0 20 20" fill="none" className="h-6 w-6 text-white/70" aria-hidden="true">
+              <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
         </section>
 
@@ -681,12 +741,10 @@ export function MarketingHome() {
           </p>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              Why Golfable
-            </h2>
-            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+        <section className="bg-white px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
+            <Eyebrow>Why Golfable</Eyebrow>
+            <h3 className="font-display mt-3 text-center text-4xl tracking-wide sm:text-5xl">
               More instruction than ever.
               <br className="hidden sm:block" /> Handicaps haven't moved.
             </h3>
@@ -696,7 +754,7 @@ export function MarketingHome() {
               problem.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-neutral-200 bg-white p-5">
+              <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
                 <p className="font-label text-sm font-semibold tracking-widest text-neutral-400 uppercase">
                   The problem
                 </p>
@@ -705,7 +763,7 @@ export function MarketingHome() {
                   score, no target, and no reason to care just builds a better range game.
                 </p>
               </div>
-              <div className="bg-brand rounded-lg p-5 text-white">
+              <div className="bg-brand rounded-xl p-6 text-white shadow-lg">
                 <p className="font-label text-sm font-semibold tracking-widest text-white/60 uppercase">
                   The Golfable way
                 </p>
@@ -716,17 +774,15 @@ export function MarketingHome() {
                 </p>
               </div>
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              How it works
-            </h2>
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <section className="bg-neutral-50 px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
+            <Eyebrow>How it works</Eyebrow>
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {HOW_IT_WORKS.map((item) => (
-                <div key={item.step} className="rounded-lg border border-neutral-200 bg-white p-5">
+                <div key={item.step} className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
                   <div className="font-display bg-brand flex h-8 w-8 items-center justify-center rounded-full text-sm text-white">
                     {item.step}
                   </div>
@@ -735,15 +791,13 @@ export function MarketingHome() {
                 </div>
               ))}
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              Two Ways to Train
-            </h2>
-            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+        <section className="bg-white px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
+            <Eyebrow>Two Ways to Train</Eyebrow>
+            <h3 className="font-display mt-3 text-center text-4xl tracking-wide sm:text-5xl">
               Follow the program, or build your own
             </h3>
             <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
@@ -751,7 +805,7 @@ export function MarketingHome() {
               like to pick their own workout. Golfable works either way.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-neutral-200 bg-white p-5">
+              <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
                 <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
                   <CalendarCheckIcon className="h-5 w-5" />
                 </div>
@@ -761,7 +815,7 @@ export function MarketingHome() {
                   your score — no decisions required.
                 </p>
               </div>
-              <div className="rounded-lg border border-neutral-200 bg-white p-5">
+              <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
                 <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
                   <ChooseIcon className="h-5 w-5" />
                 </div>
@@ -772,15 +826,13 @@ export function MarketingHome() {
                 </p>
               </div>
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              Just Added
-            </h2>
-            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+        <section className="border-brand/10 bg-brand/5 border-y px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
+            <Eyebrow>Just Added</Eyebrow>
+            <h3 className="font-display mt-3 text-center text-4xl tracking-wide sm:text-5xl">
               Built to keep you improving
             </h3>
             <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
@@ -791,7 +843,7 @@ export function MarketingHome() {
               {NEW_FEATURES.map((feature) => {
                 const Icon = feature.icon;
                 return (
-                  <div key={feature.title} className="rounded-lg border border-neutral-200 bg-white p-5">
+                  <div key={feature.title} className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
                     <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
                       <Icon className="h-5 w-5" />
                     </div>
@@ -801,15 +853,13 @@ export function MarketingHome() {
                 );
               })}
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              Training Tools
-            </h2>
-            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+        <section className="bg-white px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
+            <Eyebrow>Training Tools</Eyebrow>
+            <h3 className="font-display mt-3 text-center text-4xl tracking-wide sm:text-5xl">
               Your phone, turned into a practice aid
             </h3>
             <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
@@ -819,7 +869,7 @@ export function MarketingHome() {
               {TRAINING_TOOLS.map((tool) => {
                 const Icon = tool.icon;
                 return (
-                  <div key={tool.name} className="rounded-lg border border-neutral-200 bg-white p-5">
+                  <div key={tool.name} className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
                     <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
                       <Icon className="h-5 w-5" />
                     </div>
@@ -829,23 +879,21 @@ export function MarketingHome() {
                 );
               })}
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              A Peek Inside the App
-            </h2>
-            <p className="font-body mx-auto mt-2 max-w-xl text-center text-sm text-neutral-600">
+        <section className="bg-brand-dark px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
+            <Eyebrow tone="dark">A Peek Inside the App</Eyebrow>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-sm text-white/70">
               Two real Golfables, shown exactly how they'd land on your Today screen the moment you open
               the app.
             </p>
-            <div className="mt-8 grid justify-items-center gap-10 sm:grid-cols-2">
+            <div className="mt-10 grid justify-items-center gap-10 sm:grid-cols-2">
               {SNEAK_PEEK_DRILLS.map(({ drill, maxScore }) => (
                 <div
                   key={drill.id}
-                  className="w-full max-w-[300px] rounded-[2.25rem] bg-neutral-900 p-2.5 shadow-xl"
+                  className="w-full max-w-[300px] rounded-[2.25rem] bg-neutral-900 p-2.5 shadow-2xl"
                 >
                   <div className="flex justify-center pt-1 pb-1.5">
                     <div className="h-1.5 w-16 rounded-full bg-neutral-700" />
@@ -863,7 +911,7 @@ export function MarketingHome() {
                 </div>
               ))}
             </div>
-          </div>
+          </Reveal>
         </section>
 
         <section className="relative overflow-hidden px-6 py-16">
@@ -884,20 +932,18 @@ export function MarketingHome() {
             }}
           />
           <div className="absolute inset-0 bg-white/80" />
-          <div className="relative mx-auto max-w-3xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              Four Skill Categories
-            </h2>
-            <p className="font-body mx-auto mt-2 max-w-xl text-center text-sm text-neutral-600">
+          <Reveal className="relative mx-auto max-w-3xl">
+            <Eyebrow>Four Skill Categories</Eyebrow>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-sm text-neutral-600">
               Every Golfable falls into one of four categories, each with its own badge, color, and spot
               on the weekly calendar.
             </p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {SKILL_CATEGORIES.map((category) => {
                 const info = CATEGORY_INFO[category];
                 const detail = CATEGORY_DETAIL[category];
                 return (
-                  <div key={category} className="rounded-lg border border-neutral-200 bg-white p-5">
+                  <div key={category} className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center gap-3">
                       <div
                         className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
@@ -916,17 +962,17 @@ export function MarketingHome() {
                 );
               })}
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="bg-brand px-6 py-16 text-white">
-          <div className="mx-auto max-w-3xl">
+        <section className="bg-brand px-6 py-20 text-white sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
             <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
               <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-white/15">
                 <TrophyIcon className="text-gold h-7 w-7" />
               </div>
               <div>
-                <h2 className="font-display text-2xl tracking-wide">Leaderboard</h2>
+                <h2 className="font-display text-3xl tracking-wide sm:text-4xl">Leaderboard</h2>
                 <p className="font-body mt-1 text-white/80">
                   Every Golfable resets the board daily, split by handicap tier — so you're only ever
                   measured against golfers playing your game, not the club champion.
@@ -942,17 +988,17 @@ export function MarketingHome() {
                 You're #3 in Mid today
               </p>
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-3xl">
+        <section className="bg-gold/5 px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
             <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
               <div className="bg-gold/15 flex h-14 w-14 flex-none items-center justify-center rounded-full">
                 <ChallengeIcon className="text-gold h-7 w-7" />
               </div>
               <div>
-                <h2 className="font-display text-2xl tracking-wide">Challenge a Friend</h2>
+                <h2 className="font-display text-3xl tracking-wide sm:text-4xl">Challenge a Friend</h2>
                 <p className="font-body mt-1 text-neutral-600">
                   Heading to the range together? Pick any drill from the library, share a 5-character
                   code, and compete with up to 4 friends on a live-updating scoreboard. Changed your mind?
@@ -961,24 +1007,22 @@ export function MarketingHome() {
                 </p>
               </div>
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              Handicap Tiers
-            </h2>
-            <p className="font-body mx-auto mt-2 max-w-xl text-center text-sm text-neutral-600">
+        <section className="bg-white px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
+            <Eyebrow>Handicap Tiers</Eyebrow>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-sm text-neutral-600">
               Targets get tougher as your handicap gets lower — the most fun way to get into the game and
               start practicing real skills, wherever you're starting from.
             </p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {HANDICAP_TIERS.map((tier) => {
                 const info = TIER_INFO[tier];
                 const detail = TIER_DETAIL[tier];
                 return (
-                  <div key={tier} className={`rounded-lg border-2 bg-white p-5 ${TIER_BORDER[tier]}`}>
+                  <div key={tier} className={`rounded-xl border-2 bg-white p-5 shadow-sm ${TIER_BORDER[tier]}`}>
                     <div className="flex items-baseline gap-2">
                       <span className={`font-display text-3xl tracking-wide ${TIER_TEXT[tier]}`}>
                         {info.label}
@@ -990,15 +1034,13 @@ export function MarketingHome() {
                 );
               })}
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              Member Benefits
-            </h2>
-            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+        <section className="bg-neutral-50 px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl">
+            <Eyebrow>Member Benefits</Eyebrow>
+            <h3 className="font-display mt-3 text-center text-4xl tracking-wide sm:text-5xl">
               What you get, starting today
             </h3>
             <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
@@ -1008,7 +1050,7 @@ export function MarketingHome() {
               {MEMBER_BENEFITS.map((benefit) => {
                 const Icon = benefit.icon;
                 return (
-                  <div key={benefit.title} className="rounded-lg border border-neutral-200 bg-white p-5">
+                  <div key={benefit.title} className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
                     <div
                       className={`flex h-11 w-11 items-center justify-center rounded-full ${
                         benefit.accent === "gold" ? "bg-gold/15 text-gold" : "bg-brand/10 text-brand"
@@ -1022,10 +1064,10 @@ export function MarketingHome() {
                 );
               })}
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="relative overflow-hidden px-6 py-16">
+        <section className="relative overflow-hidden px-6 py-20 sm:py-28">
           <div
             className="absolute inset-0 sm:hidden"
             style={{
@@ -1043,10 +1085,8 @@ export function MarketingHome() {
             }}
           />
           <div className="absolute inset-0 bg-white/80" />
-          <div className="relative mx-auto max-w-2xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              What Users and Golf Pros Are Saying
-            </h2>
+          <Reveal className="relative mx-auto max-w-2xl">
+            <Eyebrow>What Users and Golf Pros Are Saying</Eyebrow>
             <div className="relative mt-8 min-h-[260px] sm:min-h-[220px]">
               {REVIEWS.map((review, i) => (
                 <div
@@ -1086,19 +1126,17 @@ export function MarketingHome() {
                 />
               ))}
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-2xl">
-            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
-              Frequently Asked Questions
-            </h2>
-            <div className="mt-6 space-y-2">
+        <section className="bg-white px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-2xl">
+            <Eyebrow>Frequently Asked Questions</Eyebrow>
+            <div className="mt-8 space-y-2">
               {FAQS.map((faq, i) => {
                 const open = openFaq === i;
                 return (
-                  <div key={faq.question} className="rounded-lg border border-neutral-200 bg-white">
+                  <div key={faq.question} className="rounded-xl border border-neutral-200 bg-white">
                     <button
                       type="button"
                       onClick={() => setOpenFaq(open ? null : i)}
@@ -1114,12 +1152,15 @@ export function MarketingHome() {
                 );
               })}
             </div>
-          </div>
+          </Reveal>
         </section>
 
-        <section id="join" className="bg-brand scroll-mt-6 px-6 py-16 text-center text-white">
-          <div className="mx-auto max-w-2xl">
-            <p className="font-label text-sm font-semibold tracking-widest text-white/60 uppercase">
+        <section
+          id="join"
+          className="bg-brand-dark scroll-mt-6 px-6 py-20 text-center text-white sm:py-28"
+        >
+          <Reveal className="mx-auto max-w-2xl">
+            <p className="font-label text-gold text-sm font-semibold tracking-widest uppercase">
               Why We Built Golfable
             </p>
             <p className="font-body mx-auto mt-3 max-w-xl text-white/90">
@@ -1130,7 +1171,7 @@ export function MarketingHome() {
               means joining a movement. We all get better together.
             </p>
 
-            <h2 className="font-display mt-8 text-3xl tracking-wide sm:text-4xl">
+            <h2 className="font-display mt-8 text-4xl tracking-wide sm:text-5xl">
               Practice. <span className="text-gold">Gamified.</span>
             </h2>
             <p className="font-body mt-2 text-white/80">
@@ -1160,7 +1201,7 @@ export function MarketingHome() {
                 Notify me
               </button>
             </form>
-          </div>
+          </Reveal>
         </section>
       </main>
 

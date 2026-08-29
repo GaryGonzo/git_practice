@@ -114,3 +114,12 @@ body {
     transform: translateY(-36px) scale(1.15) rotate(20deg);
   }
 }
+
+@keyframes ken-burns {
+  0% {
+    transform: scale(1.04) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.14) translate(-1%, -1.5%);
+  }
+}
