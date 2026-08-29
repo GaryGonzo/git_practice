@@ -222,6 +222,24 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
   );
 }
 
+// A short, high-contrast CTA moment dropped between content sections so a
+// join button is never more than a couple sections away on the scroll.
+function CtaBand({ heading, tone = "brand" }: { heading: string; tone?: "brand" | "brand-dark" }) {
+  return (
+    <section className={tone === "brand" ? "bg-brand px-6 py-14 text-center" : "bg-brand-dark px-6 py-14 text-center"}>
+      <Reveal className="mx-auto max-w-lg">
+        <h3 className="font-display text-2xl tracking-wide text-white sm:text-3xl">{heading}</h3>
+        <Link
+          to="/signup"
+          className="font-label bg-gold text-brand-dark mt-5 inline-block rounded-md px-7 py-3.5 text-sm font-semibold shadow-lg"
+        >
+          Join free — no card required
+        </Link>
+      </Reveal>
+    </section>
+  );
+}
+
 function Eyebrow({ children, tone = "light" }: { children: ReactNode; tone?: "light" | "dark" }) {
   return (
     <div className="flex justify-center">
@@ -829,6 +847,8 @@ export function MarketingHome() {
           </Reveal>
         </section>
 
+        <CtaBand heading="See it for yourself — play your first Golfable today." />
+
         <section className="border-brand/10 bg-brand/5 border-y px-6 py-20 sm:py-28">
           <Reveal className="mx-auto max-w-3xl">
             <Eyebrow>Just Added</Eyebrow>
@@ -913,6 +933,8 @@ export function MarketingHome() {
             </div>
           </Reveal>
         </section>
+
+        <CtaBand heading="Every skill category, one home for your training." />
 
         <section className="relative overflow-hidden px-6 py-16">
           <div
@@ -1010,6 +1032,8 @@ export function MarketingHome() {
           </Reveal>
         </section>
 
+        <CtaBand heading="Bring your crew. Compete for free." tone="brand-dark" />
+
         <section className="bg-white px-6 py-20 sm:py-28">
           <Reveal className="mx-auto max-w-3xl">
             <Eyebrow>Handicap Tiers</Eyebrow>
@@ -1066,6 +1090,8 @@ export function MarketingHome() {
             </div>
           </Reveal>
         </section>
+
+        <CtaBand heading="Founding member spots are going fast." />
 
         <section className="relative overflow-hidden px-6 py-20 sm:py-28">
           <div
