@@ -572,6 +572,13 @@ export async function joinChallenge(challengeId: string, userId: string): Promis
   if (error) throw error;
 }
 
+// Creator-only (enforced by RLS) -- deletes the challenge outright.
+// challenge_participants cascades, so any joiners are removed too.
+export async function cancelChallenge(challengeId: string): Promise<void> {
+  const { error } = await supabase.from("challenges").delete().eq("id", challengeId);
+  if (error) throw error;
+}
+
 export interface ChallengeParticipant {
   userId: string;
   firstName: string;

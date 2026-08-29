@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { CATEGORY_INFO, TIER_INFO, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { supabase } from "../../lib/supabaseClient";
 import {
+  cancelChallenge,
   getChallenge,
   getChallengeParticipants,
   joinChallenge,
@@ -38,6 +39,7 @@ function CopyIcon({ className }: { className?: string }) {
 
 export function ChallengeDetailScreen() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { profile } = useAuth();
 
   const [challenge, setChallenge] = useState<Challenge | null>(null);
@@ -47,6 +49,8 @@ export function ChallengeDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<"code" | "link" | null>(null);
+  const [canceling, setCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const refreshParticipants = useCallback(async () => {
     if (!id) return;
@@ -112,6 +116,18 @@ export function ChallengeDetailScreen() {
     } catch {
       // Clipboard access can fail silently (permissions, insecure context) --
       // the code/link is already visible on screen either way.
+    }
+  }
+
+  async function handleCancel() {
+    setCancelError(null);
+    setCanceling(true);
+    try {
+      await cancelChallenge(id!);
+      navigate("/app/challenges");
+    } catch {
+      setCancelError("Couldn't cancel that challenge -- try again.");
+      setCanceling(false);
     }
   }
 
@@ -205,6 +221,20 @@ export function ChallengeDetailScreen() {
         Copy Invite Link
       </button>
       {copiedField === "link" && <p className="font-body mt-1 text-center text-xs text-neutral-500">Copied!</p>}
+
+      {challenge.creatorId === profile.id && !allSubmitted && (
+        <div className="mt-3 text-center">
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={canceling}
+            className="font-label text-sm font-semibold text-red-600 underline disabled:opacity-60"
+          >
+            {canceling ? "Canceling…" : "Cancel Challenge"}
+          </button>
+          {cancelError && <p className="font-body mt-1 text-sm text-red-600">{cancelError}</p>}
+        </div>
+      )}
 
       <div className="mt-6">
         <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
