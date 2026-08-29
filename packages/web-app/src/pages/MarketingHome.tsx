@@ -674,6 +674,9 @@ export function MarketingHome() {
           <span className="font-display text-brand text-3xl tracking-wide">GOLFABLE</span>
         </div>
         <div className="flex items-center gap-3">
+          <Link to="/studios" className="font-label hidden text-sm font-semibold text-neutral-600 sm:inline-block">
+            For Studios
+          </Link>
           <Link
             to="/login"
             className="font-label rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-600"

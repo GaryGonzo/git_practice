@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { MarketingHome } from "./pages/MarketingHome";
+import { StudiosScreen } from "./pages/StudiosScreen";
 import { JoinChallengeScreen } from "./pages/JoinChallengeScreen";
 import { StudioInviteScreen } from "./pages/StudioInviteScreen";
 import { TermsScreen } from "./pages/TermsScreen";
@@ -37,6 +38,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<MarketingHome />} />
+      <Route path="/studios" element={<StudiosScreen />} />
       <Route path="/join/:code" element={<JoinChallengeScreen />} />
       <Route path="/my-studio/:slug" element={<StudioInviteScreen />} />
       <Route path="/terms" element={<TermsScreen />} />
