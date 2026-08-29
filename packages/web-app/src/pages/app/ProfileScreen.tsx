@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
+import {
+  HANDICAP_TIERS,
+  TIER_INFO,
+  SKILL_CATEGORIES,
+  CATEGORY_INFO,
+  type HandicapTier,
+  type SkillCategory,
+} from "@golfable/shared";
 import { useAuth, type Profile } from "../../lib/AuthProvider";
 import {
   updateProfile,
@@ -14,6 +21,8 @@ import {
   getLatestHandicap,
   logHandicap,
   isHandicapUpdateDue,
+  getMyGameRatings,
+  setGameRating,
   type HandicapEntry,
   type Studio,
 } from "../../lib/golfableApi";
@@ -263,6 +272,74 @@ function HandicapSection({ profile }: { profile: Profile }) {
           {latest ? "Update" : "Add your handicap"}
         </button>
       )}
+    </div>
+  );
+}
+
+function GameRatingRow({
+  profileId,
+  category,
+  rating,
+}: {
+  profileId: string;
+  category: SkillCategory;
+  rating: number | undefined;
+}) {
+  const [value, setValue] = useState(rating === undefined ? "" : String(rating));
+  const [saved, setSaved] = useState(false);
+
+  async function handleBlur() {
+    const trimmed = value.trim();
+    if (trimmed === "") return;
+    const num = Number(trimmed);
+    if (!Number.isFinite(num) || num < 1 || num > 10) return;
+    await setGameRating(profileId, category, num);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1200);
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-neutral-100 py-3 last:border-0">
+      <p className="font-label text-sm font-semibold text-neutral-700">{CATEGORY_INFO[category].label}</p>
+      <div className="flex items-center gap-2">
+        {saved && <span className="font-body text-xs text-neutral-400">Saved</span>}
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={10}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={handleBlur}
+          placeholder="-/10"
+          className="font-body w-16 rounded-md border border-neutral-300 px-2 py-1.5 text-right text-sm"
+        />
+      </div>
+    </div>
+  );
+}
+
+function GameRatingSection({ profile }: { profile: Profile }) {
+  const [ratings, setRatings] = useState<Partial<Record<SkillCategory, number>> | null>(null);
+
+  useEffect(() => {
+    getMyGameRatings(profile.id).then(setRatings);
+  }, [profile.id]);
+
+  if (!ratings) return null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+      <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">My Game</p>
+      <p className="font-body mt-1 text-sm text-neutral-500">
+        Rate how each part of your game feels right now -- just your gut, not tracked over time. Feeds
+        "Recommended for You" on Choose Your Own.
+      </p>
+      <div className="mt-2">
+        {SKILL_CATEGORIES.map((category) => (
+          <GameRatingRow key={category} profileId={profile.id} category={category} rating={ratings[category]} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -587,6 +664,7 @@ export function ProfileScreen() {
       </div>
 
       <HandicapSection profile={profile} />
+      <GameRatingSection profile={profile} />
 
       <Link
         to="/app/bag"

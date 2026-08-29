@@ -1032,3 +1032,24 @@ export async function setBagClubYardage(userId: string, club: BagClub, yardage: 
     .upsert({ user_id: userId, club, yardage }, { onConflict: "user_id,club" });
   if (error) throw error;
 }
+
+// ---------------------------------------------------------------------------
+// My Game -- a player's own anecdotal 1-10 read on each part of their game.
+// No history, just a current snapshot; feeds "Recommended for You".
+
+export async function getMyGameRatings(userId: string): Promise<Partial<Record<SkillCategory, number>>> {
+  const { data } = await supabase.from("game_ratings").select("category, rating").eq("user_id", userId);
+  const ratings: Partial<Record<SkillCategory, number>> = {};
+  for (const row of data ?? []) ratings[row.category as SkillCategory] = row.rating as number;
+  return ratings;
+}
+
+export async function setGameRating(userId: string, category: SkillCategory, rating: number): Promise<void> {
+  const { error } = await supabase
+    .from("game_ratings")
+    .upsert(
+      { user_id: userId, category, rating, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,category" }
+    );
+  if (error) throw error;
+}

@@ -6,6 +6,7 @@ import {
   getAllDrills,
   getAllDrillRatingSummaries,
   getMyDrillRatings,
+  getMyGameRatings,
   type DrillRatingSummary,
 } from "../../lib/golfableApi";
 
@@ -18,13 +19,23 @@ const CATEGORY_BG: Record<SkillCategory, string> = {
 
 const FAVORITE_THRESHOLD = 4;
 
-type FavoriteFilter = "all" | "mine" | "community";
+type FavoriteFilter = "all" | "mine" | "community" | "recommended";
 
 const FAVORITE_FILTERS: { value: FavoriteFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "mine", label: "My Favorites" },
   { value: "community", label: "Community Favorites" },
+  { value: "recommended", label: "Recommended for You" },
 ];
+
+// The category (or categories, if tied) where "My Game" is rated lowest --
+// the weakest part of the player's own read on their game.
+function weakestCategories(ratings: Partial<Record<SkillCategory, number>>): SkillCategory[] {
+  const rated = SKILL_CATEGORIES.filter((c) => ratings[c] !== undefined);
+  if (rated.length === 0) return [];
+  const min = Math.min(...rated.map((c) => ratings[c]!));
+  return rated.filter((c) => ratings[c] === min);
+}
 
 function BackIcon({ className }: { className?: string }) {
   return (
@@ -49,6 +60,7 @@ export function ChooseGolfableScreen() {
   const [drills, setDrills] = useState<{ drill: Drill; maxScore: number }[]>([]);
   const [ratingSummaries, setRatingSummaries] = useState<Record<string, DrillRatingSummary>>({});
   const [myRatings, setMyRatings] = useState<Record<string, number>>({});
+  const [gameRatings, setGameRatings] = useState<Partial<Record<SkillCategory, number>>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,17 +69,22 @@ export function ChooseGolfableScreen() {
       getAllDrills(category === "all" ? undefined : category),
       getAllDrillRatingSummaries(),
       profile ? getMyDrillRatings(profile.id) : Promise.resolve({}),
-    ]).then(([drillResult, summaries, mine]) => {
+      profile ? getMyGameRatings(profile.id) : Promise.resolve({}),
+    ]).then(([drillResult, summaries, mine, game]) => {
       setDrills(drillResult);
       setRatingSummaries(summaries);
       setMyRatings(mine);
+      setGameRatings(game);
       setLoading(false);
     });
   }, [category, profile]);
 
+  const recommendedCategories = weakestCategories(gameRatings);
+
   const visibleDrills = drills.filter(({ drill }) => {
     if (favoriteFilter === "mine") return (myRatings[drill.id] ?? 0) >= FAVORITE_THRESHOLD;
     if (favoriteFilter === "community") return (ratingSummaries[drill.id]?.avgRating ?? 0) >= FAVORITE_THRESHOLD;
+    if (favoriteFilter === "recommended") return recommendedCategories.includes(drill.category);
     return true;
   });
 
@@ -127,11 +144,25 @@ export function ChooseGolfableScreen() {
           <p className="font-body text-sm text-neutral-500">Loading…</p>
         ) : visibleDrills.length === 0 ? (
           <p className="font-body text-sm text-neutral-500">
-            {favoriteFilter === "mine"
-              ? "Rate a Golfable 4 or 5 stars after playing it and it'll show up here."
-              : favoriteFilter === "community"
-                ? "Nobody's rated enough Golfables here yet -- check back soon."
-                : "No drills in this category yet."}
+            {favoriteFilter === "mine" ? (
+              "Rate a Golfable 4 or 5 stars after playing it and it'll show up here."
+            ) : favoriteFilter === "community" ? (
+              "Nobody's rated enough Golfables here yet -- check back soon."
+            ) : favoriteFilter === "recommended" ? (
+              recommendedCategories.length === 0 ? (
+                <>
+                  Rate your game on{" "}
+                  <Link to="/app/profile" className="text-brand font-semibold underline">
+                    your profile
+                  </Link>{" "}
+                  and we'll recommend Golfables to work on.
+                </>
+              ) : (
+                "No drills in that category yet."
+              )
+            ) : (
+              "No drills in this category yet."
+            )}
           </p>
         ) : (
           visibleDrills.map(({ drill }) => {
