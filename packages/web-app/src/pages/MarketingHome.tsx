@@ -642,7 +642,6 @@ const MEMBER_BENEFITS: {
 ];
 
 export function MarketingHome() {
-  const [email, setEmail] = useState("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
 
@@ -1168,30 +1167,13 @@ export function MarketingHome() {
               Join us now — free during early access.
             </p>
 
-            <form
-              className="mx-auto mt-6 flex max-w-sm gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                trackCta("final-form");
-                // TODO: wire to a Supabase table (e.g. `waitlist`) once the project is provisioned.
-                console.log("waitlist signup:", email);
-              }}
+            <Link
+              to="/signup"
+              className="font-label bg-gold text-brand-dark mt-6 inline-block rounded-md px-7 py-3.5 text-sm font-semibold shadow-lg"
+              onClick={() => trackCta("final-cta")}
             >
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
-                className="font-body flex-1 rounded-md border-0 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-400"
-              />
-              <button
-                type="submit"
-                className="font-label rounded-md bg-neutral-900 px-4 py-2 font-semibold text-white"
-              >
-                Notify me
-              </button>
-            </form>
+              Join free — no card required
+            </Link>
           </Reveal>
         </section>
       </main>
@@ -1202,6 +1184,12 @@ export function MarketingHome() {
           <p className="font-body text-sm text-white/40">{CAPTION_HASHTAGS}</p>
           <Link to="/terms" className="font-label text-sm font-semibold text-white/50 underline">
             Terms of Service
+          </Link>
+          <Link
+            to="/studios"
+            className="font-label mt-1 text-sm font-semibold text-white/70 underline sm:hidden"
+          >
+            Studio Owners, Golf Course Managers, PGA Pros, etc. — Click Here
           </Link>
         </div>
       </footer>
