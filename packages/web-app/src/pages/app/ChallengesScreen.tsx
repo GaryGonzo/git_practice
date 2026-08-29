@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { CATEGORY_INFO, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { getChallengeByCode, getMyChallenges, type ChallengeSummary } from "../../lib/golfableApi";
+import { CategoryIcon } from "../../components/CategoryIcon";
 
 const CATEGORY_BG: Record<SkillCategory, string> = {
   driver: "bg-driver",
@@ -115,9 +116,9 @@ export function ChallengesScreen() {
                 className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5 active:bg-neutral-50"
               >
                 <div
-                  className={`font-display flex h-8 w-8 flex-none items-center justify-center rounded-full text-sm text-white ${CATEGORY_BG[c.category]}`}
+                  className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[c.category]}`}
                 >
-                  {CATEGORY_INFO[c.category].badge}
+                  <CategoryIcon category={c.category} className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-label truncate text-sm font-semibold">{c.drillName}</p>

@@ -19,13 +19,16 @@ import {
   createPortalSession,
   leaveStudio,
   getLatestHandicap,
+  getHandicapHistory,
   logHandicap,
   isHandicapUpdateDue,
   getMyGameRatings,
   setGameRating,
+  getMyBag,
   type HandicapEntry,
   type Studio,
 } from "../../lib/golfableApi";
+import { HandicapTrendChart } from "../../components/HandicapTrendChart";
 import { NotificationPrompt } from "../../components/NotificationPrompt";
 import { PUSH_ENABLED_KEY } from "../../lib/push";
 
@@ -166,8 +169,28 @@ function formatHandicapValue(entry: HandicapEntry): string {
   return `${entry.avgScorePar72} avg (par 72)`;
 }
 
+// Both fields represent "how many strokes over/under" in spirit -- lower is
+// always better, whichever one a given entry used.
+function handicapEntryValue(entry: HandicapEntry): number {
+  return entry.handicapIndex ?? entry.avgScorePar72!;
+}
+
+function DeltaBadge({ history }: { history: HandicapEntry[] }) {
+  if (history.length < 2) return null;
+  const delta = handicapEntryValue(history[history.length - 1]) - handicapEntryValue(history[0]);
+  const rounded = Math.round(delta * 10) / 10;
+  if (rounded === 0) return <span className="font-label text-sm font-semibold text-neutral-500">(no change)</span>;
+  const improved = rounded < 0;
+  return (
+    <span className={`font-label text-sm font-semibold ${improved ? "text-green-600" : "text-red-600"}`}>
+      {improved ? `(${rounded})` : `(+${rounded})`} {improved ? "↓ improved" : "↑ up"} since your first entry
+    </span>
+  );
+}
+
 function HandicapSection({ profile }: { profile: Profile }) {
   const [latest, setLatest] = useState<HandicapEntry | null | undefined>(undefined);
+  const [history, setHistory] = useState<HandicapEntry[]>([]);
   const [editing, setEditing] = useState(false);
   const [mode, setMode] = useState<"handicap" | "avgScore">("handicap");
   const [value, setValue] = useState("");
@@ -176,6 +199,7 @@ function HandicapSection({ profile }: { profile: Profile }) {
 
   useEffect(() => {
     getLatestHandicap(profile.id).then(setLatest);
+    getHandicapHistory(profile.id).then(setHistory);
   }, [profile.id]);
 
   if (latest === undefined) return null;
@@ -193,6 +217,7 @@ function HandicapSection({ profile }: { profile: Profile }) {
     try {
       await logHandicap(profile.id, mode === "handicap" ? num : null, mode === "avgScore" ? num : null);
       setLatest(await getLatestHandicap(profile.id));
+      setHistory(await getHandicapHistory(profile.id));
       setEditing(false);
       setValue("");
     } catch (err) {
@@ -205,10 +230,14 @@ function HandicapSection({ profile }: { profile: Profile }) {
     <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
       <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Handicap</p>
       {latest ? (
-        <p className="font-display text-xl">{formatHandicapValue(latest)}</p>
+        <div className="flex flex-wrap items-baseline gap-2">
+          <p className="font-display text-xl">{formatHandicapValue(latest)}</p>
+          <DeltaBadge history={history} />
+        </div>
       ) : (
         <p className="font-body mt-1 text-sm text-neutral-500">Not set yet.</p>
       )}
+      {history.length > 3 && <HandicapTrendChart points={history.map((h) => ({ value: handicapEntryValue(h), recordedAt: h.recordedAt }))} />}
       {due && !editing && (
         <p className="font-body mt-1 text-sm text-gold">
           {latest ? "Time for your monthly update." : "Add yours so we can track your improvement over time."}
@@ -481,10 +510,12 @@ export function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [surprise, setSurprise] = useState<string | null>(null);
   const [ownedStudio, setOwnedStudio] = useState<Studio | null>(null);
+  const [hasBagSet, setHasBagSet] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
     getStudioByOwnerId(profile.id).then(setOwnedStudio);
+    getMyBag(profile.id).then((bag) => setHasBagSet(bag.some((entry) => entry.yardage !== null)));
   }, [profile]);
 
   if (!profile) return null;
@@ -674,7 +705,9 @@ export function ProfileScreen() {
           <span className="font-label block text-xs font-semibold tracking-widest text-neutral-500 uppercase">
             My Bag
           </span>
-          <span className="font-body text-sm text-neutral-600">Set your yardages for club suggestions</span>
+          <span className="font-body text-sm text-neutral-600">
+            {hasBagSet ? "View your bag" : "Set your yardages for club suggestions"}
+          </span>
         </span>
         <span className="font-label text-brand text-sm font-semibold">Edit</span>
       </Link>

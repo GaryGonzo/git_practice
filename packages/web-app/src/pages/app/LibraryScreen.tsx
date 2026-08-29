@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CATEGORY_INFO, type SkillCategory } from "@golfable/shared";
+import type { SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
+import { CategoryIcon } from "../../components/CategoryIcon";
 import {
   getPastGolfables,
   getUpcomingGolfables,
@@ -40,9 +41,9 @@ function formatDate(iso: string): string {
 function CategoryBadge({ category }: { category: SkillCategory }) {
   return (
     <div
-      className={`font-display flex h-8 w-8 flex-none items-center justify-center rounded-full text-sm text-white ${CATEGORY_BG[category]}`}
+      className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
     >
-      {CATEGORY_INFO[category].badge}
+      <CategoryIcon category={category} className="h-4 w-4" />
     </div>
   );
 }

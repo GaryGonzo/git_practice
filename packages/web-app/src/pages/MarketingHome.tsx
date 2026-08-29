@@ -10,6 +10,7 @@ import {
 } from "@golfable/shared";
 import { GolfableMark } from "../components/GolfableMark";
 import { DrillFreshView } from "../components/DrillFreshView";
+import { CategoryIcon } from "../components/CategoryIcon";
 import { FOUNDER_SPOTS, getFounderSpotsRemaining } from "../lib/golfableApi";
 
 // Once fewer than this fraction of founder spots remain, swap the generic
@@ -773,9 +774,9 @@ export function MarketingHome() {
                   <div key={category} className="rounded-lg border border-neutral-200 bg-white p-5">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`font-display flex h-10 w-10 flex-none items-center justify-center rounded-full text-lg text-white ${CATEGORY_BG[category]}`}
+                        className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
                       >
-                        {info.badge}
+                        <CategoryIcon category={category} className="h-5 w-5" />
                       </div>
                       <span className={`font-label text-lg font-semibold ${CATEGORY_TEXT[category]}`}>
                         {info.label}

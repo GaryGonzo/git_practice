@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Drill, SkillCategory } from "@golfable/shared";
 import { CATEGORY_INFO } from "@golfable/shared";
+import { CategoryIcon } from "./CategoryIcon";
 
 interface DrillHeroImageProps {
   drill: Drill;
@@ -42,9 +43,9 @@ export function DrillHeroImage({ drill }: DrillHeroImageProps) {
 
   const badge = (
     <div
-      className={`font-display flex h-9 w-9 flex-none items-center justify-center rounded-full text-base text-white ${CATEGORY_BG[drill.category]}`}
+      className={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[drill.category]}`}
     >
-      {info.badge}
+      <CategoryIcon category={drill.category} className="h-4 w-4" />
     </div>
   );
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { CATEGORY_INFO, TIER_INFO, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { supabase } from "../../lib/supabaseClient";
+import { CategoryIcon } from "../../components/CategoryIcon";
 import {
   cancelChallenge,
   getChallenge,
@@ -168,9 +169,9 @@ export function ChallengeDetailScreen() {
 
       <div className="mt-4 flex items-center gap-3">
         <div
-          className={`font-display flex h-10 w-10 flex-none items-center justify-center rounded-full text-base text-white ${CATEGORY_BG[drill.category]}`}
+          className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[drill.category]}`}
         >
-          {CATEGORY_INFO[drill.category].badge}
+          <CategoryIcon category={drill.category} className="h-5 w-5" />
         </div>
         <div>
           <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">

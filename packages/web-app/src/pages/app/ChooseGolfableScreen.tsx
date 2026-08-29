@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CATEGORY_INFO, SKILL_CATEGORIES, type Drill, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
+import { CategoryIcon } from "../../components/CategoryIcon";
 import {
   getAllDrills,
   getAllDrillRatingSummaries,
@@ -174,9 +175,9 @@ export function ChooseGolfableScreen() {
                 className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5 active:bg-neutral-50"
               >
                 <div
-                  className={`font-display flex h-8 w-8 flex-none items-center justify-center rounded-full text-sm text-white ${CATEGORY_BG[drill.category]}`}
+                  className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[drill.category]}`}
                 >
-                  {CATEGORY_INFO[drill.category].badge}
+                  <CategoryIcon category={drill.category} className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-label truncate text-sm font-semibold">{drill.name}</p>
