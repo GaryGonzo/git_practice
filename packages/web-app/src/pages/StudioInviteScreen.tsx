@@ -18,6 +18,26 @@ function StudioIcon({ className }: { className?: string }) {
   );
 }
 
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Shown only to a cold, never-seen-Golfable member -- one sentence up top
+// isn't much to sign up on, so this fills in just enough of "what is this"
+// before asking for an account, without turning the screen into a second
+// homepage.
+function studioHighlights(studioName: string) {
+  return [
+    { title: "A fresh drill every weekday", body: "Short, scored practice sessions -- not swing tips." },
+    { title: "Your studio's own leaderboard", body: `Private to ${studioName}, split by handicap tier.` },
+    { title: "Free, no card required", body: `Included as part of ${studioName} -- nothing to pay, ever.` },
+  ];
+}
+
 export function StudioInviteScreen() {
   const { slug } = useParams();
   const { session, profile, refreshProfile } = useAuth();
@@ -95,6 +115,20 @@ export function StudioInviteScreen() {
       {error && <p className="font-body mt-3 text-sm text-red-600">{error}</p>}
       {!session && (
         <>
+          <div className="mt-6 space-y-3 text-left">
+            {studioHighlights(studio.name).map((item) => (
+              <div key={item.title} className="flex items-start gap-3">
+                <div className="bg-brand/10 text-brand mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full">
+                  <CheckIcon className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <p className="font-label text-sm font-semibold">{item.title}</p>
+                  <p className="font-body text-sm text-neutral-600">{item.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <Link
             to={`/signup?next=${encodeURIComponent(nextPath)}`}
             className="font-label bg-brand mt-6 block w-full rounded-md px-4 py-3 text-sm font-semibold text-white"
@@ -107,6 +141,14 @@ export function StudioInviteScreen() {
               Log in
             </Link>
           </p>
+          <Link
+            to="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-label text-brand mt-4 inline-block text-sm font-semibold underline"
+          >
+            See what Golfable is about →
+          </Link>
         </>
       )}
     </div>
