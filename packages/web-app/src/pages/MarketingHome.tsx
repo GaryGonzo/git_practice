@@ -212,6 +212,11 @@ const FAQS = [
       "A daily golf skill challenge. Every weekday, every golfer trains the exact same drill -- you play it, log your score, and see how you compare to others in your handicap tier.",
   },
   {
+    question: "Do you teach swing technique?",
+    answer:
+      "No. Golfable isn't swing instruction -- we don't teach mechanics or give swing tips. We build structured, scored practice sessions that change how you train, not your swing, so the improvement is real and it actually sticks.",
+  },
+  {
     question: "Is it free?",
     answer: "Yes. Golfable is free forever for our first 100 founding members -- no credit card required.",
   },
@@ -238,7 +243,27 @@ const FAQS = [
   {
     question: "Can I compete with my friends?",
     answer:
-      "Yes -- Challenge a Friend lets you pick any drill, share a join code, and see a live scoreboard update as everyone plays. You can add an optional wager too, just for fun -- no real money changes hands.",
+      "Yes -- Challenge a Friend lets you pick any drill, share a join code, and compete with up to 4 friends on a live-updating scoreboard. Changed your mind? You can cancel a challenge anytime before anyone joins. You can add an optional wager too, just for fun -- no real money changes hands.",
+  },
+  {
+    question: "What is my Golfable Score?",
+    answer:
+      "A live score for each of the four skill categories, plus one overall number, built from your 10 most recent rounds in that category. Tap any score on your Home screen to see exactly which rounds make it up and how it's calculated.",
+  },
+  {
+    question: "What is My Bag?",
+    answer:
+      "Log your typical yardage for every club except your putter, and any drill that calls for a target distance will suggest the club from your bag that matches it best.",
+  },
+  {
+    question: "Can Golfable track my handicap?",
+    answer:
+      "Yes. Log your handicap index or your average score on a par-72 once a month, and Profile shows a trend line plus how much you've moved since your first entry.",
+  },
+  {
+    question: "How do Favorites and recommendations work?",
+    answer:
+      "Rate a Golfable after you play it to build your Favorites and see what's popular with the community. Rate your own game by category in Profile, and Choose Your Own Golfable will recommend drills built for your weakest area.",
   },
   {
     question: "What are the Training Tools?",
@@ -415,6 +440,72 @@ function GappingIcon({ className }: { className?: string }) {
   );
 }
 
+function BagFeatureIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M7 21V10a5 5 0 0 1 10 0v11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M5 21h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9 10V4M12 10V3M15 10V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function HandicapGaugeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M4 16a8 8 0 1 1 16 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M12 16l4-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12" cy="16" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ScoreRingIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 4a8 8 0 0 1 6.9 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function RatingStarIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8L12 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const NEW_FEATURES: { icon: ComponentType<{ className?: string }>; title: string; body: string }[] = [
+  {
+    icon: BagFeatureIcon,
+    title: "My Bag",
+    body: "Log your average yardage per club and Golfable calls the right club for any target distance, right on the drill.",
+  },
+  {
+    icon: HandicapGaugeIcon,
+    title: "Handicap Tracking",
+    body: "Log your handicap or average score once a month and watch the trend line move as your game improves.",
+  },
+  {
+    icon: ScoreRingIcon,
+    title: "Golfable Score",
+    body: "One live score per category, plus an overall number, built from your 10 most recent rounds. Tap any score to see exactly how it's calculated.",
+  },
+  {
+    icon: RatingStarIcon,
+    title: "Recommended For You",
+    body: "Rate Golfables to build your Favorites and see Community Favorites, or rate your own game to get drills recommended for your weakest category.",
+  },
+];
+
 const TRAINING_TOOLS: { icon: ComponentType<{ className?: string }>; name: string; body: string }[] = [
   {
     icon: MetronomeIcon,
@@ -567,13 +658,11 @@ export function MarketingHome() {
           <div className="absolute inset-0 bg-white/55" />
           <div className="relative">
             <h1 className="font-display text-5xl tracking-wide sm:text-6xl">
-              A Golfable a day
-              <br />
-              keeps the <span className="text-brand">yips away</span>
+              Practice. <span className="text-brand">Gamified.</span>
             </h1>
             <p className="font-body mx-auto mt-4 max-w-xl text-lg text-neutral-700">
-              Golfable is the CrossFit of golf skills — one structured drill, shared by everyone
-              training that day, scored against your handicap so the challenge is actually yours.
+              Intelligently and intuitively programmed practice — scored, tracked, competitive, and
+              gamified — built to make real progress in your golf game.
             </p>
             <Link
               to="/signup"
@@ -582,6 +671,14 @@ export function MarketingHome() {
               Join free — no card required
             </Link>
           </div>
+        </section>
+
+        <section className="bg-brand-dark px-6 py-5">
+          <p className="font-body mx-auto max-w-2xl text-center text-sm text-white/90">
+            <span className="font-label font-semibold text-white">No swing changes. No swing tips.</span>{" "}
+            Golfable doesn't touch your mechanics — it changes how you practice and train, so the
+            improvement is real and it lasts.
+          </p>
         </section>
 
         <section className="px-6 py-16">
@@ -674,6 +771,35 @@ export function MarketingHome() {
                   personal best and counts toward your weekly goal, exactly like the daily Golfable.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="font-label text-center text-sm font-semibold uppercase tracking-widest text-neutral-500">
+              Just Added
+            </h2>
+            <h3 className="font-display mt-2 text-center text-3xl tracking-wide sm:text-4xl">
+              Built to keep you improving
+            </h3>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
+              New this month: a bag that knows your yardages, a handicap that tracks itself, and a score
+              built to show your real progress.
+            </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {NEW_FEATURES.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={feature.title} className="rounded-lg border border-neutral-200 bg-white p-5">
+                    <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-label mt-3 text-base font-semibold">{feature.title}</h4>
+                    <p className="font-body mt-1.5 text-sm text-neutral-600">{feature.body}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -829,8 +955,9 @@ export function MarketingHome() {
                 <h2 className="font-display text-2xl tracking-wide">Challenge a Friend</h2>
                 <p className="font-body mt-1 text-neutral-600">
                   Heading to the range together? Pick any drill from the library, share a 5-character
-                  code, and compete on a live-updating scoreboard as everyone plays. Add an optional wager
-                  — just for fun, no real money changes hands.
+                  code, and compete with up to 4 friends on a live-updating scoreboard. Changed your mind?
+                  Cancel a challenge anytime before anyone joins. Add an optional wager — just for fun, no
+                  real money changes hands.
                 </p>
               </div>
             </div>
@@ -1004,7 +1131,7 @@ export function MarketingHome() {
             </p>
 
             <h2 className="font-display mt-8 text-3xl tracking-wide sm:text-4xl">
-              A Golfable a Day Keeps the Yips Away
+              Practice. <span className="text-gold">Gamified.</span>
             </h2>
             <p className="font-body mt-2 text-white/80">
               Join us now — free during early access.
