@@ -1067,10 +1067,34 @@ export async function getMyDrillRatings(userId: string): Promise<Record<string, 
 // ---------------------------------------------------------------------------
 // My Bag
 
+// Club Gapping is the more accurate, measured source, so a club's My Bag
+// yardage comes from its Club Gapping average whenever one exists; only
+// clubs with no logged swings fall back to the manual bag_clubs value.
+// This is what keeps the two tools showing the same number for a club.
 export async function getMyBag(userId: string): Promise<BagEntry[]> {
-  const { data } = await supabase.from("bag_clubs").select("club, yardage").eq("user_id", userId);
-  const byClub = new Map((data ?? []).map((row) => [row.club as string, row.yardage as number | null]));
-  return BAG_CLUBS.map((club) => ({ club, yardage: byClub.get(club) ?? null }));
+  const [{ data: bagRows }, { data: distanceRows }] = await Promise.all([
+    supabase.from("bag_clubs").select("club, yardage").eq("user_id", userId),
+    supabase.from("club_distances").select("club, distance_yards").eq("user_id", userId),
+  ]);
+
+  const manualByClub = new Map((bagRows ?? []).map((row) => [row.club as string, row.yardage as number | null]));
+
+  const distancesByClub = new Map<string, number[]>();
+  for (const row of distanceRows ?? []) {
+    const club = row.club as string;
+    const list = distancesByClub.get(club) ?? [];
+    list.push(row.distance_yards as number);
+    distancesByClub.set(club, list);
+  }
+
+  return BAG_CLUBS.map((club) => {
+    const distances = distancesByClub.get(club);
+    if (distances && distances.length > 0) {
+      const yardage = Math.round(distances.reduce((sum, d) => sum + d, 0) / distances.length);
+      return { club, yardage, source: "gapping" as const, sampleCount: distances.length };
+    }
+    return { club, yardage: manualByClub.get(club) ?? null, source: "manual" as const };
+  });
 }
 
 export async function setBagClubYardage(userId: string, club: BagClub, yardage: number | null): Promise<void> {

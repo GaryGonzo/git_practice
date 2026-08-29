@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { BAG_CLUBS, type BagClub } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import {
   deleteClubDistance,
@@ -8,25 +9,8 @@ import {
   type ClubDistanceEntry,
 } from "../../lib/golfableApi";
 
-// Longest to shortest, matching a typical bag makeup -- keeps club names
-// canonical (rather than free text) so averaging and sort order stay
-// meaningful across entries.
-const CLUBS = [
-  "Driver",
-  "3 Wood",
-  "5 Wood",
-  "Hybrid",
-  "4 Iron",
-  "5 Iron",
-  "6 Iron",
-  "7 Iron",
-  "8 Iron",
-  "9 Iron",
-  "PW",
-  "GW",
-  "SW",
-  "LW",
-];
+// Same canonical club names as My Bag (@golfable/shared) -- a session
+// logged here for a club is what My Bag shows as that club's yardage.
 
 const SWINGS_PER_SESSION = 5;
 const RECENT_LOG_LIMIT = 10;
@@ -170,7 +154,7 @@ export function GappingScreen() {
   const { profile } = useAuth();
   const [entries, setEntries] = useState<ClubDistanceEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [club, setClub] = useState(CLUBS[0]);
+  const [club, setClub] = useState<BagClub>(BAG_CLUBS[0]);
   const [inWizard, setInWizard] = useState(false);
 
   useEffect(() => {
@@ -211,8 +195,8 @@ export function GappingScreen() {
 
       <h1 className="font-display mt-3 text-2xl tracking-wide">Club Gapping</h1>
       <p className="font-body text-sm text-neutral-500">
-        Hit {SWINGS_PER_SESSION} balls with a club and log each distance -- we'll track your average and fold in
-        every session you run.
+        Hit {SWINGS_PER_SESSION} balls with a club and log each distance -- we'll track your average, fold in every
+        session you run, and use it as that club's yardage in My Bag.
       </p>
 
       {inWizard ? (
@@ -222,10 +206,10 @@ export function GappingScreen() {
           <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Club</p>
           <select
             value={club}
-            onChange={(e) => setClub(e.target.value)}
+            onChange={(e) => setClub(e.target.value as BagClub)}
             className="font-body mt-2 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
           >
-            {CLUBS.map((c) => (
+            {BAG_CLUBS.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>

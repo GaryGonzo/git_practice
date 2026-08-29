@@ -23,6 +23,12 @@ export type BagClub = (typeof BAG_CLUBS)[number];
 export interface BagEntry {
   club: BagClub;
   yardage: number | null;
+  // "gapping" when yardage is a live average from Club Gapping swings for
+  // this club; "manual" when it's a plain estimate typed into My Bag.
+  source: "gapping" | "manual";
+  // Only set when source is "gapping" -- how many logged swings make up
+  // the average shown.
+  sampleCount?: number;
 }
 
 // Picks the club whose typical yardage is closest to the drill's target.
