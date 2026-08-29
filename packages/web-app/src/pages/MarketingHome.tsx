@@ -132,61 +132,6 @@ const SNEAK_PEEK_DRILLS: { drill: Drill; maxScore: number }[] = [
   },
 ];
 
-const REVIEWS = [
-  {
-    quote:
-      "Finally, practice that doesn't feel like homework. I actually look forward to my Golfable every morning.",
-    name: "Jake R.",
-    credential: "12 Handicap",
-    initials: "JR",
-    color: "bg-driver",
-  },
-  {
-    quote: "I've cut four strokes off my handicap in two months. The scoring makes every rep count.",
-    name: "Maria S.",
-    credential: "18 Handicap",
-    initials: "MS",
-    color: "bg-irons",
-  },
-  {
-    quote:
-      "As a coach, I finally have something to send students between lessons that actually sticks.",
-    name: "Tom Bradley",
-    credential: "PGA Teaching Professional",
-    initials: "TB",
-    color: "bg-wedges",
-  },
-  {
-    quote: "The daily leaderboard is dangerously addictive. My whole group chat is obsessed.",
-    name: "Chris D.",
-    credential: "9 Handicap",
-    initials: "CD",
-    color: "bg-putter",
-  },
-  {
-    quote: "Short, scored, and actually fun — this is what golf practice should have been all along.",
-    name: "Dana W.",
-    credential: "Scratch Golfer",
-    initials: "DW",
-    color: "bg-driver",
-  },
-  {
-    quote: "My students show up more prepared than ever. Golfable does the accountability I can't do for them.",
-    name: "Coach Lisa Park",
-    credential: "LPGA Teaching Professional",
-    initials: "LP",
-    color: "bg-irons",
-  },
-];
-
-function StarIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9L1.5 7.6l5.9-.7L10 1.5z" />
-    </svg>
-  );
-}
-
 // Fades + rises each section into view the first time it crosses into the
 // viewport -- gives the page a sense of motion when scrolling instead of
 // everything just being present at once.
@@ -658,16 +603,8 @@ const MEMBER_BENEFITS: {
 
 export function MarketingHome() {
   const [email, setEmail] = useState("");
-  const [activeReview, setActiveReview] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveReview((i) => (i + 1) % REVIEWS.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     getFounderSpotsRemaining().then(setSpotsRemaining);
@@ -1092,68 +1029,6 @@ export function MarketingHome() {
         </section>
 
         <CtaBand heading="Founding member spots are going fast." />
-
-        <section className="relative overflow-hidden px-6 py-20 sm:py-28">
-          <div
-            className="absolute inset-0 sm:hidden"
-            style={{
-              backgroundImage: "url(/reviews-bg-mobile.png)",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          />
-          <div
-            className="absolute inset-0 hidden sm:block"
-            style={{
-              backgroundImage: "url(/reviews-bg-desktop.png)",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          />
-          <div className="absolute inset-0 bg-white/80" />
-          <Reveal className="relative mx-auto max-w-2xl">
-            <Eyebrow>What Users and Golf Pros Are Saying</Eyebrow>
-            <div className="relative mt-8 min-h-[260px] sm:min-h-[220px]">
-              {REVIEWS.map((review, i) => (
-                <div
-                  key={review.name}
-                  className={`rounded-lg border border-neutral-200 bg-white p-8 text-center transition-opacity duration-500 ${
-                    i === activeReview ? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0"
-                  }`}
-                >
-                  <div className="text-gold flex justify-center gap-1">
-                    {Array.from({ length: 5 }).map((_, s) => (
-                      <StarIcon key={s} className="h-5 w-5" />
-                    ))}
-                  </div>
-                  <p className="font-body mt-4 text-lg text-neutral-800">&ldquo;{review.quote}&rdquo;</p>
-                  <div className="mt-5 flex items-center justify-center gap-3">
-                    <div
-                      className={`font-display flex h-10 w-10 flex-none items-center justify-center rounded-full text-sm text-white ${review.color}`}
-                    >
-                      {review.initials}
-                    </div>
-                    <div className="text-left">
-                      <p className="font-label text-sm font-semibold">{review.name}</p>
-                      <p className="font-body text-sm text-neutral-500">{review.credential}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 flex justify-center gap-2">
-              {REVIEWS.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setActiveReview(i)}
-                  aria-label={`Show review ${i + 1}`}
-                  className={`h-2 w-2 rounded-full ${i === activeReview ? "bg-brand" : "bg-neutral-300"}`}
-                />
-              ))}
-            </div>
-          </Reveal>
-        </section>
 
         <section className="bg-white px-6 py-20 sm:py-28">
           <Reveal className="mx-auto max-w-2xl">
