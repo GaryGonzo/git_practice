@@ -3,6 +3,7 @@ import { CATEGORY_INFO, SKILL_CATEGORIES, type SkillCategory } from "@golfable/s
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
 import { CategoryIcon } from "../../components/CategoryIcon";
+import { GolfableScorePanel } from "../../components/GolfableScorePanel";
 import { getScoreHistory, getSessionsThisWeek, type ScoreHistoryEntry } from "../../lib/golfableApi";
 
 const CATEGORY_BG: Record<SkillCategory, string> = {
@@ -57,26 +58,6 @@ export function ProgressScreen() {
     }
   }
 
-  // My Golfable Scores: a category needs 3+ logged attempts before it
-  // populates, computed live off every score ever logged in that category
-  // (not just the best one) -- so it moves as your recent play does, not
-  // just when you set a new personal best.
-  const GOLFABLE_SCORE_MIN_ATTEMPTS = 3;
-  const categoryGolfableScores = new Map<SkillCategory, number | null>();
-  for (const category of SKILL_CATEGORIES) {
-    const entries = history.filter((h) => h.drill.category === category);
-    if (entries.length < GOLFABLE_SCORE_MIN_ATTEMPTS) {
-      categoryGolfableScores.set(category, null);
-      continue;
-    }
-    const avgPct = entries.reduce((sum, e) => sum + e.score / e.maxScore, 0) / entries.length;
-    categoryGolfableScores.set(category, Math.round(avgPct * 100));
-  }
-  const allCategoryScores = SKILL_CATEGORIES.map((c) => categoryGolfableScores.get(c)!);
-  const overallGolfableScore = allCategoryScores.every((s) => s !== null)
-    ? Math.round(allCategoryScores.reduce((sum, s) => sum + s!, 0) / allCategoryScores.length)
-    : null;
-
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <h1 className="font-display text-2xl tracking-wide">Progress</h1>
@@ -98,35 +79,7 @@ export function ProgressScreen() {
       <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
         My Golfable Scores
       </h2>
-      {overallGolfableScore !== null && (
-        <div className="bg-brand mb-2 rounded-lg p-4 text-center text-white">
-          <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
-            Overall Golfable Score
-          </p>
-          <p className="font-display text-4xl">{overallGolfableScore}</p>
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-2">
-        {SKILL_CATEGORIES.map((category) => {
-          const info = CATEGORY_INFO[category];
-          const score = categoryGolfableScores.get(category)!;
-          const attempts = categoryStats.get(category)!.count;
-          return (
-            <div key={category} className="rounded-lg border border-neutral-200 bg-white p-3.5 text-center">
-              <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-                {info.label}
-              </p>
-              {score !== null ? (
-                <p className="font-display text-3xl">{score}</p>
-              ) : (
-                <p className="font-body mt-1 text-xs text-neutral-500">
-                  {attempts}/{GOLFABLE_SCORE_MIN_ATTEMPTS} logged
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <GolfableScorePanel history={history} />
 
       <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
         By Category

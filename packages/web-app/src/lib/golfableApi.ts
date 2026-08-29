@@ -1,5 +1,5 @@
 import type { BagClub, BagEntry, Drill, HandicapTier, SkillCategory } from "@golfable/shared";
-import { BAG_CLUBS } from "@golfable/shared";
+import { BAG_CLUBS, SKILL_CATEGORIES } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
 
 interface DrillRow {
@@ -343,6 +343,42 @@ export interface ScoreHistoryEntry {
   drill: Drill;
   maxScore: number;
   score: number;
+}
+
+// A category needs 3+ logged attempts before its Golfable Score populates.
+export const GOLFABLE_SCORE_MIN_ATTEMPTS = 3;
+
+export interface GolfableScores {
+  categoryScores: Record<SkillCategory, number | null>;
+  categoryAttempts: Record<SkillCategory, number>;
+  overallScore: number | null;
+}
+
+// Shared by Home and Progress so the two screens can never drift on the
+// formula: each category is the average of score/maxScore (as a 0-100)
+// across every attempt ever logged there, live off the same score history
+// both screens already fetch -- never stored, so it's always current.
+export function computeGolfableScores(history: ScoreHistoryEntry[]): GolfableScores {
+  const categoryScores = {} as Record<SkillCategory, number | null>;
+  const categoryAttempts = {} as Record<SkillCategory, number>;
+
+  for (const category of SKILL_CATEGORIES) {
+    const entries = history.filter((h) => h.drill.category === category);
+    categoryAttempts[category] = entries.length;
+    if (entries.length < GOLFABLE_SCORE_MIN_ATTEMPTS) {
+      categoryScores[category] = null;
+      continue;
+    }
+    const avgPct = entries.reduce((sum, e) => sum + e.score / e.maxScore, 0) / entries.length;
+    categoryScores[category] = Math.round(avgPct * 100);
+  }
+
+  const allScores = SKILL_CATEGORIES.map((c) => categoryScores[c]);
+  const overallScore = allScores.every((s) => s !== null)
+    ? Math.round(allScores.reduce((sum, s) => sum + s!, 0) / allScores.length)
+    : null;
+
+  return { categoryScores, categoryAttempts, overallScore };
 }
 
 export const FOUNDER_SPOTS = 100;
