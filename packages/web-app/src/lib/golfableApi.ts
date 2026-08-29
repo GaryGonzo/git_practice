@@ -1,4 +1,5 @@
-import type { Drill, HandicapTier, SkillCategory } from "@golfable/shared";
+import type { BagClub, BagEntry, Drill, HandicapTier, SkillCategory } from "@golfable/shared";
+import { BAG_CLUBS } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
 
 interface DrillRow {
@@ -15,6 +16,7 @@ interface DrillRow {
   target_high: string;
   max_score: number;
   video_url: string | null;
+  target_yardage: number | null;
 }
 
 function toDrill(row: DrillRow): Drill {
@@ -31,6 +33,7 @@ function toDrill(row: DrillRow): Drill {
       high: row.target_high,
     },
     videoUrl: row.video_url ?? undefined,
+    targetYardage: row.target_yardage ?? undefined,
   };
 }
 
@@ -898,4 +901,134 @@ export async function sendTestNotification(accessToken: string): Promise<TestNot
   const body = await res.json();
   if (!res.ok) throw new Error(body.error ?? "Couldn't send a test notification.");
   return body as TestNotificationResult;
+}
+
+// ---------------------------------------------------------------------------
+// Handicap tracking
+
+export interface HandicapEntry {
+  handicapIndex: number | null;
+  avgScorePar72: number | null;
+  recordedAt: string;
+}
+
+function toHandicapEntry(row: {
+  handicap_index: number | null;
+  avg_score_par72: number | null;
+  recorded_at: string;
+}): HandicapEntry {
+  return {
+    handicapIndex: row.handicap_index,
+    avgScorePar72: row.avg_score_par72,
+    recordedAt: row.recorded_at,
+  };
+}
+
+export async function getLatestHandicap(userId: string): Promise<HandicapEntry | null> {
+  const { data } = await supabase
+    .from("handicap_history")
+    .select("handicap_index, avg_score_par72, recorded_at")
+    .eq("user_id", userId)
+    .order("recorded_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ? toHandicapEntry(data) : null;
+}
+
+export async function getHandicapHistory(userId: string): Promise<HandicapEntry[]> {
+  const { data } = await supabase
+    .from("handicap_history")
+    .select("handicap_index, avg_score_par72, recorded_at")
+    .eq("user_id", userId)
+    .order("recorded_at", { ascending: true });
+  return (data ?? []).map(toHandicapEntry);
+}
+
+// One of handicapIndex/avgScorePar72 must be set -- enforced by a DB check
+// constraint too, but validating client-side gives a clearer error.
+export async function logHandicap(
+  userId: string,
+  handicapIndex: number | null,
+  avgScorePar72: number | null
+): Promise<void> {
+  if (handicapIndex === null && avgScorePar72 === null) {
+    throw new Error("Enter a handicap or an average score.");
+  }
+  const { error } = await supabase
+    .from("handicap_history")
+    .insert({ user_id: userId, handicap_index: handicapIndex, avg_score_par72: avgScorePar72 });
+  if (error) throw error;
+}
+
+// A player's due for another update once 30 days have passed since their
+// last one -- close enough to "monthly" without needing a cron job to
+// track it.
+const HANDICAP_PROMPT_INTERVAL_DAYS = 30;
+
+export function isHandicapUpdateDue(latest: HandicapEntry | null): boolean {
+  if (!latest) return true;
+  const daysSince = (Date.now() - new Date(latest.recordedAt).getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince >= HANDICAP_PROMPT_INTERVAL_DAYS;
+}
+
+// ---------------------------------------------------------------------------
+// Golfable Games ratings
+
+export async function getMyRatingForDrill(userId: string, drillId: string): Promise<number | null> {
+  const { data } = await supabase
+    .from("drill_ratings")
+    .select("rating")
+    .eq("user_id", userId)
+    .eq("drill_id", drillId)
+    .maybeSingle();
+  return data?.rating ?? null;
+}
+
+export async function rateDrill(userId: string, drillId: string, rating: number): Promise<void> {
+  const { error } = await supabase
+    .from("drill_ratings")
+    .upsert({ user_id: userId, drill_id: drillId, rating }, { onConflict: "user_id,drill_id" });
+  if (error) throw error;
+}
+
+export interface DrillRatingSummary {
+  avgRating: number;
+  ratingCount: number;
+}
+
+// Keyed by drill_id so ChooseGolfableScreen can look up each drill's
+// community rating without a query per card.
+export async function getAllDrillRatingSummaries(): Promise<Record<string, DrillRatingSummary>> {
+  const { data } = await supabase.from("drill_rating_summary").select("drill_id, avg_rating, rating_count");
+  const summaries: Record<string, DrillRatingSummary> = {};
+  for (const row of data ?? []) {
+    summaries[row.drill_id as string] = {
+      avgRating: row.avg_rating as number,
+      ratingCount: row.rating_count as number,
+    };
+  }
+  return summaries;
+}
+
+export async function getMyDrillRatings(userId: string): Promise<Record<string, number>> {
+  const { data } = await supabase.from("drill_ratings").select("drill_id, rating").eq("user_id", userId);
+  const ratings: Record<string, number> = {};
+  for (const row of data ?? []) ratings[row.drill_id as string] = row.rating as number;
+  return ratings;
+}
+
+// ---------------------------------------------------------------------------
+// My Bag
+
+export async function getMyBag(userId: string): Promise<BagEntry[]> {
+  const { data } = await supabase.from("bag_clubs").select("club, yardage").eq("user_id", userId);
+  const byClub = new Map((data ?? []).map((row) => [row.club as string, row.yardage as number | null]));
+  return BAG_CLUBS.map((club) => ({ club, yardage: byClub.get(club) ?? null }));
+}
+
+export async function setBagClubYardage(userId: string, club: BagClub, yardage: number | null): Promise<void> {
+  const { error } = await supabase
+    .from("bag_clubs")
+    .upsert({ user_id: userId, club, yardage }, { onConflict: "user_id,club" });
+  if (error) throw error;
 }

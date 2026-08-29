@@ -11,6 +11,10 @@ import {
   createCheckoutSession,
   createPortalSession,
   leaveStudio,
+  getLatestHandicap,
+  logHandicap,
+  isHandicapUpdateDue,
+  type HandicapEntry,
   type Studio,
 } from "../../lib/golfableApi";
 import { NotificationPrompt } from "../../components/NotificationPrompt";
@@ -145,6 +149,121 @@ function TikTokIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
       <path d="M16.6 5.82a4.28 4.28 0 0 1-3.28-4.32h-3.14v14.6a2.6 2.6 0 1 1-2.6-2.6c.28 0 .55.04.8.12V10.5a5.75 5.75 0 1 0 5 5.7V9.4a7.4 7.4 0 0 0 4.3 1.37V7.6a4.3 4.3 0 0 1-1.08-1.78Z" />
     </svg>
+  );
+}
+
+function formatHandicapValue(entry: HandicapEntry): string {
+  if (entry.handicapIndex !== null) return `${entry.handicapIndex} handicap`;
+  return `${entry.avgScorePar72} avg (par 72)`;
+}
+
+function HandicapSection({ profile }: { profile: Profile }) {
+  const [latest, setLatest] = useState<HandicapEntry | null | undefined>(undefined);
+  const [editing, setEditing] = useState(false);
+  const [mode, setMode] = useState<"handicap" | "avgScore">("handicap");
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getLatestHandicap(profile.id).then(setLatest);
+  }, [profile.id]);
+
+  if (latest === undefined) return null;
+  const due = isHandicapUpdateDue(latest);
+
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    const num = Number(value);
+    if (!Number.isFinite(num)) {
+      setError("Enter a number.");
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    try {
+      await logHandicap(profile.id, mode === "handicap" ? num : null, mode === "avgScore" ? num : null);
+      setLatest(await getLatestHandicap(profile.id));
+      setEditing(false);
+      setValue("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save that -- try again.");
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+      <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Handicap</p>
+      {latest ? (
+        <p className="font-display text-xl">{formatHandicapValue(latest)}</p>
+      ) : (
+        <p className="font-body mt-1 text-sm text-neutral-500">Not set yet.</p>
+      )}
+      {due && !editing && (
+        <p className="font-body mt-1 text-sm text-gold">
+          {latest ? "Time for your monthly update." : "Add yours so we can track your improvement over time."}
+        </p>
+      )}
+
+      {editing ? (
+        <form onSubmit={handleSave} className="mt-3 space-y-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode("handicap")}
+              className={`font-label flex-1 rounded-md border px-3 py-2 text-sm font-semibold ${
+                mode === "handicap" ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+              }`}
+            >
+              I have a handicap
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("avgScore")}
+              className={`font-label flex-1 rounded-md border px-3 py-2 text-sm font-semibold ${
+                mode === "avgScore" ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+              }`}
+            >
+              Avg score (par 72)
+            </button>
+          </div>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={mode === "handicap" ? "e.g. 12.4" : "e.g. 92"}
+            className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+          {error && <p className="font-body text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="font-label flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-600"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !value}
+              className="font-label bg-brand flex-1 rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="font-label text-brand mt-3 text-sm font-semibold underline"
+        >
+          {latest ? "Update" : "Add your handicap"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -466,6 +585,21 @@ export function ProfileScreen() {
         </p>
         <p className="font-display text-xl">{formatMemberSince(profile.created_at)}</p>
       </div>
+
+      <HandicapSection profile={profile} />
+
+      <Link
+        to="/app/bag"
+        className="mt-3 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4"
+      >
+        <span>
+          <span className="font-label block text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+            My Bag
+          </span>
+          <span className="font-body text-sm text-neutral-600">Set your yardages for club suggestions</span>
+        </span>
+        <span className="font-label text-brand text-sm font-semibold">Edit</span>
+      </Link>
 
       {session && (
         <SubscriptionSection profile={profile} accessToken={session.access_token} onRefresh={refreshProfile} />

@@ -11,6 +11,7 @@ import { TodayScreen } from "./pages/app/TodayScreen";
 import { ProgressScreen } from "./pages/app/ProgressScreen";
 import { LibraryScreen } from "./pages/app/LibraryScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
+import { MyBagScreen } from "./pages/app/MyBagScreen";
 import { LeaderboardScreen } from "./pages/app/LeaderboardScreen";
 import { ToolsScreen } from "./pages/app/ToolsScreen";
 import { MetronomeScreen } from "./pages/app/MetronomeScreen";
@@ -69,6 +70,7 @@ function App() {
         <Route path="challenges/new" element={<NewChallengeScreen />} />
         <Route path="challenges/:id" element={<ChallengeDetailScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
+        <Route path="bag" element={<MyBagScreen />} />
         <Route path="studio-admin" element={<StudioAdminScreen />} />
         <Route
           path="admin"
