@@ -7,9 +7,12 @@ import {
   createStudio,
   cancelStudio,
   getStudioRoster,
+  getForumModerationQueue,
+  reviewForumFlag,
   type AdminUserOverview,
   type StudioOverview,
   type StudioRosterEntry,
+  type ForumModerationFlag,
 } from "../../lib/golfableApi";
 
 const INDIVIDUAL_TIER_PRICE: Record<string, string> = {
@@ -283,6 +286,108 @@ function StudiosSection({ users, accessToken }: { users: AdminUserOverview[]; ac
   );
 }
 
+function reasonLabel(reason: ForumModerationFlag["reason"]): string {
+  if (reason === "both") return "Word list + AI";
+  if (reason === "word_list") return "Word list";
+  return "AI";
+}
+
+function ForumModerationSection({ accessToken }: { accessToken: string }) {
+  const [flags, setFlags] = useState<ForumModerationFlag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deciding, setDeciding] = useState<string | null>(null);
+
+  async function refresh() {
+    setFlags(await getForumModerationQueue());
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  async function handleDecision(flagId: string, decision: "approved" | "rejected") {
+    setDeciding(flagId);
+    setError(null);
+    try {
+      await reviewForumFlag(accessToken, flagId, decision);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't review that flag -- try again.");
+    }
+    setDeciding(null);
+  }
+
+  return (
+    <div className="mt-10">
+      <h2 className="font-display text-xl tracking-wide">Forum Moderation</h2>
+      <p className="font-body mt-1 text-sm text-neutral-500">
+        Posts held back by the word-list or AI check -- approve to publish, reject to remove.
+      </p>
+
+      {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
+
+      {!loading && flags.length === 0 && (
+        <p className="font-body mt-4 rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
+          Nothing pending review.
+        </p>
+      )}
+
+      <div className="mt-4 space-y-3">
+        {flags.map((flag) => (
+          <div key={flag.id} className="rounded-lg border border-neutral-200 bg-white p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-label rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-neutral-600">
+                {flag.contentType === "thread" ? "Thread" : "Reply"}
+              </span>
+              <span className="font-label rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                {reasonLabel(flag.reason)}
+              </span>
+              <span className="font-body text-sm text-neutral-500">
+                {flag.authorFirstName} {flag.authorLastName}
+              </span>
+            </div>
+
+            {flag.title && <p className="font-label mt-2 text-sm font-semibold">{flag.title}</p>}
+            <p className="font-body mt-1 text-sm whitespace-pre-wrap text-neutral-700">{flag.body}</p>
+
+            {flag.matchedTerms.length > 0 && (
+              <p className="font-body mt-2 text-xs text-neutral-500">
+                Word list matched: {flag.matchedTerms.join(", ")}
+              </p>
+            )}
+            {flag.aiReasoning && (
+              <p className="font-body mt-1 text-xs text-neutral-500">
+                AI ({flag.aiCategories.join(", ") || "flagged"}): {flag.aiReasoning}
+              </p>
+            )}
+
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleDecision(flag.id, "approved")}
+                disabled={deciding === flag.id}
+                className="font-label rounded-md bg-green-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDecision(flag.id, "rejected")}
+                disabled={deciding === flag.id}
+                className="font-label rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AdminScreen() {
   const { session } = useAuth();
   const [users, setUsers] = useState<AdminUserOverview[]>([]);
@@ -385,6 +490,7 @@ export function AdminScreen() {
           </div>
 
           {session && <StudiosSection users={users} accessToken={session.access_token} />}
+          {session && <ForumModerationSection accessToken={session.access_token} />}
         </>
       )}
     </div>

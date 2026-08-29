@@ -9,10 +9,13 @@
     "web:dev": "npm run dev --workspace=@golfable/web-app"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "@supabase/supabase-js": "^2.110.0",
+    "obscenity": "^0.4.6",
     "raw-body": "^2.5.3",
     "stripe": "^22.5.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/web-push": "^3.6.4",

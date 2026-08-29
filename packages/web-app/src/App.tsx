@@ -22,6 +22,10 @@ import { GreenReaderScreen } from "./pages/app/GreenReaderScreen";
 import { SwingTempoScreen } from "./pages/app/SwingTempoScreen";
 import { AlignmentCheckerScreen } from "./pages/app/AlignmentCheckerScreen";
 import { GappingScreen } from "./pages/app/GappingScreen";
+import { ForumScreen } from "./pages/app/ForumScreen";
+import { ForumCategoryScreen } from "./pages/app/ForumCategoryScreen";
+import { ForumNewThreadScreen } from "./pages/app/ForumNewThreadScreen";
+import { ForumThreadScreen } from "./pages/app/ForumThreadScreen";
 import { ChooseGolfableScreen } from "./pages/app/ChooseGolfableScreen";
 import { ChallengesScreen } from "./pages/app/ChallengesScreen";
 import { NewChallengeScreen } from "./pages/app/NewChallengeScreen";
@@ -71,6 +75,10 @@ function App() {
         <Route path="tools/swing-tempo" element={<SwingTempoScreen />} />
         <Route path="tools/alignment-checker" element={<AlignmentCheckerScreen />} />
         <Route path="tools/gapping" element={<GappingScreen />} />
+        <Route path="forum" element={<ForumScreen />} />
+        <Route path="forum/:categorySlug" element={<ForumCategoryScreen />} />
+        <Route path="forum/:categorySlug/new" element={<ForumNewThreadScreen />} />
+        <Route path="forum/:categorySlug/:threadId" element={<ForumThreadScreen />} />
         <Route path="challenges" element={<ChallengesScreen />} />
         <Route path="challenges/new" element={<NewChallengeScreen />} />
         <Route path="challenges/:id" element={<ChallengeDetailScreen />} />

@@ -1124,3 +1124,255 @@ export async function setGameRating(userId: string, category: SkillCategory, rat
     );
   if (error) throw error;
 }
+
+// ---------------------------------------------------------------------------
+// Forum -- categories, threads, and replies. Every write (thread/reply
+// creation, moderation review) goes through an api/forum-*.ts endpoint
+// rather than a direct table insert/update -- see 0034_forum.sql for why: a
+// post's status is decided by a server-side moderation check the client
+// must not be able to set itself.
+
+export type ForumContentStatus = "visible" | "pending_review" | "removed";
+
+export interface ForumCategory {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+}
+
+export interface ForumThreadSummary {
+  id: string;
+  categoryId: string;
+  title: string;
+  status: ForumContentStatus;
+  pinned: boolean;
+  createdAt: string;
+  authorId: string;
+  authorFirstName: string;
+  authorLastName: string;
+  replyCount: number;
+  lastActivityAt: string;
+}
+
+export interface ForumThread {
+  id: string;
+  categoryId: string;
+  title: string;
+  body: string;
+  status: ForumContentStatus;
+  pinned: boolean;
+  createdAt: string;
+  authorId: string;
+  authorFirstName: string;
+  authorLastName: string;
+}
+
+export interface ForumReply {
+  id: string;
+  threadId: string;
+  body: string;
+  status: ForumContentStatus;
+  createdAt: string;
+  authorId: string;
+  authorFirstName: string;
+  authorLastName: string;
+}
+
+export async function getForumCategories(): Promise<ForumCategory[]> {
+  const { data } = await supabase.from("forum_categories").select("id, slug, name, description").order("sort_order");
+  return (data ?? []).map((row) => ({
+    id: row.id as string,
+    slug: row.slug as string,
+    name: row.name as string,
+    description: row.description as string,
+  }));
+}
+
+export async function getForumCategoryBySlug(slug: string): Promise<ForumCategory | null> {
+  const { data } = await supabase
+    .from("forum_categories")
+    .select("id, slug, name, description")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!data) return null;
+  return { id: data.id, slug: data.slug, name: data.name, description: data.description };
+}
+
+export async function getForumThreads(categoryId: string): Promise<ForumThreadSummary[]> {
+  const { data } = await supabase
+    .from("forum_thread_summary")
+    .select("*")
+    .eq("category_id", categoryId)
+    .order("pinned", { ascending: false })
+    .order("last_activity_at", { ascending: false });
+  if (!data) return [];
+  return data.map((row) => ({
+    id: row.id as string,
+    categoryId: row.category_id as string,
+    title: row.title as string,
+    status: row.status as ForumContentStatus,
+    pinned: row.pinned as boolean,
+    createdAt: row.created_at as string,
+    authorId: row.author_id as string,
+    authorFirstName: row.author_first_name as string,
+    authorLastName: row.author_last_name as string,
+    replyCount: Number(row.reply_count),
+    lastActivityAt: row.last_activity_at as string,
+  }));
+}
+
+export async function getForumThread(threadId: string): Promise<ForumThread | null> {
+  const { data } = await supabase
+    .from("forum_threads")
+    .select("id, category_id, title, body, status, pinned, created_at, author_id, profiles!inner(first_name, last_name)")
+    .eq("id", threadId)
+    .maybeSingle();
+  if (!data) return null;
+  const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+  return {
+    id: data.id,
+    categoryId: data.category_id,
+    title: data.title,
+    body: data.body,
+    status: data.status as ForumContentStatus,
+    pinned: data.pinned,
+    createdAt: data.created_at,
+    authorId: data.author_id,
+    authorFirstName: author.first_name as string,
+    authorLastName: author.last_name as string,
+  };
+}
+
+// Includes the caller's own pending/removed replies (RLS lets an author see
+// their own regardless of status) -- the UI decides how to render those.
+export async function getForumReplies(threadId: string): Promise<ForumReply[]> {
+  const { data } = await supabase
+    .from("forum_replies")
+    .select("id, thread_id, body, status, created_at, author_id, profiles!inner(first_name, last_name)")
+    .eq("thread_id", threadId)
+    .order("created_at", { ascending: true });
+  if (!data) return [];
+  return data.map((row) => {
+    const author = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return {
+      id: row.id as string,
+      threadId: row.thread_id as string,
+      body: row.body as string,
+      status: row.status as ForumContentStatus,
+      createdAt: row.created_at as string,
+      authorId: row.author_id as string,
+      authorFirstName: author.first_name as string,
+      authorLastName: author.last_name as string,
+    };
+  });
+}
+
+export interface ForumPostResult {
+  id: string;
+  status: ForumContentStatus;
+  createdAt: string;
+}
+
+export async function createForumThread(
+  accessToken: string,
+  categoryId: string,
+  title: string,
+  body: string
+): Promise<ForumPostResult> {
+  const res = await fetch("/api/forum-create-thread", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ categoryId, title, body }),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error ?? "Couldn't post that -- try again.");
+  return { id: result.id, status: result.status, createdAt: result.createdAt };
+}
+
+export async function createForumReply(accessToken: string, threadId: string, body: string): Promise<ForumPostResult> {
+  const res = await fetch("/api/forum-create-reply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ threadId, body }),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error ?? "Couldn't post that reply -- try again.");
+  return { id: result.id, status: result.status, createdAt: result.createdAt };
+}
+
+// ---------------------------------------------------------------------------
+// Forum moderation (admin) -- flagged posts awaiting a human decision.
+
+export interface ForumModerationFlag {
+  id: string;
+  contentType: "thread" | "reply";
+  contentId: string;
+  authorFirstName: string;
+  authorLastName: string;
+  reason: "word_list" | "ai_flagged" | "both";
+  matchedTerms: string[];
+  aiCategories: string[];
+  aiReasoning: string | null;
+  createdAt: string;
+  title: string | null;
+  body: string;
+}
+
+export async function getForumModerationQueue(): Promise<ForumModerationFlag[]> {
+  const { data: flags } = await supabase
+    .from("forum_moderation_flags")
+    .select("id, content_type, content_id, reason, matched_terms, ai_categories, ai_reasoning, created_at, profiles!inner(first_name, last_name)")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+  if (!flags || flags.length === 0) return [];
+
+  const threadIds = flags.filter((f) => f.content_type === "thread").map((f) => f.content_id);
+  const replyIds = flags.filter((f) => f.content_type === "reply").map((f) => f.content_id);
+
+  const [{ data: threads }, { data: replies }] = await Promise.all([
+    threadIds.length
+      ? supabase.from("forum_threads").select("id, title, body").in("id", threadIds)
+      : Promise.resolve({ data: [] as { id: string; title: string; body: string }[] }),
+    replyIds.length
+      ? supabase.from("forum_replies").select("id, body").in("id", replyIds)
+      : Promise.resolve({ data: [] as { id: string; body: string }[] }),
+  ]);
+
+  const threadById = new Map((threads ?? []).map((t) => [t.id, t]));
+  const replyById = new Map((replies ?? []).map((r) => [r.id, r]));
+
+  return flags.map((flag) => {
+    const author = Array.isArray(flag.profiles) ? flag.profiles[0] : flag.profiles;
+    const content =
+      flag.content_type === "thread" ? threadById.get(flag.content_id) : replyById.get(flag.content_id);
+    return {
+      id: flag.id,
+      contentType: flag.content_type as "thread" | "reply",
+      contentId: flag.content_id,
+      authorFirstName: author.first_name as string,
+      authorLastName: author.last_name as string,
+      reason: flag.reason as "word_list" | "ai_flagged" | "both",
+      matchedTerms: flag.matched_terms as string[],
+      aiCategories: flag.ai_categories as string[],
+      aiReasoning: flag.ai_reasoning as string | null,
+      createdAt: flag.created_at as string,
+      title: flag.content_type === "thread" ? (content as { title?: string } | undefined)?.title ?? null : null,
+      body: content?.body ?? "",
+    };
+  });
+}
+
+export async function reviewForumFlag(
+  accessToken: string,
+  flagId: string,
+  decision: "approved" | "rejected"
+): Promise<void> {
+  const res = await fetch("/api/forum-review-flag", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ flagId, decision }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't review that flag -- try again.");
+}
