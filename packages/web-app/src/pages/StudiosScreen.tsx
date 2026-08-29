@@ -180,6 +180,9 @@ export function StudiosScreen() {
             >
               Get set up -- it's free
             </a>
+            <p className="font-body mt-3 text-sm text-white/60">
+              Inquire about setting up your studio by mailing: golfable541@gmail.com
+            </p>
           </div>
         </section>
 
@@ -239,6 +242,9 @@ export function StudiosScreen() {
             >
               Email us to get set up
             </a>
+            <p className="font-body mt-3 text-sm text-white/70">
+              Inquire about setting up your studio by mailing: golfable541@gmail.com
+            </p>
           </div>
         </section>
       </main>
