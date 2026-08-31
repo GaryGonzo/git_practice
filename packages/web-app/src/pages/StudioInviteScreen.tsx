@@ -127,7 +127,7 @@ export function StudioInviteScreen() {
       </p>
       <h1 className="font-display mt-1 text-3xl tracking-wide">Join {studio.name} on Golfable</h1>
       <p className="font-body mt-2 text-sm text-neutral-600">
-        Play the daily Golfable, track your progress, and see a private leaderboard just for your studio.
+        Play the daily Golfable, track your progress, and see a private leaderboard just for {studio.name}.
       </p>
 
       {error && <p className="font-body mt-3 text-sm text-red-600">{error}</p>}
