@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { Drill, HandicapTier } from "@golfable/shared";
-import { TIER_INFO } from "@golfable/shared";
+import { TIER_INFO, isBetterScore, isTargetHit, formatScore } from "@golfable/shared";
 import { WeeklyGoalRing } from "./WeeklyGoalRing";
 import { DrillHeroImage } from "./DrillHeroImage";
 
@@ -149,21 +149,19 @@ export function DrillFreshView({
             <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
               You scored
             </p>
-            <p className="font-display text-5xl">
-              {result.score}/{maxScore}
-            </p>
+            <p className="font-display text-5xl">{formatScore(result.score, maxScore, drill.scoreDirection)}</p>
             <p className="font-body mt-1 text-sm text-white/80">
-              {result.score >= Number(tierTarget.split("/")[0])
+              {isTargetHit(result.score, tierTarget, drill.scoreDirection)
                 ? `Target hit — ${tierInfo.label} target was ${tierTarget}`
                 : `Target was ${tierTarget} — keep after it`}
               {result.lastAttempt !== null && (
                 <>
                   {" · "}
-                  {result.score > result.lastAttempt
-                    ? `up from ${result.lastAttempt} last time`
-                    : result.score < result.lastAttempt
-                      ? `down from ${result.lastAttempt} last time`
-                      : `same as last time`}
+                  {result.score === result.lastAttempt
+                    ? `same as last time`
+                    : isBetterScore(result.score, result.lastAttempt, drill.scoreDirection)
+                      ? `better than last time`
+                      : `worse than last time`}
                 </>
               )}
             </p>
@@ -171,7 +169,9 @@ export function DrillFreshView({
               <p
                 className={`font-label mt-2 text-sm font-semibold ${result.isNewPersonalBest ? "text-gold" : "text-white/70"}`}
               >
-                {result.isNewPersonalBest ? "🎉 New Personal Best!" : `Personal Best: ${result.personalBest}/${maxScore}`}
+                {result.isNewPersonalBest
+                  ? "🎉 New Personal Best!"
+                  : `Personal Best: ${formatScore(result.personalBest, maxScore, drill.scoreDirection)}`}
               </p>
             )}
           </div>

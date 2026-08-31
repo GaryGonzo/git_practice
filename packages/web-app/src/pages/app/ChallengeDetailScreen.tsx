@@ -50,8 +50,8 @@ export function ChallengeDetailScreen() {
 
   const refreshParticipants = useCallback(async () => {
     if (!id) return;
-    setParticipants(await getChallengeParticipants(id));
-  }, [id]);
+    setParticipants(await getChallengeParticipants(id, challenge?.drill.scoreDirection));
+  }, [id, challenge]);
 
   useEffect(() => {
     if (!id || !profile) return;
@@ -59,11 +59,12 @@ export function ChallengeDetailScreen() {
       setLoading(true);
       const found = await getChallenge(id);
       setChallenge(found);
+      const direction = found?.drill.scoreDirection;
 
-      let currentParticipants = await getChallengeParticipants(id);
+      let currentParticipants = await getChallengeParticipants(id, direction);
       if (found && !currentParticipants.some((p) => p.userId === profile.id)) {
         await joinChallenge(id, profile.id);
-        currentParticipants = await getChallengeParticipants(id);
+        currentParticipants = await getChallengeParticipants(id, direction);
       }
       setParticipants(currentParticipants);
       setLoading(false);

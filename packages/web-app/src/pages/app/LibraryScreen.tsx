@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CATEGORY_INFO, type SkillCategory } from "@golfable/shared";
+import { CATEGORY_INFO, formatScore, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import {
   getPastGolfables,
@@ -73,7 +73,7 @@ function PastRow({ entry }: { entry: PastGolfableEntry }) {
       </div>
       {entry.completed ? (
         <span className="font-label bg-brand/10 text-brand flex-none rounded-full px-3 py-1 text-sm font-semibold">
-          {entry.score}/{entry.maxScore}
+          {formatScore(entry.score as number, entry.maxScore, entry.drill.scoreDirection)}
         </span>
       ) : (
         <span className="font-label flex-none rounded-full border border-neutral-300 px-3 py-1 text-sm font-semibold text-neutral-500">

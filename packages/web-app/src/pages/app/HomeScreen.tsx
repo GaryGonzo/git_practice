@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CATEGORY_INFO } from "@golfable/shared";
+import { CATEGORY_INFO, formatScore } from "@golfable/shared";
 import type { Drill } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
@@ -83,8 +83,14 @@ export function HomeScreen() {
         setScore(await getMyScoreForDate(profile.id, found.drill.id, todayISO()));
         setLeaderboard(
           studioResult
-            ? await getStudioLeaderboard(studioResult.id, found.drill.id, todayISO(), LEADERBOARD_LIMIT)
-            : await getGlobalLeaderboard(found.drill.id, todayISO(), LEADERBOARD_LIMIT)
+            ? await getStudioLeaderboard(
+                studioResult.id,
+                found.drill.id,
+                todayISO(),
+                LEADERBOARD_LIMIT,
+                found.drill.scoreDirection
+              )
+            : await getGlobalLeaderboard(found.drill.id, todayISO(), LEADERBOARD_LIMIT, found.drill.scoreDirection)
         );
       } else {
         setDrill(null);
@@ -122,7 +128,7 @@ export function HomeScreen() {
           </div>
           <div className="flex items-center justify-between bg-white px-5 py-4">
             <p className="font-body text-sm text-neutral-600">
-              {score === null ? "Play it now and log your score" : `You scored ${score}/${maxScore}`}
+              {score === null ? "Play it now and log your score" : `You scored ${formatScore(score, maxScore, drill.scoreDirection)}`}
             </p>
             <span
               className={`font-label inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold text-white ${CATEGORY_BG[drill.category]}`}

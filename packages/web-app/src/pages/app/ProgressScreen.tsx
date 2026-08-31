@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CATEGORY_INFO, SKILL_CATEGORIES, type SkillCategory } from "@golfable/shared";
+import { CATEGORY_INFO, SKILL_CATEGORIES, formatScore, scoreGoodness, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
 import { getScoreHistory, getSessionsThisWeek, type ScoreHistoryEntry } from "../../lib/golfableApi";
@@ -51,7 +51,11 @@ export function ProgressScreen() {
   for (const entry of history) {
     const stats = categoryStats.get(entry.drill.category)!;
     stats.count += 1;
-    if (!stats.best || entry.score / entry.maxScore > stats.best.score / stats.best.maxScore) {
+    const goodness = scoreGoodness(entry.score, entry.maxScore, entry.drill.scoreDirection);
+    const bestGoodness = stats.best
+      ? scoreGoodness(stats.best.score, stats.best.maxScore, stats.best.drill.scoreDirection)
+      : -Infinity;
+    if (!stats.best || goodness > bestGoodness) {
       stats.best = entry;
     }
   }
@@ -96,7 +100,7 @@ export function ProgressScreen() {
                 <p className="font-body text-sm text-neutral-500">
                   {stats.count === 0
                     ? "Not played yet"
-                    : `${stats.count} played -- best ${stats.best!.score}/${stats.best!.maxScore} on ${stats.best!.drill.name}`}
+                    : `${stats.count} played -- best ${formatScore(stats.best!.score, stats.best!.maxScore, stats.best!.drill.scoreDirection)} on ${stats.best!.drill.name}`}
                 </p>
               </div>
             </div>
@@ -128,7 +132,7 @@ export function ProgressScreen() {
                   <p className="font-body text-sm text-neutral-500">{formatDate(entry.createdAt)}</p>
                 </div>
                 <span className="font-label bg-brand/10 text-brand flex-none rounded-full px-3 py-1 text-sm font-semibold">
-                  {entry.score}/{entry.maxScore}
+                  {formatScore(entry.score, entry.maxScore, entry.drill.scoreDirection)}
                 </span>
               </div>
             );

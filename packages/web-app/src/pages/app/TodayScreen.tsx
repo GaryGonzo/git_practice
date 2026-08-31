@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { Drill } from "@golfable/shared";
-import { CATEGORY_INFO, TIER_INFO } from "@golfable/shared";
+import { CATEGORY_INFO, TIER_INFO, isBetterScore } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
 import { CelebrationToast, randomScoreMessage } from "../../components/CelebrationToast";
 import { useAuth } from "../../lib/AuthProvider";
@@ -83,14 +83,14 @@ export function TodayScreen() {
         getSessionsThisWeek(userId),
         getMyScoreForDate(userId, found.drill.id, date),
         getLastAttemptScore(userId, found.drill.id, date),
-        getPersonalBest(userId, found.drill.id),
+        getPersonalBest(userId, found.drill.id, found.drill.scoreDirection),
       ]);
       setSessionsThisWeek(weekCount);
       setLastAttempt(last);
       setPersonalBest(best);
       if (existingScore !== null) {
         setSubmittedScore(existingScore);
-        const board = await getTierLeaderboard(found.drill.id, profile.tier, date);
+        const board = await getTierLeaderboard(found.drill.id, profile.tier, date, found.drill.scoreDirection);
         setLeaderboard(board);
       }
       setLoading(false);
@@ -108,15 +108,15 @@ export function TodayScreen() {
     try {
       await submitScore(userId, drill.id, value, date);
       const [board, newWeekCount] = await Promise.all([
-        getTierLeaderboard(drill.id, profile.tier, date),
+        getTierLeaderboard(drill.id, profile.tier, date, drill.scoreDirection),
         getSessionsThisWeek(userId),
       ]);
       const reachedGoalNow = sessionsThisWeek < profile.weekly_goal && newWeekCount >= profile.weekly_goal;
-      const newPersonalBest = personalBest === null || value > personalBest;
+      const newPersonalBest = personalBest === null || isBetterScore(value, personalBest, drill.scoreDirection);
       setSubmittedScore(value);
       setSessionsThisWeek(newWeekCount);
       setIsNewPersonalBest(newPersonalBest);
-      setPersonalBest((prev) => (prev === null || value > prev ? value : prev));
+      setPersonalBest((prev) => (prev === null || isBetterScore(value, prev, drill.scoreDirection) ? value : prev));
       setLeaderboard(board);
       setScoreCelebration(randomScoreMessage(profile.first_name));
       if (reachedGoalNow) setPendingGoalCelebration(true);

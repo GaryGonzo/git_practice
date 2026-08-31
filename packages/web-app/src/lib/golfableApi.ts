@@ -1,4 +1,4 @@
-import type { Drill, HandicapTier, SkillCategory } from "@golfable/shared";
+import type { Drill, HandicapTier, ScoreDirection, SkillCategory } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
 
 interface DrillRow {
@@ -14,6 +14,7 @@ interface DrillRow {
   target_mid: string;
   target_high: string;
   max_score: number;
+  score_direction: ScoreDirection;
   video_url: string | null;
 }
 
@@ -30,6 +31,7 @@ function toDrill(row: DrillRow): Drill {
       mid: row.target_mid,
       high: row.target_high,
     },
+    scoreDirection: row.score_direction,
     videoUrl: row.video_url ?? undefined,
   };
 }
@@ -120,13 +122,17 @@ export async function getDrillById(drillId: string): Promise<{ drill: Drill; max
   return { drill: toDrill(drillRow), maxScore: drillRow.max_score };
 }
 
-export async function getPersonalBest(userId: string, drillId: string): Promise<number | null> {
+export async function getPersonalBest(
+  userId: string,
+  drillId: string,
+  direction: ScoreDirection = "higher"
+): Promise<number | null> {
   const { data } = await supabase
     .from("scores")
     .select("score")
     .eq("user_id", userId)
     .eq("drill_id", drillId)
-    .order("score", { ascending: false })
+    .order("score", { ascending: direction === "lower" })
     .limit(1)
     .maybeSingle();
   return data?.score ?? null;
@@ -194,7 +200,8 @@ export interface LeaderboardEntry {
 export async function getTierLeaderboard(
   drillId: string,
   tier: HandicapTier,
-  date: string
+  date: string,
+  direction: ScoreDirection = "higher"
 ): Promise<LeaderboardEntry[]> {
   const { data } = await supabase
     .from("scores")
@@ -202,7 +209,7 @@ export async function getTierLeaderboard(
     .eq("drill_id", drillId)
     .eq("date", date)
     .eq("profiles.tier", tier)
-    .order("score", { ascending: false });
+    .order("score", { ascending: direction === "lower" });
 
   if (!data) return [];
   return data.map((row) => {
@@ -214,13 +221,18 @@ export async function getTierLeaderboard(
 // Unlike getTierLeaderboard, this spans every tier -- the Home screen's
 // "live" leaderboard for whoever has played today's drill, ranked highest
 // score first.
-export async function getGlobalLeaderboard(drillId: string, date: string, limit: number): Promise<LeaderboardEntry[]> {
+export async function getGlobalLeaderboard(
+  drillId: string,
+  date: string,
+  limit: number,
+  direction: ScoreDirection = "higher"
+): Promise<LeaderboardEntry[]> {
   const { data } = await supabase
     .from("scores")
     .select("user_id, score, profiles!inner(first_name)")
     .eq("drill_id", drillId)
     .eq("date", date)
-    .order("score", { ascending: false })
+    .order("score", { ascending: direction === "lower" })
     .limit(limit);
 
   if (!data) return [];
@@ -578,7 +590,10 @@ export interface ChallengeParticipant {
   score: number | null;
 }
 
-export async function getChallengeParticipants(challengeId: string): Promise<ChallengeParticipant[]> {
+export async function getChallengeParticipants(
+  challengeId: string,
+  direction: ScoreDirection = "higher"
+): Promise<ChallengeParticipant[]> {
   const { data } = await supabase
     .from("challenge_participants")
     .select("user_id, score, profiles!inner(first_name)")
@@ -597,7 +612,7 @@ export async function getChallengeParticipants(challengeId: string): Promise<Cha
       if (a.score === null && b.score === null) return 0;
       if (a.score === null) return 1;
       if (b.score === null) return -1;
-      return b.score - a.score;
+      return direction === "lower" ? a.score - b.score : b.score - a.score;
     });
 }
 
@@ -705,7 +720,8 @@ export async function getStudioLeaderboard(
   studioId: string,
   drillId: string,
   date: string,
-  limit: number
+  limit: number,
+  direction: ScoreDirection = "higher"
 ): Promise<LeaderboardEntry[]> {
   const { data } = await supabase
     .from("scores")
@@ -713,7 +729,7 @@ export async function getStudioLeaderboard(
     .eq("drill_id", drillId)
     .eq("date", date)
     .eq("profiles.studio_id", studioId)
-    .order("score", { ascending: false })
+    .order("score", { ascending: direction === "lower" })
     .limit(limit);
 
   if (!data) return [];

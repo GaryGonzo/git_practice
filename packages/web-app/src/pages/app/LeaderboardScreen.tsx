@@ -47,9 +47,9 @@ export function LeaderboardScreen() {
     if (!drillId || !date) return;
     (async () => {
       setLoading(true);
-      const [found, board] = await Promise.all([getDrillForDate(date), getTierLeaderboard(drillId, tier, date)]);
+      const found = await getDrillForDate(date);
       setDrill(found?.drill ?? null);
-      setEntries(board);
+      setEntries(await getTierLeaderboard(drillId, tier, date, found?.drill.scoreDirection));
       setLoading(false);
     })();
   }, [drillId, date, tier]);
