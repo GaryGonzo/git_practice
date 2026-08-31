@@ -15,6 +15,7 @@ export interface Profile {
   is_admin: boolean;
   avatar_path: string | null;
   studio_id: string | null;
+  share_scores_publicly: boolean;
   individual_tier: string | null;
   subscription_status: string | null;
 }

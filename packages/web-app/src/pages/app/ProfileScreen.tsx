@@ -392,6 +392,8 @@ function SubscriptionSection({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const [sharingPublicly, setSharingPublicly] = useState(profile.share_scores_publicly);
+  const [sharingBusy, setSharingBusy] = useState(false);
 
   useEffect(() => {
     if (profile.studio_id || profile.individual_tier) return;
@@ -410,11 +412,36 @@ function SubscriptionSection({
     setLeaving(false);
   }
 
+  async function handleTogglePublicSharing(checked: boolean) {
+    setSharingPublicly(checked);
+    setSharingBusy(true);
+    try {
+      await updateProfile(profile.id, { share_scores_publicly: checked });
+      await onRefresh();
+    } catch {
+      setSharingPublicly(!checked);
+    }
+    setSharingBusy(false);
+  }
+
   if (profile.studio_id) {
     return (
       <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
         <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Membership</p>
         <p className="font-body mt-1 text-sm text-neutral-700">Your studio covers your access -- no billing needed.</p>
+        <label className="font-body mt-3 flex items-start gap-2 text-sm text-neutral-600">
+          <input
+            type="checkbox"
+            checked={sharingPublicly}
+            disabled={sharingBusy}
+            onChange={(e) => handleTogglePublicSharing(e.target.checked)}
+            className="mt-0.5"
+          />
+          Also show my scores on the public Golfable leaderboard
+        </label>
+        <p className="font-body mt-1 text-xs text-neutral-400">
+          Your studio's private leaderboard always has your scores -- this is only about the public one.
+        </p>
         <button
           type="button"
           onClick={handleLeave}

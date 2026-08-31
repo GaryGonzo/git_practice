@@ -201,6 +201,12 @@ export interface LeaderboardEntry {
   tier: HandicapTier;
 }
 
+// A studio member is covered by their studio's own private leaderboard --
+// their scores don't also count toward the public/national one unless
+// they've explicitly opted in (profiles.share_scores_publicly), so every
+// public-facing leaderboard query excludes a studio member who hasn't.
+const PUBLIC_LEADERBOARD_FILTER = "studio_id.is.null,share_scores_publicly.eq.true";
+
 export async function getTierLeaderboard(
   drillId: string,
   tier: HandicapTier,
@@ -209,10 +215,11 @@ export async function getTierLeaderboard(
 ): Promise<LeaderboardEntry[]> {
   const { data } = await supabase
     .from("scores")
-    .select("user_id, score, profiles!inner(first_name, tier)")
+    .select("user_id, score, profiles!inner(first_name, tier, studio_id, share_scores_publicly)")
     .eq("drill_id", drillId)
     .eq("date", date)
     .eq("profiles.tier", tier)
+    .or(PUBLIC_LEADERBOARD_FILTER, { referencedTable: "profiles" })
     .order("score", { ascending: direction === "lower" });
 
   if (!data) return [];
@@ -242,9 +249,10 @@ export async function getGlobalLeaderboard(
 ): Promise<LeaderboardEntry[]> {
   let query = supabase
     .from("scores")
-    .select("user_id, score, profiles!inner(first_name, tier)")
+    .select("user_id, score, profiles!inner(first_name, tier, studio_id, share_scores_publicly)")
     .eq("drill_id", drillId)
     .eq("date", date)
+    .or(PUBLIC_LEADERBOARD_FILTER, { referencedTable: "profiles" })
     .order("score", { ascending: direction === "lower" });
   if (tier) query = query.eq("profiles.tier", tier);
   if (limit !== undefined) query = query.limit(limit);
@@ -331,6 +339,7 @@ export interface ProfileUpdate {
   tier?: HandicapTier;
   weekly_goal?: number;
   has_seen_walkthrough?: boolean;
+  share_scores_publicly?: boolean;
 }
 
 export async function updateProfile(userId: string, updates: ProfileUpdate): Promise<void> {
