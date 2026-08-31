@@ -172,7 +172,7 @@ export function StudioInviteScreen() {
         </>
       )}
       <Link
-        to="/"
+        to={`/?studio=${encodeURIComponent(studio.slug)}`}
         target="_blank"
         rel="noopener noreferrer"
         className="font-label text-brand mt-4 inline-block text-sm font-semibold underline"

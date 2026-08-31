@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { track } from "@vercel/analytics/react";
 import type { Drill } from "@golfable/shared";
 import {
@@ -177,6 +177,19 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
   );
 }
 
+// A visitor who followed a studio's invite link, then clicked through to
+// "See what Golfable is about," should still end up joining that studio --
+// not a plain individual account -- so every join/log-in CTA on this page
+// carries the studio along as the post-auth redirect target whenever the
+// homepage was reached with ?studio={slug} on the URL.
+function useStudioJoinHrefs() {
+  const [searchParams] = useSearchParams();
+  const studioSlug = searchParams.get("studio");
+  if (!studioSlug) return { joinHref: "/signup", loginHref: "/login" };
+  const next = encodeURIComponent(`/my-studio/${studioSlug}`);
+  return { joinHref: `/signup?next=${next}`, loginHref: `/login?next=${next}` };
+}
+
 // A short, high-contrast CTA moment dropped between content sections so a
 // join button is never more than a couple sections away on the scroll.
 function CtaBand({
@@ -188,12 +201,13 @@ function CtaBand({
   tone?: "brand" | "brand-dark";
   location: string;
 }) {
+  const { joinHref } = useStudioJoinHrefs();
   return (
     <section className={tone === "brand" ? "bg-brand px-6 py-14 text-center" : "bg-brand-dark px-6 py-14 text-center"}>
       <Reveal className="mx-auto max-w-lg">
         <h3 className="font-display text-2xl tracking-wide text-white sm:text-3xl">{heading}</h3>
         <Link
-          to="/signup"
+          to={joinHref}
           className="font-label bg-gold text-brand-dark mt-5 inline-block rounded-md px-7 py-3.5 text-sm font-semibold shadow-lg"
           onClick={() => trackCta(location)}
         >
@@ -646,6 +660,7 @@ const MEMBER_BENEFITS: {
 export function MarketingHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
+  const { joinHref, loginHref } = useStudioJoinHrefs();
 
   useEffect(() => {
     getFounderSpotsRemaining().then(setSpotsRemaining);
@@ -663,7 +678,7 @@ export function MarketingHome() {
             : showCountdown
               ? `ONLY ${spotsRemaining} FOUNDER SPOT${spotsRemaining === 1 ? "" : "S"} LEFT — FREE FOREVER.`
               : "100 FOUNDER SPOTS — FREE FOREVER."}{" "}
-          <Link to="/signup" className="underline underline-offset-2" onClick={() => trackCta("banner")}>
+          <Link to={joinHref} className="underline underline-offset-2" onClick={() => trackCta("banner")}>
             {spotsFull ? "Join the waitlist" : "Claim yours"}
           </Link>
         </p>
@@ -679,13 +694,13 @@ export function MarketingHome() {
             For Studios
           </Link>
           <Link
-            to="/login"
+            to={loginHref}
             className="font-label rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-600"
           >
             Log In
           </Link>
           <Link
-            to="/signup"
+            to={joinHref}
             className="font-label rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
             onClick={() => trackCta("header")}
           >
@@ -720,7 +735,7 @@ export function MarketingHome() {
               gamified — built to make real progress in your golf game.
             </p>
             <Link
-              to="/signup"
+              to={joinHref}
               className="font-label bg-gold text-brand-dark mt-8 inline-block rounded-md px-7 py-3.5 text-sm font-semibold shadow-lg"
               onClick={() => trackCta("hero")}
             >
@@ -776,7 +791,7 @@ export function MarketingHome() {
 
             <div className="mt-6 flex justify-center">
               <Link
-                to="/signup"
+                to={joinHref}
                 className="font-label bg-brand inline-block rounded-md px-7 py-3.5 text-sm font-semibold text-white shadow-lg"
                 onClick={() => trackCta("friction")}
               >
@@ -1170,7 +1185,7 @@ export function MarketingHome() {
             </p>
 
             <Link
-              to="/signup"
+              to={joinHref}
               className="font-label bg-gold text-brand-dark mt-6 inline-block rounded-md px-7 py-3.5 text-sm font-semibold shadow-lg"
               onClick={() => trackCta("final-cta")}
             >
