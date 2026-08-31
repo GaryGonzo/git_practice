@@ -1,13 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { track } from "@vercel/analytics/react";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { supabase } from "../../lib/supabaseClient";
+import { getStudioBySlug } from "../../lib/golfableApi";
+
+// If `next` is pointing back at a studio's invite page, this is a studio
+// signup, not a generic one -- pulled out of the URL rather than passed as
+// its own param so every existing /signup?next=/my-studio/:slug link (the
+// invite page, the marketing homepage's studio-aware CTAs) already works.
+function studioSlugFromNext(next: string | null): string | null {
+  return next?.match(/^\/my-studio\/([^/]+)$/)?.[1] ?? null;
+}
 
 export function SignupScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const next = searchParams.get("next");
+  const [studioName, setStudioName] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -18,6 +28,12 @@ export function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+
+  useEffect(() => {
+    const slug = studioSlugFromNext(next);
+    if (!slug) return;
+    getStudioBySlug(slug).then((studio) => setStudioName(studio?.name ?? null));
+  }, [next]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -92,7 +108,9 @@ export function SignupScreen() {
   return (
     <div className="mx-auto max-w-sm px-6 py-16">
       <h1 className="font-display text-3xl tracking-wide">Create your account</h1>
-      <p className="font-body mt-1 text-sm text-neutral-600">Free during early access.</p>
+      <p className="font-body mt-1 text-sm text-neutral-600">
+        {studioName ? `Joining ${studioName} x GOLFABLE` : "Free during early access."}
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div className="grid grid-cols-2 gap-3">
