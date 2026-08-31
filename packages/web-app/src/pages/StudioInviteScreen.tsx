@@ -161,7 +161,7 @@ export function StudioInviteScreen() {
             to={`/signup?next=${encodeURIComponent(nextPath)}`}
             className="font-label bg-brand mt-6 block w-full rounded-md px-4 py-3 text-sm font-semibold text-white"
           >
-            Sign Up to Join
+            JOIN NOW
           </Link>
           <p className="font-body mt-3 text-sm text-neutral-500">
             Already have an account?{" "}
