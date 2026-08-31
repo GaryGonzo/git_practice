@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import type { BagEntry, Drill } from "@golfable/shared";
+import type { BagEntry, Drill, HandicapTier } from "@golfable/shared";
 import { CATEGORY_INFO, TIER_INFO, isBetterScore, suggestClubForYardage } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
 import { DrillRatingPrompt } from "../../components/DrillRatingPrompt";
@@ -15,10 +15,34 @@ import {
   getPersonalBest,
   submitScore,
   getTierLeaderboard,
+  getStudioLeaderboard,
+  getStudioById,
   getMyBag,
   todayISO,
   type LeaderboardEntry,
+  type Studio,
 } from "../../lib/golfableApi";
+
+// A studio member's rank is tracked within their studio (across every
+// tier there, same as the full studio leaderboard's default "All" view),
+// not the public tier-wide one -- their scores don't count toward that
+// unless they've opted in (see ProfileScreen's public-sharing toggle).
+async function fetchRankBoard(
+  studioId: string | null,
+  drillId: string,
+  tier: HandicapTier,
+  date: string,
+  direction: Drill["scoreDirection"]
+): Promise<LeaderboardEntry[]> {
+  return studioId
+    ? getStudioLeaderboard(studioId, drillId, date, undefined, direction)
+    : getTierLeaderboard(drillId, tier, date, direction);
+}
+
+// Being told you're #42 isn't much of a flex -- only the top 10 get a
+// rank card at all, regardless of whether the board is a studio's or the
+// public tier-wide one.
+const RANK_CARD_CUTOFF = 10;
 
 function BackIcon({ className }: { className?: string }) {
   return (
@@ -64,10 +88,19 @@ export function TodayScreen() {
   const [goalCelebration, setGoalCelebration] = useState(false);
   const [showRatingPrompt, setShowRatingPrompt] = useState(false);
   const [bag, setBag] = useState<BagEntry[]>([]);
+  const [studio, setStudio] = useState<Studio | null>(null);
 
   useEffect(() => {
     getMyBag(userId).then(setBag);
   }, [userId]);
+
+  useEffect(() => {
+    if (!profile?.studio_id) {
+      setStudio(null);
+      return;
+    }
+    getStudioById(profile.studio_id).then(setStudio);
+  }, [profile?.studio_id]);
 
   useEffect(() => {
     if (!profile) return;
@@ -99,7 +132,13 @@ export function TodayScreen() {
       setPersonalBest(best);
       if (existingScore !== null) {
         setSubmittedScore(existingScore);
-        const board = await getTierLeaderboard(found.drill.id, profile.tier, date, found.drill.scoreDirection);
+        const board = await fetchRankBoard(
+          profile.studio_id,
+          found.drill.id,
+          profile.tier,
+          date,
+          found.drill.scoreDirection
+        );
         setLeaderboard(board);
       }
       setLoading(false);
@@ -118,7 +157,7 @@ export function TodayScreen() {
     try {
       await submitScore(userId, drill.id, value, date);
       const [board, newWeekCount] = await Promise.all([
-        getTierLeaderboard(drill.id, profile.tier, date, drill.scoreDirection),
+        fetchRankBoard(profile.studio_id, drill.id, profile.tier, date, drill.scoreDirection),
         getSessionsThisWeek(userId),
       ]);
       const reachedGoalNow = sessionsThisWeek < profile.weekly_goal && newWeekCount >= profile.weekly_goal;
@@ -176,8 +215,9 @@ export function TodayScreen() {
     );
   }
 
-  const rank = leaderboard.findIndex((entry) => entry.userId === profile.id) + 1;
-  const tierLabel = TIER_INFO[profile.tier].label;
+  const rawRank = leaderboard.findIndex((entry) => entry.userId === profile.id) + 1;
+  const rank = rawRank > 0 && rawRank <= RANK_CARD_CUTOFF ? rawRank : 0;
+  const rankScope = studio ? studio.name : TIER_INFO[profile.tier].label;
 
   return (
     <div className="pb-24">
@@ -241,7 +281,7 @@ export function TodayScreen() {
                 personalBest,
                 isNewPersonalBest,
                 rank,
-                rankLabel: `You're #${rank} in ${tierLabel} ${isToday || isChooseYourOwn ? "today" : `on ${formatDate(date)}`}`,
+                rankLabel: `You're #${rank} in ${rankScope} ${isToday || isChooseYourOwn ? "today" : `on ${formatDate(date)}`}`,
                 rankSublabel: isChooseYourOwn
                   ? "From Choose Your Own"
                   : isToday
