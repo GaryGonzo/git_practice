@@ -51,19 +51,6 @@ export function StudioInviteScreen() {
     getStudioBySlug(slug).then(setStudio);
   }, [slug]);
 
-  // A member belongs to at most one studio -- landing here while already
-  // logged in is the explicit "I want to join this studio" action, so it
-  // sets studio_id right away rather than waiting for a separate confirm step.
-  useEffect(() => {
-    if (!studio || studio.canceledAt || !profile || !session || profile.studio_id === studio.id) return;
-    setJoining(true);
-    setError(null);
-    joinStudio(session.access_token, studio.id)
-      .then(refreshProfile)
-      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't join that studio -- try again."))
-      .finally(() => setJoining(false));
-  }, [studio, profile, session, refreshProfile]);
-
   if (studio === undefined) {
     return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
   }
@@ -87,48 +74,89 @@ export function StudioInviteScreen() {
   const nextPath = `/my-studio/${studio.slug}`;
   const alreadyJoined = profile?.studio_id === studio.id;
 
+  async function handleJoin() {
+    if (!session) return;
+    setJoining(true);
+    setError(null);
+    try {
+      await joinStudio(session.access_token, studio!.id);
+      await refreshProfile();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't join that studio -- try again.");
+      setJoining(false);
+    }
+  }
+
+  // Already a member of this exact studio -- nothing to decide, just confirm
+  // and send them in.
+  if (alreadyJoined) {
+    return (
+      <div className="mx-auto max-w-sm px-6 py-16 text-center">
+        <div className="bg-brand/10 text-brand mx-auto flex h-14 w-14 items-center justify-center rounded-full">
+          <StudioIcon className="h-7 w-7" />
+        </div>
+        <p className="font-label mt-4 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+          Your Studio
+        </p>
+        <h1 className="font-display mt-1 text-3xl tracking-wide">You're in {studio.name}</h1>
+        <p className="font-body mt-2 text-sm text-neutral-600">
+          Your private studio leaderboard is ready on your Home screen.
+        </p>
+        <Link
+          to="/app"
+          className="font-label bg-brand mt-6 inline-block w-full rounded-md px-4 py-3 text-sm font-semibold text-white"
+        >
+          Go to Golfable
+        </Link>
+      </div>
+    );
+  }
+
+  // Everyone else -- a fresh visitor, an existing individual member, or a
+  // member of a different studio -- sees the same invite page. Joining is
+  // always an explicit click here, never automatic just from landing on the
+  // link, so an already-logged-in member never gets silently switched into
+  // a studio they didn't mean to join.
   return (
     <div className="mx-auto max-w-sm px-6 py-16 text-center">
       <div className="bg-brand/10 text-brand mx-auto flex h-14 w-14 items-center justify-center rounded-full">
         <StudioIcon className="h-7 w-7" />
       </div>
       <p className="font-label mt-4 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-        {session ? "Your Studio" : "You've Been Invited"}
+        You've Been Invited
       </p>
-      <h1 className="font-display mt-1 text-3xl tracking-wide">
-        {session ? (alreadyJoined ? `You're in ${studio.name}` : `Joining ${studio.name}…`) : `Join ${studio.name} on Golfable`}
-      </h1>
+      <h1 className="font-display mt-1 text-3xl tracking-wide">Join {studio.name} on Golfable</h1>
       <p className="font-body mt-2 text-sm text-neutral-600">
-        {session
-          ? "Your private studio leaderboard is ready on your Home screen."
-          : "Play the daily Golfable, track your progress, and see a private leaderboard just for your studio."}
+        Play the daily Golfable, track your progress, and see a private leaderboard just for your studio.
       </p>
+
+      {error && <p className="font-body mt-3 text-sm text-red-600">{error}</p>}
+
+      <div className="mt-6 space-y-3 text-left">
+        {studioHighlights(studio.name).map((item) => (
+          <div key={item.title} className="flex items-start gap-3">
+            <div className="bg-brand/10 text-brand mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full">
+              <CheckIcon className="h-3.5 w-3.5" />
+            </div>
+            <div>
+              <p className="font-label text-sm font-semibold">{item.title}</p>
+              <p className="font-body text-sm text-neutral-600">{item.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {session ? (
-        <Link
-          to="/app"
-          className="font-label bg-brand mt-6 inline-block w-full rounded-md px-4 py-3 text-sm font-semibold text-white"
+        <button
+          type="button"
+          onClick={handleJoin}
+          disabled={joining}
+          className="font-label bg-brand mt-6 block w-full rounded-md px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {joining ? "Joining…" : "Go to Golfable"}
-        </Link>
-      ) : null}
-      {error && <p className="font-body mt-3 text-sm text-red-600">{error}</p>}
-      {!session && (
+          {joining ? "Joining…" : `Already a member? Join ${studio.name}`}
+        </button>
+      ) : (
         <>
-          <div className="mt-6 space-y-3 text-left">
-            {studioHighlights(studio.name).map((item) => (
-              <div key={item.title} className="flex items-start gap-3">
-                <div className="bg-brand/10 text-brand mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full">
-                  <CheckIcon className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <p className="font-label text-sm font-semibold">{item.title}</p>
-                  <p className="font-body text-sm text-neutral-600">{item.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
           <Link
             to={`/signup?next=${encodeURIComponent(nextPath)}`}
             className="font-label bg-brand mt-6 block w-full rounded-md px-4 py-3 text-sm font-semibold text-white"
@@ -141,16 +169,16 @@ export function StudioInviteScreen() {
               Log in
             </Link>
           </p>
-          <Link
-            to="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-label text-brand mt-4 inline-block text-sm font-semibold underline"
-          >
-            See what Golfable is about →
-          </Link>
         </>
       )}
+      <Link
+        to="/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-label text-brand mt-4 inline-block text-sm font-semibold underline"
+      >
+        See what Golfable is about →
+      </Link>
     </div>
   );
 }
