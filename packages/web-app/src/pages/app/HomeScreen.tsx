@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CATEGORY_INFO, formatScore } from "@golfable/shared";
-import type { Drill } from "@golfable/shared";
+import { CATEGORY_INFO, TIER_INFO, formatScore } from "@golfable/shared";
+import type { Drill, HandicapTier } from "@golfable/shared";
+
+const TIER_TEXT: Record<HandicapTier, string> = {
+  scratch: "text-tier-scratch",
+  low: "text-tier-low",
+  mid: "text-tier-mid",
+  high: "text-tier-high",
+};
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
 import { GolfableScorePanel } from "../../components/GolfableScorePanel";
@@ -242,6 +249,9 @@ export function HomeScreen() {
                     <p className="font-label min-w-0 flex-1 truncate text-sm font-semibold">
                       {entry.firstName}
                       {isMe && <span className="text-brand"> (you)</span>}
+                      <span className={`ml-1.5 text-xs font-semibold ${TIER_TEXT[entry.tier]}`}>
+                        {TIER_INFO[entry.tier].label}
+                      </span>
                     </p>
                     <span className="font-label flex-none rounded-full bg-neutral-100 px-3 py-1 text-sm font-semibold text-neutral-600">
                       {entry.score}

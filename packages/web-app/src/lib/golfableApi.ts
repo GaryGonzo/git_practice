@@ -198,6 +198,7 @@ export interface LeaderboardEntry {
   userId: string;
   firstName: string;
   score: number;
+  tier: HandicapTier;
 }
 
 export async function getTierLeaderboard(
@@ -217,31 +218,47 @@ export async function getTierLeaderboard(
   if (!data) return [];
   return data.map((row) => {
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-    return { userId: row.user_id as string, firstName: profile.first_name as string, score: row.score as number };
+    return {
+      userId: row.user_id as string,
+      firstName: profile.first_name as string,
+      score: row.score as number,
+      tier: profile.tier as HandicapTier,
+    };
   });
 }
 
-// Unlike getTierLeaderboard, this spans every tier -- the Home screen's
-// "live" leaderboard for whoever has played today's drill, ranked highest
-// score first.
+// Unlike getTierLeaderboard, this spans every tier by default -- the Home
+// screen's "live" leaderboard for whoever has played today's drill, ranked
+// highest score first. The full Leaderboard screen also uses this (and
+// getStudioLeaderboard below) for its "All" view, passing `tier` to narrow
+// to one when a specific tier filter is picked instead -- `limit` left
+// undefined there returns everyone rather than just a short preview list.
 export async function getGlobalLeaderboard(
   drillId: string,
   date: string,
-  limit: number,
-  direction: ScoreDirection = "higher"
+  limit: number | undefined,
+  direction: ScoreDirection = "higher",
+  tier?: HandicapTier
 ): Promise<LeaderboardEntry[]> {
-  const { data } = await supabase
+  let query = supabase
     .from("scores")
-    .select("user_id, score, profiles!inner(first_name)")
+    .select("user_id, score, profiles!inner(first_name, tier)")
     .eq("drill_id", drillId)
     .eq("date", date)
-    .order("score", { ascending: direction === "lower" })
-    .limit(limit);
+    .order("score", { ascending: direction === "lower" });
+  if (tier) query = query.eq("profiles.tier", tier);
+  if (limit !== undefined) query = query.limit(limit);
+  const { data } = await query;
 
   if (!data) return [];
   return data.map((row) => {
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-    return { userId: row.user_id as string, firstName: profile.first_name as string, score: row.score as number };
+    return {
+      userId: row.user_id as string,
+      firstName: profile.first_name as string,
+      score: row.score as number,
+      tier: profile.tier as HandicapTier,
+    };
   });
 }
 
@@ -808,22 +825,30 @@ export async function getStudioLeaderboard(
   studioId: string,
   drillId: string,
   date: string,
-  limit: number,
-  direction: ScoreDirection = "higher"
+  limit: number | undefined,
+  direction: ScoreDirection = "higher",
+  tier?: HandicapTier
 ): Promise<LeaderboardEntry[]> {
-  const { data } = await supabase
+  let query = supabase
     .from("scores")
-    .select("user_id, score, profiles!inner(first_name, studio_id)")
+    .select("user_id, score, profiles!inner(first_name, studio_id, tier)")
     .eq("drill_id", drillId)
     .eq("date", date)
     .eq("profiles.studio_id", studioId)
-    .order("score", { ascending: direction === "lower" })
-    .limit(limit);
+    .order("score", { ascending: direction === "lower" });
+  if (tier) query = query.eq("profiles.tier", tier);
+  if (limit !== undefined) query = query.limit(limit);
+  const { data } = await query;
 
   if (!data) return [];
   return data.map((row) => {
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-    return { userId: row.user_id as string, firstName: profile.first_name as string, score: row.score as number };
+    return {
+      userId: row.user_id as string,
+      firstName: profile.first_name as string,
+      score: row.score as number,
+      tier: profile.tier as HandicapTier,
+    };
   });
 }
 
