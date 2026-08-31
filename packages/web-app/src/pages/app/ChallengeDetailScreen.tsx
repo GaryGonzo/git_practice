@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { CATEGORY_INFO, TIER_INFO, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { supabase } from "../../lib/supabaseClient";
+import { CategoryIcon } from "../../components/CategoryIcon";
 import {
+  cancelChallenge,
   getChallenge,
   getChallengeParticipants,
   joinChallenge,
@@ -38,6 +40,7 @@ function CopyIcon({ className }: { className?: string }) {
 
 export function ChallengeDetailScreen() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { profile } = useAuth();
 
   const [challenge, setChallenge] = useState<Challenge | null>(null);
@@ -47,6 +50,8 @@ export function ChallengeDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<"code" | "link" | null>(null);
+  const [canceling, setCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const refreshParticipants = useCallback(async () => {
     if (!id) return;
@@ -116,6 +121,18 @@ export function ChallengeDetailScreen() {
     }
   }
 
+  async function handleCancel() {
+    setCancelError(null);
+    setCanceling(true);
+    try {
+      await cancelChallenge(id!);
+      navigate("/app/challenges");
+    } catch {
+      setCancelError("Couldn't cancel that challenge -- try again.");
+      setCanceling(false);
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const value = Number(scoreInput);
@@ -153,9 +170,9 @@ export function ChallengeDetailScreen() {
 
       <div className="mt-4 flex items-center gap-3">
         <div
-          className={`font-display flex h-10 w-10 flex-none items-center justify-center rounded-full text-base text-white ${CATEGORY_BG[drill.category]}`}
+          className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[drill.category]}`}
         >
-          {CATEGORY_INFO[drill.category].badge}
+          <CategoryIcon category={drill.category} className="h-5 w-5" />
         </div>
         <div>
           <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
@@ -206,6 +223,20 @@ export function ChallengeDetailScreen() {
         Copy Invite Link
       </button>
       {copiedField === "link" && <p className="font-body mt-1 text-center text-xs text-neutral-500">Copied!</p>}
+
+      {challenge.creatorId === profile.id && !allSubmitted && (
+        <div className="mt-3 text-center">
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={canceling}
+            className="font-label text-sm font-semibold text-red-600 underline disabled:opacity-60"
+          >
+            {canceling ? "Canceling…" : "Cancel Challenge"}
+          </button>
+          {cancelError && <p className="font-body mt-1 text-sm text-red-600">{cancelError}</p>}
+        </div>
+      )}
 
       <div className="mt-6">
         <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">

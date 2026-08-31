@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { track } from "@vercel/analytics/react";
 import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -50,6 +51,11 @@ export function SignupScreen() {
       );
       return;
     }
+
+    // Landing on /signup is already tracked as a pageview -- this is the
+    // separate "did they actually finish" number, so the two can be
+    // compared instead of just knowing people showed up.
+    track("signup_submitted", { immediateSession: !!data.session });
 
     // A session comes back immediately only if the project has email
     // confirmations turned off. Otherwise there's no session yet -- the

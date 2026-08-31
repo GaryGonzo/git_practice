@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { HANDICAP_TIERS, TIER_INFO, type HandicapTier } from "@golfable/shared";
+import {
+  HANDICAP_TIERS,
+  TIER_INFO,
+  SKILL_CATEGORIES,
+  CATEGORY_INFO,
+  type HandicapTier,
+  type SkillCategory,
+} from "@golfable/shared";
 import { useAuth, type Profile } from "../../lib/AuthProvider";
 import {
   updateProfile,
@@ -10,8 +17,18 @@ import {
   assignIndividualTier,
   createCheckoutSession,
   createPortalSession,
+  leaveStudio,
+  getLatestHandicap,
+  getHandicapHistory,
+  logHandicap,
+  isHandicapUpdateDue,
+  getMyGameRatings,
+  setGameRating,
+  getMyBag,
+  type HandicapEntry,
   type Studio,
 } from "../../lib/golfableApi";
+import { HandicapTrendChart } from "../../components/HandicapTrendChart";
 import { NotificationPrompt } from "../../components/NotificationPrompt";
 import { PUSH_ENABLED_KEY } from "../../lib/push";
 
@@ -22,7 +39,14 @@ function ProfileNotificationBanner({ profile }: { profile: Profile }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(PUSH_ENABLED_KEY) === "true") return;
+    // Once subscribed this is no longer a nag -- it's the permanent
+    // "notifications are on, send a test" status row, so it stays visible
+    // regardless of the view-count cap below (that cap only limits how
+    // many times we ask someone who hasn't subscribed yet).
+    if (localStorage.getItem(PUSH_ENABLED_KEY) === "true") {
+      setVisible(true);
+      return;
+    }
     const views = Number(localStorage.getItem(NOTIF_PROMPT_VIEWS_KEY) ?? "0");
     if (views >= NOTIF_PROMPT_MAX_VIEWS) return;
     localStorage.setItem(NOTIF_PROMPT_VIEWS_KEY, String(views + 1));
@@ -140,27 +164,266 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
+function formatHandicapValue(entry: HandicapEntry): string {
+  if (entry.handicapIndex !== null) return `${entry.handicapIndex} handicap`;
+  return `${entry.avgScorePar72} avg (par 72)`;
+}
+
+// Both fields represent "how many strokes over/under" in spirit -- lower is
+// always better, whichever one a given entry used.
+function handicapEntryValue(entry: HandicapEntry): number {
+  return entry.handicapIndex ?? entry.avgScorePar72!;
+}
+
+function DeltaBadge({ history }: { history: HandicapEntry[] }) {
+  if (history.length < 2) return null;
+  const delta = handicapEntryValue(history[history.length - 1]) - handicapEntryValue(history[0]);
+  const rounded = Math.round(delta * 10) / 10;
+  if (rounded === 0) return <span className="font-label text-sm font-semibold text-neutral-500">(no change)</span>;
+  const improved = rounded < 0;
+  return (
+    <span className={`font-label text-sm font-semibold ${improved ? "text-green-600" : "text-red-600"}`}>
+      {improved ? `(${rounded})` : `(+${rounded})`} {improved ? "↓ improved" : "↑ up"} since your first entry
+    </span>
+  );
+}
+
+function HandicapSection({ profile }: { profile: Profile }) {
+  const [latest, setLatest] = useState<HandicapEntry | null | undefined>(undefined);
+  const [history, setHistory] = useState<HandicapEntry[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [mode, setMode] = useState<"handicap" | "avgScore">("handicap");
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getLatestHandicap(profile.id).then(setLatest);
+    getHandicapHistory(profile.id).then(setHistory);
+  }, [profile.id]);
+
+  if (latest === undefined) return null;
+  const due = isHandicapUpdateDue(latest);
+
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    const num = Number(value);
+    if (!Number.isFinite(num)) {
+      setError("Enter a number.");
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    try {
+      await logHandicap(profile.id, mode === "handicap" ? num : null, mode === "avgScore" ? num : null);
+      setLatest(await getLatestHandicap(profile.id));
+      setHistory(await getHandicapHistory(profile.id));
+      setEditing(false);
+      setValue("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save that -- try again.");
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+      <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Handicap</p>
+      {latest ? (
+        <div className="flex flex-wrap items-baseline gap-2">
+          <p className="font-display text-xl">{formatHandicapValue(latest)}</p>
+          <DeltaBadge history={history} />
+        </div>
+      ) : (
+        <p className="font-body mt-1 text-sm text-neutral-500">Not set yet.</p>
+      )}
+      {history.length > 3 && <HandicapTrendChart points={history.map((h) => ({ value: handicapEntryValue(h), recordedAt: h.recordedAt }))} />}
+      {due && !editing && (
+        <p className="font-body mt-1 text-sm text-gold">
+          {latest ? "Time for your monthly update." : "Add yours so we can track your improvement over time."}
+        </p>
+      )}
+
+      {editing ? (
+        <form onSubmit={handleSave} className="mt-3 space-y-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode("handicap")}
+              className={`font-label flex-1 rounded-md border px-3 py-2 text-sm font-semibold ${
+                mode === "handicap" ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+              }`}
+            >
+              I have a handicap
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("avgScore")}
+              className={`font-label flex-1 rounded-md border px-3 py-2 text-sm font-semibold ${
+                mode === "avgScore" ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+              }`}
+            >
+              Avg score (par 72)
+            </button>
+          </div>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={mode === "handicap" ? "e.g. 12.4" : "e.g. 92"}
+            className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+          {error && <p className="font-body text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="font-label flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-600"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !value}
+              className="font-label bg-brand flex-1 rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="font-label text-brand mt-3 text-sm font-semibold underline"
+        >
+          {latest ? "Update" : "Add your handicap"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function GameRatingRow({
+  profileId,
+  category,
+  rating,
+}: {
+  profileId: string;
+  category: SkillCategory;
+  rating: number | undefined;
+}) {
+  const [value, setValue] = useState(rating === undefined ? "" : String(rating));
+  const [saved, setSaved] = useState(false);
+
+  async function handleBlur() {
+    const trimmed = value.trim();
+    if (trimmed === "") return;
+    const num = Number(trimmed);
+    if (!Number.isFinite(num) || num < 1 || num > 10) return;
+    await setGameRating(profileId, category, num);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1200);
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-neutral-100 py-3 last:border-0">
+      <p className="font-label text-sm font-semibold text-neutral-700">{CATEGORY_INFO[category].label}</p>
+      <div className="flex items-center gap-2">
+        {saved && <span className="font-body text-xs text-neutral-400">Saved</span>}
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={10}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={handleBlur}
+          placeholder="-/10"
+          className="font-body w-16 rounded-md border border-neutral-300 px-2 py-1.5 text-right text-sm"
+        />
+      </div>
+    </div>
+  );
+}
+
+function GameRatingSection({ profile }: { profile: Profile }) {
+  const [ratings, setRatings] = useState<Partial<Record<SkillCategory, number>> | null>(null);
+
+  useEffect(() => {
+    getMyGameRatings(profile.id).then(setRatings);
+  }, [profile.id]);
+
+  if (!ratings) return null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+      <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">My Game</p>
+      <p className="font-body mt-1 text-sm text-neutral-500">
+        Rate how each part of your game feels right now -- just your gut, not tracked over time. Feeds
+        "Recommended for You" on Choose Your Own.
+      </p>
+      <div className="mt-2">
+        {SKILL_CATEGORIES.map((category) => (
+          <GameRatingRow key={category} profileId={profile.id} category={category} rating={ratings[category]} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const TIER_PRICE_LABEL: Record<string, string> = {
   tier_799: "$7.99/mo",
   tier_1499: "$14.99/mo",
   tier_1999: "$19.99/mo",
 };
 
-function SubscriptionSection({ profile, accessToken }: { profile: Profile; accessToken: string }) {
+function SubscriptionSection({
+  profile,
+  accessToken,
+  onRefresh,
+}: {
+  profile: Profile;
+  accessToken: string;
+  onRefresh: () => Promise<void>;
+}) {
   const [tier, setTier] = useState<string | null>(profile.individual_tier);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (profile.studio_id || profile.individual_tier) return;
     assignIndividualTier(profile.id).then(setTier);
   }, [profile.id, profile.studio_id, profile.individual_tier]);
 
+  async function handleLeave() {
+    setLeaving(true);
+    setError(null);
+    try {
+      await leaveStudio();
+      await onRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't leave the studio -- try again.");
+    }
+    setLeaving(false);
+  }
+
   if (profile.studio_id) {
     return (
       <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
         <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Membership</p>
         <p className="font-body mt-1 text-sm text-neutral-700">Your studio covers your access -- no billing needed.</p>
+        <button
+          type="button"
+          onClick={handleLeave}
+          disabled={leaving}
+          className="font-label mt-3 text-sm font-semibold text-red-600 underline disabled:opacity-60"
+        >
+          {leaving ? "Leaving…" : "Leave studio"}
+        </button>
+        {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
       </div>
     );
   }
@@ -247,10 +510,12 @@ export function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [surprise, setSurprise] = useState<string | null>(null);
   const [ownedStudio, setOwnedStudio] = useState<Studio | null>(null);
+  const [hasBagSet, setHasBagSet] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
     getStudioByOwnerId(profile.id).then(setOwnedStudio);
+    getMyBag(profile.id).then((bag) => setHasBagSet(bag.some((entry) => entry.yardage !== null)));
   }, [profile]);
 
   if (!profile) return null;
@@ -429,7 +694,27 @@ export function ProfileScreen() {
         <p className="font-display text-xl">{formatMemberSince(profile.created_at)}</p>
       </div>
 
-      {session && <SubscriptionSection profile={profile} accessToken={session.access_token} />}
+      <HandicapSection profile={profile} />
+      <GameRatingSection profile={profile} />
+
+      <Link
+        to="/app/bag"
+        className="mt-3 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4"
+      >
+        <span>
+          <span className="font-label block text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+            My Bag
+          </span>
+          <span className="font-body text-sm text-neutral-600">
+            {hasBagSet ? "View your bag" : "Set your yardages for club suggestions"}
+          </span>
+        </span>
+        <span className="font-label text-brand text-sm font-semibold">Edit</span>
+      </Link>
+
+      {session && (
+        <SubscriptionSection profile={profile} accessToken={session.access_token} onRefresh={refreshProfile} />
+      )}
 
       <button
         type="button"

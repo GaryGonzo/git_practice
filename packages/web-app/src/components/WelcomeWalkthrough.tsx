@@ -1,7 +1,8 @@
-import { useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { GolfableMark } from "./GolfableMark";
 import { TodayIcon, ProgressIcon, LibraryIcon, ProfileIcon } from "./AppNav";
 import { NotificationPrompt } from "./NotificationPrompt";
+import { getStudioById, type Studio } from "../lib/golfableApi";
 import type { Profile } from "../lib/AuthProvider";
 
 function ChooseIcon({ className }: { className?: string }) {
@@ -15,6 +16,60 @@ function ChooseIcon({ className }: { className?: string }) {
   );
 }
 
+function ChallengeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M7 4h10v3.5a5 5 0 0 1-10 0V4Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M11 12.3v3.2M12 21h0a3 3 0 0 0 3-3h-6a3 3 0 0 0 3 3Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M7 5H4v1.5A3.5 3.5 0 0 0 7 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M17 5h3v1.5A3.5 3.5 0 0 1 17 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BagIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M7 21V10a5 5 0 0 1 10 0v11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M5 21h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9 10V4M12 10V3M15 10V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function StarIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8L12 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function StudioIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4 20V10l8-6 8 6v10"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M9 20v-6h6v6" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 interface WalkthroughStep {
   icon: ComponentType<{ className?: string }> | null;
   title: string;
@@ -22,8 +77,8 @@ interface WalkthroughStep {
   content?: ReactNode;
 }
 
-function buildSteps(profile: Profile): WalkthroughStep[] {
-  return [
+function buildSteps(profile: Profile, studio: Studio | null): WalkthroughStep[] {
+  const steps: WalkthroughStep[] = [
     {
       icon: null,
       title: "Welcome to Golfable",
@@ -40,9 +95,24 @@ function buildSteps(profile: Profile): WalkthroughStep[] {
       body: "Rather pick your own drills? Choose Your Own Golfable lets you play anything in the library, anytime -- it tracks your personal best and counts toward your weekly goal just like the daily drill (one Golfable a day toward that goal, however many you play).",
     },
     {
+      icon: ChallengeIcon,
+      title: "More Ways to Play",
+      body: "Start a Challenge to compete with up to 4 friends on the same drill, or sharpen up with the practice Tools -- metronome, fairway finder, swing tempo, and more.",
+    },
+    {
       icon: ProgressIcon,
       title: "Track Your Progress",
-      body: "Watch your trend on drills you repeat and see your weekly goal fill in as you go.",
+      body: "Watch your trend on drills you repeat, and check your Golfable Score on Home -- a live score for each category, plus one overall number, built from your last 10 rounds.",
+    },
+    {
+      icon: BagIcon,
+      title: "Set Up Your Game",
+      body: "Add your handicap and your typical yardage per club in Profile -- unlocks personalized club suggestions and tracks your improvement over time.",
+    },
+    {
+      icon: StarIcon,
+      title: "Find Your Next Golfable",
+      body: "Rate a Golfable after you play it to build your Favorites, or rate your own game in Profile to get Golfables recommended just for you in Choose Your Own.",
     },
     {
       icon: LibraryIcon,
@@ -55,12 +125,31 @@ function buildSteps(profile: Profile): WalkthroughStep[] {
       body: "",
       content: <NotificationPrompt profile={profile} />,
     },
-    {
-      icon: ProfileIcon,
-      title: "Make It Yours",
-      body: "Adjust your tier, weekly goal, and name anytime from your Profile.",
-    },
   ];
+
+  if (studio) {
+    steps.push({
+      icon: StudioIcon,
+      title: `${studio.name} on Golfable`,
+      body: `You're training with ${studio.name} -- your Home screen shows your studio's own private leaderboard instead of the national one.`,
+    });
+
+    if (studio.ownerUserId === profile.id) {
+      steps.push({
+        icon: StudioIcon,
+        title: `Manage ${studio.name}`,
+        body: "As the studio owner, open Manage Studio from your Profile anytime to share your join link and see every member's activity.",
+      });
+    }
+  }
+
+  steps.push({
+    icon: ProfileIcon,
+    title: "Make It Yours",
+    body: "Adjust your tier, weekly goal, name, and profile photo anytime from your Profile.",
+  });
+
+  return steps;
 }
 
 interface WelcomeWalkthroughProps {
@@ -69,8 +158,24 @@ interface WelcomeWalkthroughProps {
 }
 
 export function WelcomeWalkthrough({ profile, onDone }: WelcomeWalkthroughProps) {
-  const [steps] = useState(() => buildSteps(profile));
+  // A studio member's (and separately, a studio owner's) steps depend on
+  // fetching their studio, so hold off rendering until that's resolved --
+  // otherwise the step count/dots would shift under the user mid-walkthrough.
+  const [studio, setStudio] = useState<Studio | null | undefined>(profile.studio_id ? undefined : null);
+
+  useEffect(() => {
+    if (!profile.studio_id) {
+      setStudio(null);
+      return;
+    }
+    getStudioById(profile.studio_id).then(setStudio);
+  }, [profile.studio_id]);
+
   const [step, setStep] = useState(0);
+
+  if (studio === undefined) return null;
+
+  const steps = buildSteps(profile, studio);
   const current = steps[step];
   const isLast = step === steps.length - 1;
   const Icon = current.icon;

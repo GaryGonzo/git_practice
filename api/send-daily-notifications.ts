@@ -31,11 +31,15 @@ function pacificNow(): { date: string; minutesSinceMidnight: number } {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+    console.error(
+      `send-daily-notifications: unauthorized -- CRON_SECRET is ${process.env.CRON_SECRET ? "set" : "NOT set"}, header present: ${Boolean(req.headers.authorization)}`
+    );
     res.status(401).json({ error: "unauthorized" });
     return;
   }
 
   const { date: today, minutesSinceMidnight } = pacificNow();
+  console.log(`send-daily-notifications: invoked for ${today}, ${minutesSinceMidnight} minutes since Pacific midnight`);
   if (Math.abs(minutesSinceMidnight - TARGET_MINUTES_SINCE_MIDNIGHT) > WINDOW_MINUTES) {
     res.status(200).json({ skipped: "outside send window", today, minutesSinceMidnight });
     return;
@@ -49,12 +53,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .eq("date", today)
     .maybeSingle();
   if (alreadySent) {
+    console.log(`send-daily-notifications: already sent today (${today}), skipping`);
     res.status(200).json({ skipped: "already sent today", today });
     return;
   }
 
   const { data: daily } = await supabase.from("daily_golfable").select("drill_id, drills(name, category)").eq("date", today).maybeSingle();
   if (!daily) {
+    console.log(`send-daily-notifications: no Golfable scheduled for ${today}, skipping`);
     res.status(200).json({ skipped: "no Golfable scheduled today", today });
     return;
   }
@@ -108,7 +114,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await supabase.from("push_subscriptions").delete().in("id", staleSubscriptionIds);
   }
 
-  await supabase.from("daily_notification_runs").insert({ date: today, recipient_count: recipients.length });
+  const { error: insertError } = await supabase
+    .from("daily_notification_runs")
+    .insert({ date: today, recipient_count: recipients.length });
+  if (insertError) console.error("send-daily-notifications: failed to record run", insertError);
 
+  console.log(`send-daily-notifications: sent ${recipients.length}, removed ${staleSubscriptionIds.length} stale, today=${today}`);
   res.status(200).json({ sent: recipients.length, stale_removed: staleSubscriptionIds.length, today });
 }

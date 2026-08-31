@@ -60,10 +60,10 @@
   --font-label: "Barlow Condensed", sans-serif;
   --font-body: "Barlow", sans-serif;
 
-  --color-driver: #185fa5;
-  --color-irons: #3b6d11;
-  --color-wedges: #1d9e75;
-  --color-putter: #ba7517;
+  --color-driver: #3e6b8a;
+  --color-irons: #1f4d36;
+  --color-wedges: #6b7f3f;
+  --color-putter: #a9873a;
 
   --color-brand: #1f4d36;
   --color-brand-dark: #14201b;
@@ -112,5 +112,14 @@ body {
   100% {
     opacity: 0;
     transform: translateY(-36px) scale(1.15) rotate(20deg);
+  }
+}
+
+@keyframes ken-burns {
+  0% {
+    transform: scale(1.04) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.14) translate(-1%, -1.5%);
   }
 }

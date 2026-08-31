@@ -4,15 +4,18 @@ import { CATEGORY_INFO, formatScore } from "@golfable/shared";
 import type { Drill } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
+import { GolfableScorePanel } from "../../components/GolfableScorePanel";
 import {
   getDrillForDate,
   getGlobalLeaderboard,
   getMyScoreForDate,
+  getScoreHistory,
   getSessionsThisWeek,
   getStudioById,
   getStudioLeaderboard,
   todayISO,
   type LeaderboardEntry,
+  type ScoreHistoryEntry,
   type Studio,
 } from "../../lib/golfableApi";
 
@@ -68,6 +71,7 @@ export function HomeScreen() {
   const [sessionsThisWeek, setSessionsThisWeek] = useState(0);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [studio, setStudio] = useState<Studio | null>(null);
+  const [scoreHistory, setScoreHistory] = useState<ScoreHistoryEntry[]>([]);
 
   useEffect(() => {
     if (!profile) return;
@@ -97,6 +101,7 @@ export function HomeScreen() {
         setLeaderboard([]);
       }
       setSessionsThisWeek(await getSessionsThisWeek(profile.id));
+      setScoreHistory(await getScoreHistory(profile.id));
       setLoading(false);
     })();
   }, [profile]);
@@ -167,6 +172,15 @@ export function HomeScreen() {
         </div>
         <WeeklyGoalRing completed={sessionsThisWeek} goal={profile.weekly_goal} size={64} />
       </div>
+
+      {!loading && (
+        <div className="mt-6">
+          <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+            My Golfable Scores
+          </h2>
+          <GolfableScorePanel history={scoreHistory} />
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-3 gap-3">
         <Link to="/app/library" className="rounded-lg border border-neutral-200 bg-white p-3">

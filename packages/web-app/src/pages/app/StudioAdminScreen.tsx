@@ -12,6 +12,22 @@ function BackIcon({ className }: { className?: string }) {
   );
 }
 
+function ShareIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path d="M10 3v9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M6.5 6.5 10 3l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M4 10v5.5A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5V10"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
@@ -27,6 +43,7 @@ export function StudioAdminScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -71,6 +88,26 @@ export function StudioAdminScreen() {
     ? roster.filter((m) => `${m.firstName} ${m.lastName}`.toLowerCase().includes(query))
     : roster;
 
+  // Native share sheet on mobile (text/social/whatever the member picks);
+  // falls back to clipboard on desktop, where there's no share sheet to open.
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Join ${studio!.name} on Golfable`, url: joinLink });
+      } catch {
+        // Canceling the share sheet also rejects the promise -- nothing to do.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(joinLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard access can fail silently -- the link is still visible to copy manually.
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-24">
       <Link to="/app/profile" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
@@ -83,10 +120,36 @@ export function StudioAdminScreen() {
         {roster.length} member{roster.length === 1 ? "" : "s"} total
       </p>
 
-      <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Join link</p>
-        <p className="font-body mt-1 truncate text-sm text-neutral-700">{joinLink}</p>
-      </div>
+      {studio.canceledAt && (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="font-label text-xs font-semibold tracking-widest text-red-600 uppercase">Canceled</p>
+          <p className="font-body mt-1 text-sm text-red-700">
+            This studio was canceled on {formatDate(studio.canceledAt)}. Members no longer get free access through
+            it.
+          </p>
+        </div>
+      )}
+
+      {!studio.canceledAt && (
+        <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Join link</p>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="font-label text-brand inline-flex flex-none items-center gap-1.5 text-sm font-semibold"
+            >
+              <ShareIcon className="h-4 w-4" />
+              {copied ? "Copied!" : "Share"}
+            </button>
+          </div>
+          <p className="font-body mt-1 text-sm break-all text-neutral-700">{joinLink}</p>
+          <p className="font-body mt-2 text-xs text-neutral-500">
+            Text it, post it, or hand it out in person -- anyone who joins through it gets Golfable free, tied to{" "}
+            {studio.name}.
+          </p>
+        </div>
+      )}
 
       {error && <p className="font-body mt-4 text-sm text-red-600">{error}</p>}
 

@@ -22,4 +22,6 @@ export interface Drill {
   caption?: string;
   /** Direct URL to an instructional video (mp4/webm). Undefined until the drill has one. */
   videoUrl?: string;
+  /** The yardage this drill calls for, if it's yardage-based. Most drills don't set this. */
+  targetYardage?: number;
 }

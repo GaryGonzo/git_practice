@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { MarketingHome } from "./pages/MarketingHome";
+import { StudiosScreen } from "./pages/StudiosScreen";
 import { JoinChallengeScreen } from "./pages/JoinChallengeScreen";
 import { StudioInviteScreen } from "./pages/StudioInviteScreen";
 import { TermsScreen } from "./pages/TermsScreen";
@@ -9,8 +10,10 @@ import { RequireAdmin } from "./components/RequireAdmin";
 import { HomeScreen } from "./pages/app/HomeScreen";
 import { TodayScreen } from "./pages/app/TodayScreen";
 import { ProgressScreen } from "./pages/app/ProgressScreen";
+import { GolfableScoreDetailScreen } from "./pages/app/GolfableScoreDetailScreen";
 import { LibraryScreen } from "./pages/app/LibraryScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
+import { MyBagScreen } from "./pages/app/MyBagScreen";
 import { LeaderboardScreen } from "./pages/app/LeaderboardScreen";
 import { ToolsScreen } from "./pages/app/ToolsScreen";
 import { MetronomeScreen } from "./pages/app/MetronomeScreen";
@@ -19,6 +22,10 @@ import { GreenReaderScreen } from "./pages/app/GreenReaderScreen";
 import { SwingTempoScreen } from "./pages/app/SwingTempoScreen";
 import { AlignmentCheckerScreen } from "./pages/app/AlignmentCheckerScreen";
 import { GappingScreen } from "./pages/app/GappingScreen";
+import { ForumScreen } from "./pages/app/ForumScreen";
+import { ForumCategoryScreen } from "./pages/app/ForumCategoryScreen";
+import { ForumNewThreadScreen } from "./pages/app/ForumNewThreadScreen";
+import { ForumThreadScreen } from "./pages/app/ForumThreadScreen";
 import { ChooseGolfableScreen } from "./pages/app/ChooseGolfableScreen";
 import { ChallengesScreen } from "./pages/app/ChallengesScreen";
 import { NewChallengeScreen } from "./pages/app/NewChallengeScreen";
@@ -35,6 +42,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<MarketingHome />} />
+      <Route path="/studios" element={<StudiosScreen />} />
       <Route path="/join/:code" element={<JoinChallengeScreen />} />
       <Route path="/my-studio/:slug" element={<StudioInviteScreen />} />
       <Route path="/terms" element={<TermsScreen />} />
@@ -53,6 +61,8 @@ function App() {
         <Route index element={<HomeScreen />} />
         <Route path="today" element={<TodayScreen />} />
         <Route path="progress" element={<ProgressScreen />} />
+        <Route path="golfable-score" element={<GolfableScoreDetailScreen />} />
+        <Route path="golfable-score/:category" element={<GolfableScoreDetailScreen />} />
         <Route path="library" element={<LibraryScreen />} />
         <Route path="library/:date" element={<TodayScreen />} />
         <Route path="choose" element={<ChooseGolfableScreen />} />
@@ -65,10 +75,15 @@ function App() {
         <Route path="tools/swing-tempo" element={<SwingTempoScreen />} />
         <Route path="tools/alignment-checker" element={<AlignmentCheckerScreen />} />
         <Route path="tools/gapping" element={<GappingScreen />} />
+        <Route path="forum" element={<ForumScreen />} />
+        <Route path="forum/:categorySlug" element={<ForumCategoryScreen />} />
+        <Route path="forum/:categorySlug/new" element={<ForumNewThreadScreen />} />
+        <Route path="forum/:categorySlug/:threadId" element={<ForumThreadScreen />} />
         <Route path="challenges" element={<ChallengesScreen />} />
         <Route path="challenges/new" element={<NewChallengeScreen />} />
         <Route path="challenges/:id" element={<ChallengeDetailScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
+        <Route path="bag" element={<MyBagScreen />} />
         <Route path="studio-admin" element={<StudioAdminScreen />} />
         <Route
           path="admin"

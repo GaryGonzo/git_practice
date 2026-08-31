@@ -18,12 +18,33 @@ function StudioIcon({ className }: { className?: string }) {
   );
 }
 
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Shown only to a cold, never-seen-Golfable member -- one sentence up top
+// isn't much to sign up on, so this fills in just enough of "what is this"
+// before asking for an account, without turning the screen into a second
+// homepage.
+function studioHighlights(studioName: string) {
+  return [
+    { title: "A fresh drill every weekday", body: "Short, scored practice sessions -- not swing tips." },
+    { title: "Your studio's own leaderboard", body: `Private to ${studioName}, split by handicap tier.` },
+    { title: "Free, no card required", body: `Included as part of ${studioName} -- nothing to pay, ever.` },
+  ];
+}
+
 export function StudioInviteScreen() {
   const { slug } = useParams();
   const { session, profile, refreshProfile } = useAuth();
 
   const [studio, setStudio] = useState<Studio | null | undefined>(undefined);
   const [joining, setJoining] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -34,23 +55,27 @@ export function StudioInviteScreen() {
   // logged in is the explicit "I want to join this studio" action, so it
   // sets studio_id right away rather than waiting for a separate confirm step.
   useEffect(() => {
-    if (!studio || !profile || profile.studio_id === studio.id) return;
+    if (!studio || studio.canceledAt || !profile || !session || profile.studio_id === studio.id) return;
     setJoining(true);
-    joinStudio(profile.id, studio.id)
+    setError(null);
+    joinStudio(session.access_token, studio.id)
       .then(refreshProfile)
+      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't join that studio -- try again."))
       .finally(() => setJoining(false));
-  }, [studio, profile, refreshProfile]);
+  }, [studio, profile, session, refreshProfile]);
 
   if (studio === undefined) {
     return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
   }
 
-  if (studio === null) {
+  if (studio === null || studio.canceledAt) {
     return (
       <div className="mx-auto max-w-sm px-6 py-16 text-center">
         <h1 className="font-display text-3xl tracking-wide">Studio Not Found</h1>
         <p className="font-body mt-3 text-sm text-neutral-600">
-          This studio link isn't valid, or the studio has been removed.
+          {studio?.canceledAt
+            ? "This studio is no longer active."
+            : "This studio link isn't valid, or the studio has been removed."}
         </p>
         <Link to="/" className="font-label text-brand mt-6 inline-block text-sm font-semibold underline">
           Go to Golfable
@@ -86,8 +111,24 @@ export function StudioInviteScreen() {
         >
           {joining ? "Joining…" : "Go to Golfable"}
         </Link>
-      ) : (
+      ) : null}
+      {error && <p className="font-body mt-3 text-sm text-red-600">{error}</p>}
+      {!session && (
         <>
+          <div className="mt-6 space-y-3 text-left">
+            {studioHighlights(studio.name).map((item) => (
+              <div key={item.title} className="flex items-start gap-3">
+                <div className="bg-brand/10 text-brand mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full">
+                  <CheckIcon className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <p className="font-label text-sm font-semibold">{item.title}</p>
+                  <p className="font-body text-sm text-neutral-600">{item.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <Link
             to={`/signup?next=${encodeURIComponent(nextPath)}`}
             className="font-label bg-brand mt-6 block w-full rounded-md px-4 py-3 text-sm font-semibold text-white"
@@ -100,6 +141,14 @@ export function StudioInviteScreen() {
               Log in
             </Link>
           </p>
+          <Link
+            to="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-label text-brand mt-4 inline-block text-sm font-semibold underline"
+          >
+            See what Golfable is about →
+          </Link>
         </>
       )}
     </div>

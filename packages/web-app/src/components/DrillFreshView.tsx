@@ -74,6 +74,8 @@ interface DrillFreshViewProps {
   result?: DrillResult;
   /** Shown above the score form when a submit attempt failed */
   error?: string | null;
+  /** The player's bag-matched club for drill.targetYardage, if both are set */
+  suggestedClub?: string | null;
 }
 
 // The "fresh arrival" state of the Today screen: drill cards + score form,
@@ -94,6 +96,7 @@ export function DrillFreshView({
   subtitle = "Everyone trains this one today",
   result,
   error,
+  suggestedClub,
 }: DrillFreshViewProps) {
   const tierTarget = drill.targets[tier];
   const tierInfo = TIER_INFO[tier];
@@ -122,6 +125,18 @@ export function DrillFreshView({
             <li key={item}>{item}</li>
           ))}
         </ul>
+        {drill.targetYardage !== undefined && (
+          <div className="mt-2 border-t border-neutral-100 pt-2">
+            <p className="font-body text-sm text-neutral-700">Distance: {drill.targetYardage} yds</p>
+            {suggestedClub ? (
+              <p className="font-label text-brand text-sm font-semibold">Suggested club: {suggestedClub}</p>
+            ) : (
+              <Link to="/app/bag" className="font-label text-sm font-semibold text-neutral-500 underline">
+                Set your bag for a club suggestion
+              </Link>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mb-3 rounded-lg border border-neutral-200 bg-white p-4">

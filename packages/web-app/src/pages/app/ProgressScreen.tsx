@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { CATEGORY_INFO, SKILL_CATEGORIES, formatScore, scoreGoodness, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
+import { CategoryIcon } from "../../components/CategoryIcon";
+import { GolfableScorePanel } from "../../components/GolfableScorePanel";
 import { getScoreHistory, getSessionsThisWeek, type ScoreHistoryEntry } from "../../lib/golfableApi";
 
 const CATEGORY_BG: Record<SkillCategory, string> = {
@@ -79,6 +81,11 @@ export function ProgressScreen() {
       </div>
 
       <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+        My Golfable Scores
+      </h2>
+      <GolfableScorePanel history={history} />
+
+      <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
         By Category
       </h2>
       <div className="space-y-2">
@@ -91,9 +98,9 @@ export function ProgressScreen() {
               className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5"
             >
               <div
-                className={`font-display flex h-9 w-9 flex-none items-center justify-center rounded-full text-base text-white ${CATEGORY_BG[category]}`}
+                className={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
               >
-                {info.badge}
+                <CategoryIcon category={category} className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-label text-sm font-semibold">{info.label}</p>
@@ -123,9 +130,9 @@ export function ProgressScreen() {
                 className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5"
               >
                 <div
-                  className={`font-display flex h-8 w-8 flex-none items-center justify-center rounded-full text-sm text-white ${CATEGORY_BG[entry.drill.category]}`}
+                  className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[entry.drill.category]}`}
                 >
-                  {info.badge}
+                  <CategoryIcon category={entry.drill.category} className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-label truncate text-sm font-semibold">{entry.drill.name}</p>

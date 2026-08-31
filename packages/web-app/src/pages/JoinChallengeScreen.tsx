@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { CATEGORY_INFO, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../lib/AuthProvider";
 import { getChallengeByCode, type Challenge } from "../lib/golfableApi";
+import { CategoryIcon } from "../components/CategoryIcon";
 
 const CATEGORY_BG: Record<SkillCategory, string> = {
   driver: "bg-driver",
@@ -45,9 +46,9 @@ export function JoinChallengeScreen() {
   return (
     <div className="mx-auto max-w-sm px-6 py-16 text-center">
       <div
-        className={`font-display mx-auto flex h-14 w-14 items-center justify-center rounded-full text-xl text-white ${CATEGORY_BG[challenge.drill.category]}`}
+        className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full text-white ${CATEGORY_BG[challenge.drill.category]}`}
       >
-        {CATEGORY_INFO[challenge.drill.category].badge}
+        <CategoryIcon category={challenge.drill.category} className="h-7 w-7" />
       </div>
       <p className="font-label mt-4 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
         You've Been Challenged

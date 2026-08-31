@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import type { Profile } from "../lib/AuthProvider";
+import { useAuth, type Profile } from "../lib/AuthProvider";
 import { PUSH_ENABLED_KEY, isIOS, isStandalone, notificationPermission, pushSupported, subscribeToPush } from "../lib/push";
+import { sendTestNotification } from "../lib/golfableApi";
 
 function BellIcon({ className }: { className?: string }) {
   return (
@@ -20,6 +21,13 @@ type PushState = "unsupported" | "subscribed" | "denied" | "not-installed" | "re
 
 function getPushState(): PushState {
   if (localStorage.getItem(PUSH_ENABLED_KEY) === "true") return "subscribed";
+  // On iOS, PushManager doesn't exist in window at all until the app has
+  // been added to the Home Screen -- pushSupported() would report "false"
+  // (indistinguishable from a browser that truly can't do push) for every
+  // first-time visitor, before they've had a chance to install. Check
+  // iOS's install state first so the "add to Home Screen" instructions
+  // actually reach them instead of the prompt silently rendering nothing.
+  if (isIOS() && !isStandalone()) return "not-installed";
   if (!pushSupported()) return "unsupported";
   if (notificationPermission() === "denied") return "denied";
   if (!isStandalone()) return "not-installed";
@@ -35,15 +43,18 @@ interface NotificationPromptProps {
 // prompt card and inside a walkthrough step -- both callers decide their
 // own outer wrapper/background.
 export function NotificationPrompt({ profile, onSubscribed }: NotificationPromptProps) {
+  const { session } = useAuth();
   const [state, setState] = useState<PushState>("unsupported");
   const [subscribing, setSubscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   useEffect(() => {
     setState(getPushState());
   }, []);
 
-  if (state === "unsupported" || state === "subscribed") return null;
+  if (state === "unsupported") return null;
 
   async function handleEnable() {
     setError(null);
@@ -56,6 +67,49 @@ export function NotificationPrompt({ profile, onSubscribed }: NotificationPrompt
       setError("Couldn't enable notifications -- try again.");
     }
     setSubscribing(false);
+  }
+
+  async function handleTest() {
+    if (!session) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const result = await sendTestNotification(session.access_token);
+      if (result.sent > 0) {
+        setTestResult(
+          `Sent -- check your device.${result.staleRemoved ? ` (removed ${result.staleRemoved} stale subscription)` : ""}`
+        );
+      } else if (result.errors.length > 0) {
+        setTestResult(`Failed: ${result.errors[0]}`);
+      } else {
+        setTestResult("No active subscription to send to -- try enabling notifications again.");
+      }
+    } catch (err) {
+      setTestResult(err instanceof Error ? err.message : "Couldn't send a test notification.");
+    }
+    setTesting(false);
+  }
+
+  if (state === "subscribed") {
+    return (
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <BellIcon className="text-brand h-5 w-5" />
+            <p className="font-label text-sm font-semibold">Notifications are on</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleTest}
+            disabled={testing || !session}
+            className="font-label text-brand flex-none text-sm font-semibold underline disabled:opacity-60"
+          >
+            {testing ? "Sending…" : "Send test"}
+          </button>
+        </div>
+        {testResult && <p className="font-body mt-2 text-sm text-neutral-600">{testResult}</p>}
+      </div>
+    );
   }
 
   return (

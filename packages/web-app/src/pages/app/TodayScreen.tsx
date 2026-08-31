@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import type { Drill } from "@golfable/shared";
-import { CATEGORY_INFO, TIER_INFO, isBetterScore } from "@golfable/shared";
+import type { BagEntry, Drill } from "@golfable/shared";
+import { CATEGORY_INFO, TIER_INFO, isBetterScore, suggestClubForYardage } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
+import { DrillRatingPrompt } from "../../components/DrillRatingPrompt";
 import { CelebrationToast, randomScoreMessage } from "../../components/CelebrationToast";
 import { useAuth } from "../../lib/AuthProvider";
 import {
@@ -14,6 +15,7 @@ import {
   getPersonalBest,
   submitScore,
   getTierLeaderboard,
+  getMyBag,
   todayISO,
   type LeaderboardEntry,
 } from "../../lib/golfableApi";
@@ -60,6 +62,12 @@ export function TodayScreen() {
   const [scoreCelebration, setScoreCelebration] = useState<string | null>(null);
   const [pendingGoalCelebration, setPendingGoalCelebration] = useState(false);
   const [goalCelebration, setGoalCelebration] = useState(false);
+  const [showRatingPrompt, setShowRatingPrompt] = useState(false);
+  const [bag, setBag] = useState<BagEntry[]>([]);
+
+  useEffect(() => {
+    getMyBag(userId).then(setBag);
+  }, [userId]);
 
   useEffect(() => {
     if (!profile) return;
@@ -69,6 +77,7 @@ export function TodayScreen() {
       setScoreInput("");
       setLeaderboard([]);
       setIsNewPersonalBest(false);
+      setShowRatingPrompt(false);
 
       const found = isChooseYourOwn ? await getDrillById(drillIdParam!) : await getDrillForDate(date);
       if (!found) {
@@ -105,6 +114,7 @@ export function TodayScreen() {
 
     setSubmitting(true);
     setSubmitError(null);
+    const isFirstCompletion = personalBest === null;
     try {
       await submitScore(userId, drill.id, value, date);
       const [board, newWeekCount] = await Promise.all([
@@ -114,6 +124,7 @@ export function TodayScreen() {
       const reachedGoalNow = sessionsThisWeek < profile.weekly_goal && newWeekCount >= profile.weekly_goal;
       const newPersonalBest = personalBest === null || isBetterScore(value, personalBest, drill.scoreDirection);
       setSubmittedScore(value);
+      if (isFirstCompletion) setShowRatingPrompt(true);
       setSessionsThisWeek(newWeekCount);
       setIsNewPersonalBest(newPersonalBest);
       setPersonalBest((prev) => (prev === null || isBetterScore(value, prev, drill.scoreDirection) ? value : prev));
@@ -239,7 +250,15 @@ export function TodayScreen() {
                 leaderboardHref: `/app/leaderboard/${drill.id}/${date}`,
               }
         }
+        suggestedClub={
+          drill.targetYardage !== undefined ? suggestClubForYardage(bag, drill.targetYardage) : undefined
+        }
       />
+      {showRatingPrompt && (
+        <div className="mx-auto max-w-md px-4">
+          <DrillRatingPrompt userId={userId} drillId={drill.id} />
+        </div>
+      )}
     </div>
   );
 }

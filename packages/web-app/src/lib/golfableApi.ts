@@ -1,4 +1,5 @@
-import type { Drill, HandicapTier, ScoreDirection, SkillCategory } from "@golfable/shared";
+import type { BagClub, BagEntry, Drill, HandicapTier, ScoreDirection, SkillCategory } from "@golfable/shared";
+import { BAG_CLUBS, SKILL_CATEGORIES } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
 
 interface DrillRow {
@@ -16,6 +17,7 @@ interface DrillRow {
   max_score: number;
   score_direction: ScoreDirection;
   video_url: string | null;
+  target_yardage: number | null;
 }
 
 function toDrill(row: DrillRow): Drill {
@@ -33,6 +35,7 @@ function toDrill(row: DrillRow): Drill {
     },
     scoreDirection: row.score_direction,
     videoUrl: row.video_url ?? undefined,
+    targetYardage: row.target_yardage ?? undefined,
   };
 }
 
@@ -354,6 +357,53 @@ export interface ScoreHistoryEntry {
   score: number;
 }
 
+// A category needs 3+ logged attempts before its Golfable Score populates.
+export const GOLFABLE_SCORE_MIN_ATTEMPTS = 3;
+// ...but only ever the 10 most recent count toward it, so an old bad
+// stretch eventually rolls off and improvement is actually reachable.
+export const GOLFABLE_SCORE_WINDOW = 10;
+
+// getScoreHistory already orders newest-first, so slicing after filtering
+// keeps the most recent GOLFABLE_SCORE_WINDOW attempts in that category.
+// Exported so the score-detail page can list exactly the attempts that
+// produced the number, without redefining "which ones count" a second time.
+export function recentCategoryAttempts(history: ScoreHistoryEntry[], category: SkillCategory): ScoreHistoryEntry[] {
+  return history.filter((h) => h.drill.category === category).slice(0, GOLFABLE_SCORE_WINDOW);
+}
+
+export interface GolfableScores {
+  categoryScores: Record<SkillCategory, number | null>;
+  categoryAttempts: Record<SkillCategory, number>;
+  overallScore: number | null;
+}
+
+// Shared by Home and Progress so the two screens can never drift on the
+// formula: each category is the average of score/maxScore (as a 0-100)
+// across its most recent attempts, live off the same score history both
+// screens already fetch -- never stored, so it's always current.
+export function computeGolfableScores(history: ScoreHistoryEntry[]): GolfableScores {
+  const categoryScores = {} as Record<SkillCategory, number | null>;
+  const categoryAttempts = {} as Record<SkillCategory, number>;
+
+  for (const category of SKILL_CATEGORIES) {
+    const entries = recentCategoryAttempts(history, category);
+    categoryAttempts[category] = entries.length;
+    if (entries.length < GOLFABLE_SCORE_MIN_ATTEMPTS) {
+      categoryScores[category] = null;
+      continue;
+    }
+    const avgPct = entries.reduce((sum, e) => sum + e.score / e.maxScore, 0) / entries.length;
+    categoryScores[category] = Math.round(avgPct * 100);
+  }
+
+  const allScores = SKILL_CATEGORIES.map((c) => categoryScores[c]);
+  const overallScore = allScores.every((s) => s !== null)
+    ? Math.round(allScores.reduce((sum, s) => sum + s!, 0) / allScores.length)
+    : null;
+
+  return { categoryScores, categoryAttempts, overallScore };
+}
+
 export const FOUNDER_SPOTS = 100;
 
 // head: true returns only the row count, not the rows themselves -- safe to
@@ -584,6 +634,13 @@ export async function joinChallenge(challengeId: string, userId: string): Promis
   if (error) throw error;
 }
 
+// Creator-only (enforced by RLS) -- deletes the challenge outright.
+// challenge_participants cascades, so any joiners are removed too.
+export async function cancelChallenge(challengeId: string): Promise<void> {
+  const { error } = await supabase.from("challenges").delete().eq("id", challengeId);
+  if (error) throw error;
+}
+
 export interface ChallengeParticipant {
   userId: string;
   firstName: string;
@@ -682,6 +739,7 @@ export interface Studio {
   slug: string;
   ownerUserId: string;
   createdAt: string;
+  canceledAt: string | null;
 }
 
 interface StudioRow {
@@ -690,10 +748,18 @@ interface StudioRow {
   slug: string;
   owner_user_id: string;
   created_at: string;
+  canceled_at: string | null;
 }
 
 function toStudio(row: StudioRow): Studio {
-  return { id: row.id, name: row.name, slug: row.slug, ownerUserId: row.owner_user_id, createdAt: row.created_at };
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    ownerUserId: row.owner_user_id,
+    createdAt: row.created_at,
+    canceledAt: row.canceled_at ?? null,
+  };
 }
 
 export async function getStudioBySlug(slug: string): Promise<Studio | null> {
@@ -707,9 +773,31 @@ export async function getStudioById(studioId: string): Promise<Studio | null> {
 }
 
 // A member belongs to at most one studio -- joining a new one just
-// overwrites the old value, same shape as any other profile field.
-export async function joinStudio(userId: string, studioId: string): Promise<void> {
-  const { error } = await supabase.from("profiles").update({ studio_id: studioId }).eq("id", userId);
+// overwrites the old value. Goes through the server because it also has
+// to cancel any existing individual Stripe subscription (studio_id itself
+// is service-role-only to write, see 0026_studio_lifecycle.sql).
+export async function joinStudio(accessToken: string, studioId: string): Promise<void> {
+  const res = await fetch("/api/join-studio", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ studioId }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't join that studio -- try again.");
+}
+
+// Leaving is pure self-service -- no billing to unwind, since a studio
+// member isn't individually billed while covered. They'll be walked
+// through checkout again next time they open Profile.
+export async function leaveStudio(): Promise<void> {
+  const { error } = await supabase.rpc("leave_studio");
+  if (error) throw error;
+}
+
+// Admin-only: ends the studio's coverage for every member at once, same
+// effect as if each of them left individually.
+export async function cancelStudio(studioId: string): Promise<void> {
+  const { error } = await supabase.rpc("cancel_studio", { target_studio_id: studioId });
   if (error) throw error;
 }
 
@@ -777,30 +865,19 @@ export async function getStudioByOwnerId(ownerUserId: string): Promise<Studio | 
   return data ? toStudio(data) : null;
 }
 
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-// Site-admin only (enforced by the "only admins can create studios" RLS
-// policy) -- generates a URL-safe slug from the name, retrying with a
-// numeric suffix if it's already taken.
-export async function createStudio(name: string, ownerUserId: string): Promise<Studio> {
-  const base = slugify(name) || "studio";
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const slug = attempt === 0 ? base : `${base}-${attempt + 1}`;
-    const { data, error } = await supabase
-      .from("studios")
-      .insert({ name, slug, owner_user_id: ownerUserId })
-      .select("*")
-      .single<StudioRow>();
-    if (!error && data) return toStudio(data);
-    if (error && error.code !== "23505") throw error; // 23505 = unique_violation on the slug -- retry with a suffix
-  }
-  throw new Error("Couldn't generate a unique studio URL -- try a different name.");
+// Site-admin only. Goes through the server (not a direct table insert)
+// because it also has to set the owner's studio_id and cancel any
+// individual subscription they already had -- both of those touch
+// service-role-only columns and Stripe. See api/create-studio.ts.
+export async function createStudio(accessToken: string, name: string, ownerUserId: string): Promise<Studio> {
+  const res = await fetch("/api/create-studio", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ name, ownerUserId }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't create that studio -- try again.");
+  return { ...body, canceledAt: null } as Studio;
 }
 
 export interface StudioOverview extends Studio {
@@ -868,4 +945,450 @@ export async function createPortalSession(accessToken: string): Promise<string> 
   const body = await res.json();
   if (!res.ok) throw new Error(body.error ?? "Couldn't open billing portal.");
   return body.url as string;
+}
+
+export interface TestNotificationResult {
+  sent: number;
+  staleRemoved: number;
+  errors: string[];
+}
+
+// Sends a push to the caller's own subscriptions only -- independent of
+// the daily cron send, so it works as both a "did this turn on?" check
+// and a VAPID-key diagnostic.
+export async function sendTestNotification(accessToken: string): Promise<TestNotificationResult> {
+  const res = await fetch("/api/send-test-notification", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't send a test notification.");
+  return body as TestNotificationResult;
+}
+
+// ---------------------------------------------------------------------------
+// Handicap tracking
+
+export interface HandicapEntry {
+  handicapIndex: number | null;
+  avgScorePar72: number | null;
+  recordedAt: string;
+}
+
+function toHandicapEntry(row: {
+  handicap_index: number | null;
+  avg_score_par72: number | null;
+  recorded_at: string;
+}): HandicapEntry {
+  return {
+    handicapIndex: row.handicap_index,
+    avgScorePar72: row.avg_score_par72,
+    recordedAt: row.recorded_at,
+  };
+}
+
+export async function getLatestHandicap(userId: string): Promise<HandicapEntry | null> {
+  const { data } = await supabase
+    .from("handicap_history")
+    .select("handicap_index, avg_score_par72, recorded_at")
+    .eq("user_id", userId)
+    .order("recorded_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ? toHandicapEntry(data) : null;
+}
+
+export async function getHandicapHistory(userId: string): Promise<HandicapEntry[]> {
+  const { data } = await supabase
+    .from("handicap_history")
+    .select("handicap_index, avg_score_par72, recorded_at")
+    .eq("user_id", userId)
+    .order("recorded_at", { ascending: true });
+  return (data ?? []).map(toHandicapEntry);
+}
+
+// One of handicapIndex/avgScorePar72 must be set -- enforced by a DB check
+// constraint too, but validating client-side gives a clearer error.
+export async function logHandicap(
+  userId: string,
+  handicapIndex: number | null,
+  avgScorePar72: number | null
+): Promise<void> {
+  if (handicapIndex === null && avgScorePar72 === null) {
+    throw new Error("Enter a handicap or an average score.");
+  }
+  const { error } = await supabase
+    .from("handicap_history")
+    .insert({ user_id: userId, handicap_index: handicapIndex, avg_score_par72: avgScorePar72 });
+  if (error) throw error;
+}
+
+// A player's due for another update once 30 days have passed since their
+// last one -- close enough to "monthly" without needing a cron job to
+// track it.
+const HANDICAP_PROMPT_INTERVAL_DAYS = 30;
+
+export function isHandicapUpdateDue(latest: HandicapEntry | null): boolean {
+  if (!latest) return true;
+  const daysSince = (Date.now() - new Date(latest.recordedAt).getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince >= HANDICAP_PROMPT_INTERVAL_DAYS;
+}
+
+// ---------------------------------------------------------------------------
+// Golfable Games ratings
+
+export async function getMyRatingForDrill(userId: string, drillId: string): Promise<number | null> {
+  const { data } = await supabase
+    .from("drill_ratings")
+    .select("rating")
+    .eq("user_id", userId)
+    .eq("drill_id", drillId)
+    .maybeSingle();
+  return data?.rating ?? null;
+}
+
+export async function rateDrill(userId: string, drillId: string, rating: number): Promise<void> {
+  const { error } = await supabase
+    .from("drill_ratings")
+    .upsert({ user_id: userId, drill_id: drillId, rating }, { onConflict: "user_id,drill_id" });
+  if (error) throw error;
+}
+
+export interface DrillRatingSummary {
+  avgRating: number;
+  ratingCount: number;
+}
+
+// Keyed by drill_id so ChooseGolfableScreen can look up each drill's
+// community rating without a query per card.
+export async function getAllDrillRatingSummaries(): Promise<Record<string, DrillRatingSummary>> {
+  const { data } = await supabase.from("drill_rating_summary").select("drill_id, avg_rating, rating_count");
+  const summaries: Record<string, DrillRatingSummary> = {};
+  for (const row of data ?? []) {
+    summaries[row.drill_id as string] = {
+      avgRating: row.avg_rating as number,
+      ratingCount: row.rating_count as number,
+    };
+  }
+  return summaries;
+}
+
+export async function getMyDrillRatings(userId: string): Promise<Record<string, number>> {
+  const { data } = await supabase.from("drill_ratings").select("drill_id, rating").eq("user_id", userId);
+  const ratings: Record<string, number> = {};
+  for (const row of data ?? []) ratings[row.drill_id as string] = row.rating as number;
+  return ratings;
+}
+
+// ---------------------------------------------------------------------------
+// My Bag
+
+// Club Gapping is the more accurate, measured source, so a club's My Bag
+// yardage comes from its Club Gapping average whenever one exists; only
+// clubs with no logged swings fall back to the manual bag_clubs value.
+// This is what keeps the two tools showing the same number for a club.
+export async function getMyBag(userId: string): Promise<BagEntry[]> {
+  const [{ data: bagRows }, { data: distanceRows }] = await Promise.all([
+    supabase.from("bag_clubs").select("club, yardage").eq("user_id", userId),
+    supabase.from("club_distances").select("club, distance_yards").eq("user_id", userId),
+  ]);
+
+  const manualByClub = new Map((bagRows ?? []).map((row) => [row.club as string, row.yardage as number | null]));
+
+  const distancesByClub = new Map<string, number[]>();
+  for (const row of distanceRows ?? []) {
+    const club = row.club as string;
+    const list = distancesByClub.get(club) ?? [];
+    list.push(row.distance_yards as number);
+    distancesByClub.set(club, list);
+  }
+
+  return BAG_CLUBS.map((club) => {
+    const distances = distancesByClub.get(club);
+    if (distances && distances.length > 0) {
+      const yardage = Math.round(distances.reduce((sum, d) => sum + d, 0) / distances.length);
+      return { club, yardage, source: "gapping" as const, sampleCount: distances.length };
+    }
+    return { club, yardage: manualByClub.get(club) ?? null, source: "manual" as const };
+  });
+}
+
+export async function setBagClubYardage(userId: string, club: BagClub, yardage: number | null): Promise<void> {
+  const { error } = await supabase
+    .from("bag_clubs")
+    .upsert({ user_id: userId, club, yardage }, { onConflict: "user_id,club" });
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// My Game -- a player's own anecdotal 1-10 read on each part of their game.
+// No history, just a current snapshot; feeds "Recommended for You".
+
+export async function getMyGameRatings(userId: string): Promise<Partial<Record<SkillCategory, number>>> {
+  const { data } = await supabase.from("game_ratings").select("category, rating").eq("user_id", userId);
+  const ratings: Partial<Record<SkillCategory, number>> = {};
+  for (const row of data ?? []) ratings[row.category as SkillCategory] = row.rating as number;
+  return ratings;
+}
+
+export async function setGameRating(userId: string, category: SkillCategory, rating: number): Promise<void> {
+  const { error } = await supabase
+    .from("game_ratings")
+    .upsert(
+      { user_id: userId, category, rating, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,category" }
+    );
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// Forum -- categories, threads, and replies. Every write (thread/reply
+// creation, moderation review) goes through an api/forum-*.ts endpoint
+// rather than a direct table insert/update -- see 0034_forum.sql for why: a
+// post's status is decided by a server-side moderation check the client
+// must not be able to set itself.
+
+export type ForumContentStatus = "visible" | "pending_review" | "removed";
+
+export interface ForumCategory {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+}
+
+export interface ForumThreadSummary {
+  id: string;
+  categoryId: string;
+  title: string;
+  status: ForumContentStatus;
+  pinned: boolean;
+  createdAt: string;
+  authorId: string;
+  authorFirstName: string;
+  authorLastName: string;
+  replyCount: number;
+  lastActivityAt: string;
+}
+
+export interface ForumThread {
+  id: string;
+  categoryId: string;
+  title: string;
+  body: string;
+  status: ForumContentStatus;
+  pinned: boolean;
+  createdAt: string;
+  authorId: string;
+  authorFirstName: string;
+  authorLastName: string;
+}
+
+export interface ForumReply {
+  id: string;
+  threadId: string;
+  body: string;
+  status: ForumContentStatus;
+  createdAt: string;
+  authorId: string;
+  authorFirstName: string;
+  authorLastName: string;
+}
+
+export async function getForumCategories(): Promise<ForumCategory[]> {
+  const { data } = await supabase.from("forum_categories").select("id, slug, name, description").order("sort_order");
+  return (data ?? []).map((row) => ({
+    id: row.id as string,
+    slug: row.slug as string,
+    name: row.name as string,
+    description: row.description as string,
+  }));
+}
+
+export async function getForumCategoryBySlug(slug: string): Promise<ForumCategory | null> {
+  const { data } = await supabase
+    .from("forum_categories")
+    .select("id, slug, name, description")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!data) return null;
+  return { id: data.id, slug: data.slug, name: data.name, description: data.description };
+}
+
+export async function getForumThreads(categoryId: string): Promise<ForumThreadSummary[]> {
+  const { data } = await supabase
+    .from("forum_thread_summary")
+    .select("*")
+    .eq("category_id", categoryId)
+    .order("pinned", { ascending: false })
+    .order("last_activity_at", { ascending: false });
+  if (!data) return [];
+  return data.map((row) => ({
+    id: row.id as string,
+    categoryId: row.category_id as string,
+    title: row.title as string,
+    status: row.status as ForumContentStatus,
+    pinned: row.pinned as boolean,
+    createdAt: row.created_at as string,
+    authorId: row.author_id as string,
+    authorFirstName: row.author_first_name as string,
+    authorLastName: row.author_last_name as string,
+    replyCount: Number(row.reply_count),
+    lastActivityAt: row.last_activity_at as string,
+  }));
+}
+
+export async function getForumThread(threadId: string): Promise<ForumThread | null> {
+  const { data } = await supabase
+    .from("forum_threads")
+    .select("id, category_id, title, body, status, pinned, created_at, author_id, profiles!inner(first_name, last_name)")
+    .eq("id", threadId)
+    .maybeSingle();
+  if (!data) return null;
+  const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+  return {
+    id: data.id,
+    categoryId: data.category_id,
+    title: data.title,
+    body: data.body,
+    status: data.status as ForumContentStatus,
+    pinned: data.pinned,
+    createdAt: data.created_at,
+    authorId: data.author_id,
+    authorFirstName: author.first_name as string,
+    authorLastName: author.last_name as string,
+  };
+}
+
+// Includes the caller's own pending/removed replies (RLS lets an author see
+// their own regardless of status) -- the UI decides how to render those.
+export async function getForumReplies(threadId: string): Promise<ForumReply[]> {
+  const { data } = await supabase
+    .from("forum_replies")
+    .select("id, thread_id, body, status, created_at, author_id, profiles!inner(first_name, last_name)")
+    .eq("thread_id", threadId)
+    .order("created_at", { ascending: true });
+  if (!data) return [];
+  return data.map((row) => {
+    const author = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    return {
+      id: row.id as string,
+      threadId: row.thread_id as string,
+      body: row.body as string,
+      status: row.status as ForumContentStatus,
+      createdAt: row.created_at as string,
+      authorId: row.author_id as string,
+      authorFirstName: author.first_name as string,
+      authorLastName: author.last_name as string,
+    };
+  });
+}
+
+export interface ForumPostResult {
+  id: string;
+  status: ForumContentStatus;
+  createdAt: string;
+}
+
+export async function createForumThread(
+  accessToken: string,
+  categoryId: string,
+  title: string,
+  body: string
+): Promise<ForumPostResult> {
+  const res = await fetch("/api/forum-create-thread", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ categoryId, title, body }),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error ?? "Couldn't post that -- try again.");
+  return { id: result.id, status: result.status, createdAt: result.createdAt };
+}
+
+export async function createForumReply(accessToken: string, threadId: string, body: string): Promise<ForumPostResult> {
+  const res = await fetch("/api/forum-create-reply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ threadId, body }),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error ?? "Couldn't post that reply -- try again.");
+  return { id: result.id, status: result.status, createdAt: result.createdAt };
+}
+
+// ---------------------------------------------------------------------------
+// Forum moderation (admin) -- flagged posts awaiting a human decision.
+
+export interface ForumModerationFlag {
+  id: string;
+  contentType: "thread" | "reply";
+  contentId: string;
+  authorFirstName: string;
+  authorLastName: string;
+  reason: "word_list" | "ai_flagged" | "both";
+  matchedTerms: string[];
+  aiCategories: string[];
+  aiReasoning: string | null;
+  createdAt: string;
+  title: string | null;
+  body: string;
+}
+
+export async function getForumModerationQueue(): Promise<ForumModerationFlag[]> {
+  const { data: flags } = await supabase
+    .from("forum_moderation_flags")
+    .select("id, content_type, content_id, reason, matched_terms, ai_categories, ai_reasoning, created_at, profiles!inner(first_name, last_name)")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+  if (!flags || flags.length === 0) return [];
+
+  const threadIds = flags.filter((f) => f.content_type === "thread").map((f) => f.content_id);
+  const replyIds = flags.filter((f) => f.content_type === "reply").map((f) => f.content_id);
+
+  const [{ data: threads }, { data: replies }] = await Promise.all([
+    threadIds.length
+      ? supabase.from("forum_threads").select("id, title, body").in("id", threadIds)
+      : Promise.resolve({ data: [] as { id: string; title: string; body: string }[] }),
+    replyIds.length
+      ? supabase.from("forum_replies").select("id, body").in("id", replyIds)
+      : Promise.resolve({ data: [] as { id: string; body: string }[] }),
+  ]);
+
+  const threadById = new Map((threads ?? []).map((t) => [t.id, t]));
+  const replyById = new Map((replies ?? []).map((r) => [r.id, r]));
+
+  return flags.map((flag) => {
+    const author = Array.isArray(flag.profiles) ? flag.profiles[0] : flag.profiles;
+    const content =
+      flag.content_type === "thread" ? threadById.get(flag.content_id) : replyById.get(flag.content_id);
+    return {
+      id: flag.id,
+      contentType: flag.content_type as "thread" | "reply",
+      contentId: flag.content_id,
+      authorFirstName: author.first_name as string,
+      authorLastName: author.last_name as string,
+      reason: flag.reason as "word_list" | "ai_flagged" | "both",
+      matchedTerms: flag.matched_terms as string[],
+      aiCategories: flag.ai_categories as string[],
+      aiReasoning: flag.ai_reasoning as string | null,
+      createdAt: flag.created_at as string,
+      title: flag.content_type === "thread" ? (content as { title?: string } | undefined)?.title ?? null : null,
+      body: content?.body ?? "",
+    };
+  });
+}
+
+export async function reviewForumFlag(
+  accessToken: string,
+  flagId: string,
+  decision: "approved" | "rejected"
+): Promise<void> {
+  const res = await fetch("/api/forum-review-flag", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ flagId, decision }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Couldn't review that flag -- try again.");
 }

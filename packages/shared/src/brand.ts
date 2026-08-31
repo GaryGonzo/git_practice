@@ -8,10 +8,10 @@ export interface CategoryInfo {
 }
 
 export const CATEGORY_INFO: Record<SkillCategory, CategoryInfo> = {
-  driver: { badge: "D", label: "Driver & Woods", color: "#185FA5" },
-  irons: { badge: "I", label: "Irons", color: "#3B6D11" },
-  wedges: { badge: "W", label: "Wedges", color: "#1D9E75" },
-  putter: { badge: "P", label: "Putter", color: "#BA7517" },
+  driver: { badge: "D", label: "Driver & Woods", color: "#3E6B8A" },
+  irons: { badge: "I", label: "Irons", color: "#1F4D36" },
+  wedges: { badge: "W", label: "Wedges", color: "#6B7F3F" },
+  putter: { badge: "P", label: "Putter", color: "#A9873A" },
 };
 
 export const HANDICAP_TIERS = ["scratch", "low", "mid", "high"] as const;

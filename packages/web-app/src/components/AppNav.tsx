@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: "/app", label: "Home", end: true, icon: HomeIcon },
   { to: "/app/progress", label: "Progress", end: false, icon: ProgressIcon },
   { to: "/app/library", label: "Library", end: false, icon: LibraryIcon },
+  { to: "/app/forum", label: "Forum", end: false, icon: ForumIcon },
   { to: "/app/profile", label: "Profile", end: false, icon: ProfileIcon },
 ];
 
@@ -63,6 +64,19 @@ export function LibraryIcon({ className }: { className?: string }) {
       <rect x="4" y="5" width="16" height="4" rx="1" stroke="currentColor" strokeWidth="1.6" />
       <rect x="4" y="11" width="16" height="4" rx="1" stroke="currentColor" strokeWidth="1.6" />
       <rect x="4" y="17" width="10" height="2.5" rx="1" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+export function ForumIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-7Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
