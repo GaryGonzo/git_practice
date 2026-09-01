@@ -41,3 +41,10 @@ export function isTargetHit(score: number, target: string, direction: ScoreDirec
 export function formatScore(score: number, maxScore: number, direction: ScoreDirection): string {
   return direction === "lower" ? `${score}` : `${score}/${maxScore}`;
 }
+
+/**
+ * A rank past this isn't worth surfacing -- "you're #42" isn't much of a
+ * flex. Shared so every place that shows a personal rank (Today's rank
+ * card, the Leaderboard section's "My Week" view) agrees on the cutoff.
+ */
+export const RANK_CARD_CUTOFF = 10;

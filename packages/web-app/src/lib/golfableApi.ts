@@ -861,6 +861,23 @@ export async function getStudioLeaderboard(
   });
 }
 
+// A member's personal rank is tracked within their studio (across every
+// tier there, same as the studio leaderboard's default "All" view) if
+// they're in one, or the public tier-wide board otherwise -- used for
+// Today's rank card and the Leaderboard section's "My Week" view, so both
+// agree on where "your rank" comes from.
+export async function getRankBoard(
+  studioId: string | null,
+  drillId: string,
+  tier: HandicapTier,
+  date: string,
+  direction: ScoreDirection = "higher"
+): Promise<LeaderboardEntry[]> {
+  return studioId
+    ? getStudioLeaderboard(studioId, drillId, date, undefined, direction)
+    : getTierLeaderboard(drillId, tier, date, direction);
+}
+
 export interface StudioRosterEntry {
   id: string;
   firstName: string;

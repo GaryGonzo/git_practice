@@ -15,6 +15,7 @@ import { LibraryScreen } from "./pages/app/LibraryScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
 import { MyBagScreen } from "./pages/app/MyBagScreen";
 import { LeaderboardScreen } from "./pages/app/LeaderboardScreen";
+import { LeaderboardHubScreen } from "./pages/app/LeaderboardHubScreen";
 import { ToolsScreen } from "./pages/app/ToolsScreen";
 import { MetronomeScreen } from "./pages/app/MetronomeScreen";
 import { FairwayFinderScreen } from "./pages/app/FairwayFinderScreen";
@@ -67,6 +68,7 @@ function App() {
         <Route path="library/:date" element={<TodayScreen />} />
         <Route path="choose" element={<ChooseGolfableScreen />} />
         <Route path="play/:drillId" element={<TodayScreen />} />
+        <Route path="leaderboard" element={<LeaderboardHubScreen />} />
         <Route path="leaderboard/:drillId/:date" element={<LeaderboardScreen />} />
         <Route path="tools" element={<ToolsScreen />} />
         <Route path="tools/metronome" element={<MetronomeScreen />} />

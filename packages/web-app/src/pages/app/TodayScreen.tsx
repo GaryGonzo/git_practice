@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import type { BagEntry, Drill, HandicapTier } from "@golfable/shared";
-import { CATEGORY_INFO, TIER_INFO, isBetterScore, suggestClubForYardage } from "@golfable/shared";
+import type { BagEntry, Drill } from "@golfable/shared";
+import { CATEGORY_INFO, TIER_INFO, RANK_CARD_CUTOFF, isBetterScore, suggestClubForYardage } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
 import { DrillRatingPrompt } from "../../components/DrillRatingPrompt";
 import { CelebrationToast, randomScoreMessage } from "../../components/CelebrationToast";
@@ -14,35 +14,13 @@ import {
   getLastAttemptScore,
   getPersonalBest,
   submitScore,
-  getTierLeaderboard,
-  getStudioLeaderboard,
+  getRankBoard,
   getStudioById,
   getMyBag,
   todayISO,
   type LeaderboardEntry,
   type Studio,
 } from "../../lib/golfableApi";
-
-// A studio member's rank is tracked within their studio (across every
-// tier there, same as the full studio leaderboard's default "All" view),
-// not the public tier-wide one -- their scores don't count toward that
-// unless they've opted in (see ProfileScreen's public-sharing toggle).
-async function fetchRankBoard(
-  studioId: string | null,
-  drillId: string,
-  tier: HandicapTier,
-  date: string,
-  direction: Drill["scoreDirection"]
-): Promise<LeaderboardEntry[]> {
-  return studioId
-    ? getStudioLeaderboard(studioId, drillId, date, undefined, direction)
-    : getTierLeaderboard(drillId, tier, date, direction);
-}
-
-// Being told you're #42 isn't much of a flex -- only the top 10 get a
-// rank card at all, regardless of whether the board is a studio's or the
-// public tier-wide one.
-const RANK_CARD_CUTOFF = 10;
 
 function BackIcon({ className }: { className?: string }) {
   return (
@@ -132,7 +110,7 @@ export function TodayScreen() {
       setPersonalBest(best);
       if (existingScore !== null) {
         setSubmittedScore(existingScore);
-        const board = await fetchRankBoard(
+        const board = await getRankBoard(
           profile.studio_id,
           found.drill.id,
           profile.tier,
@@ -157,7 +135,7 @@ export function TodayScreen() {
     try {
       await submitScore(userId, drill.id, value, date);
       const [board, newWeekCount] = await Promise.all([
-        fetchRankBoard(profile.studio_id, drill.id, profile.tier, date, drill.scoreDirection),
+        getRankBoard(profile.studio_id, drill.id, profile.tier, date, drill.scoreDirection),
         getSessionsThisWeek(userId),
       ]);
       const reachedGoalNow = sessionsThisWeek < profile.weekly_goal && newWeekCount >= profile.weekly_goal;

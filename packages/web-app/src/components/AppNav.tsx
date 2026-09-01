@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { to: "/app", label: "Home", end: true, icon: HomeIcon },
   { to: "/app/progress", label: "Progress", end: false, icon: ProgressIcon },
   { to: "/app/library", label: "Library", end: false, icon: LibraryIcon },
-  { to: "/app/forum", label: "Forum", end: false, icon: ForumIcon },
+  { to: "/app/leaderboard", label: "Leaderboard", end: false, icon: LeaderboardIcon },
   { to: "/app/profile", label: "Profile", end: false, icon: ProfileIcon },
 ];
 
@@ -64,6 +64,24 @@ export function LibraryIcon({ className }: { className?: string }) {
       <rect x="4" y="5" width="16" height="4" rx="1" stroke="currentColor" strokeWidth="1.6" />
       <rect x="4" y="11" width="16" height="4" rx="1" stroke="currentColor" strokeWidth="1.6" />
       <rect x="4" y="17" width="10" height="2.5" rx="1" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+export function LeaderboardIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M7 4h10v3.5a5 5 0 0 1-5 5 5 5 0 0 1-5-5V4Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M7 5H4v1.5A3.5 3.5 0 0 0 7 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M17 5h3v1.5A3.5 3.5 0 0 1 17 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M12 12.5V16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8.5 20h7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9.5 16.5h5l.8 3.5h-6.6l.8-3.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
     </svg>
   );
 }

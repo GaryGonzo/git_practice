@@ -12,6 +12,7 @@ const TIER_TEXT: Record<HandicapTier, string> = {
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
 import { GolfableScorePanel } from "../../components/GolfableScorePanel";
+import { ForumIcon } from "../../components/AppNav";
 import {
   getDrillForDate,
   getGlobalLeaderboard,
@@ -189,7 +190,7 @@ export function HomeScreen() {
         </div>
       )}
 
-      <div className="mt-6 grid grid-cols-3 gap-3">
+      <div className="mt-6 grid grid-cols-2 gap-3">
         <Link to="/app/library" className="rounded-lg border border-neutral-200 bg-white p-3">
           <p className="font-label text-sm font-semibold">Library</p>
           <p className="font-body text-xs text-neutral-500">Past Golfables</p>
@@ -197,6 +198,13 @@ export function HomeScreen() {
         <Link to="/app/progress" className="rounded-lg border border-neutral-200 bg-white p-3">
           <p className="font-label text-sm font-semibold">Progress</p>
           <p className="font-body text-xs text-neutral-500">Your trend</p>
+        </Link>
+        <Link to="/app/forum" className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-3">
+          <ForumIcon className="h-4 w-4 flex-none text-neutral-400" />
+          <span>
+            <p className="font-label text-sm font-semibold">Forum</p>
+            <p className="font-body text-xs text-neutral-500">Talk shop</p>
+          </span>
         </Link>
         <Link to="/app/tools" className="rounded-lg border border-neutral-200 bg-white p-3">
           <p className="font-label text-sm font-semibold">Tools</p>
