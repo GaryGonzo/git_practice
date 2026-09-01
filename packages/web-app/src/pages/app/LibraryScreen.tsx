@@ -1,290 +1,192 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { formatScore, type SkillCategory } from "@golfable/shared";
+import { CATEGORY_INFO, SKILL_CATEGORIES, type Drill, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { CategoryIcon } from "../../components/CategoryIcon";
 import {
-  getPastGolfables,
-  getUpcomingGolfables,
-  getDrillForDate,
-  todayISO,
-  type PastGolfableEntry,
-  type GolfableCalendarEntry,
+  getAllDrills,
+  getAllDrillRatingSummaries,
+  getMyDrillRatings,
+  getMyGameRatings,
+  type DrillRatingSummary,
 } from "../../lib/golfableApi";
 
-function pacificToday(): Date {
-  const [year, month, day] = todayISO().split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-// Cap the Upcoming list at a short, scannable preview -- even once the
-// content calendar is planned out a month or two ahead, the list view
-// stays useful instead of scrolling forever. The Calendar view has no
-// such cap since it's already naturally bounded to one month at a time.
-const UPCOMING_LIST_LIMIT = 6;
-
-const CATEGORY_BG: Record<string, string> = {
+const CATEGORY_BG: Record<SkillCategory, string> = {
   driver: "bg-driver",
   irons: "bg-irons",
   wedges: "bg-wedges",
   putter: "bg-putter",
 };
 
-function formatDate(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+const FAVORITE_THRESHOLD = 4;
+
+type FavoriteFilter = "all" | "mine" | "community" | "recommended";
+
+const FAVORITE_FILTERS: { value: FavoriteFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "mine", label: "My Favorites" },
+  { value: "community", label: "Community Favorites" },
+  { value: "recommended", label: "Recommended for You" },
+];
+
+// The category (or categories, if tied) where "My Game" is rated lowest --
+// the weakest part of the player's own read on their game.
+function weakestCategories(ratings: Partial<Record<SkillCategory, number>>): SkillCategory[] {
+  const rated = SKILL_CATEGORIES.filter((c) => ratings[c] !== undefined);
+  if (rated.length === 0) return [];
+  const min = Math.min(...rated.map((c) => ratings[c]!));
+  return rated.filter((c) => ratings[c] === min);
 }
 
-function CategoryBadge({ category }: { category: SkillCategory }) {
+function StarIcon({ className }: { className?: string }) {
   return (
-    <div
-      className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
-    >
-      <CategoryIcon category={category} className="h-4 w-4" />
-    </div>
-  );
-}
-
-function ChevronIcon({ className, open }: { className?: string; open: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      className={`${className} transition-transform ${open ? "rotate-180" : ""}`}
-      aria-hidden="true"
-    >
-      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.8L12 3.5Z" />
     </svg>
   );
 }
 
-function PastRow({ entry }: { entry: PastGolfableEntry }) {
-  return (
-    <Link
-      to={`/app/library/${entry.date}`}
-      className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5 active:bg-neutral-50"
-    >
-      <CategoryBadge category={entry.drill.category} />
-      <div className="min-w-0 flex-1">
-        <p className="font-label truncate text-sm font-semibold">{entry.drill.name}</p>
-        <p className="font-body text-sm text-neutral-500">{formatDate(entry.date)}</p>
-      </div>
-      {entry.completed ? (
-        <span className="font-label bg-brand/10 text-brand flex-none rounded-full px-3 py-1 text-sm font-semibold">
-          {formatScore(entry.score as number, entry.maxScore, entry.drill.scoreDirection)}
-        </span>
-      ) : (
-        <span className="font-label flex-none rounded-full border border-neutral-300 px-3 py-1 text-sm font-semibold text-neutral-500">
-          Incomplete
-        </span>
-      )}
-    </Link>
-  );
-}
-
-function UpcomingRow({ entry }: { entry: GolfableCalendarEntry }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-3.5">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-3 text-left"
-      >
-        <CategoryBadge category={entry.drill.category} />
-        <div className="min-w-0 flex-1">
-          <p className="font-label truncate text-sm font-semibold">{entry.drill.name}</p>
-          <p className="font-body text-sm text-neutral-500">{formatDate(entry.date)}</p>
-        </div>
-        <ChevronIcon open={open} className="h-5 w-5 flex-none text-neutral-400" />
-      </button>
-      {open && (
-        <p className="font-body mt-3 border-t border-neutral-100 pt-3 text-sm text-neutral-600">
-          {entry.drill.setup.description}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function CalendarView({
-  entries,
-}: {
-  entries: Map<string, { category: string; completed?: boolean; isToday: boolean; isFuture: boolean }>;
-}) {
-  const now = pacificToday();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const firstWeekday = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-
-  const cells: (number | null)[] = [
-    ...Array(firstWeekday).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  return (
-    <div>
-      <p className="font-label mb-3 text-center text-sm font-semibold tracking-wide text-neutral-600">
-        {monthLabel}
-      </p>
-      <div className="grid grid-cols-7 gap-1.5">
-        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-          <div key={i} className="font-label text-center text-sm font-semibold text-neutral-400">
-            {d}
-          </div>
-        ))}
-        {cells.map((day, i) => {
-          if (day === null) return <div key={i} />;
-          const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-          const entry = entries.get(iso);
-          const content = (
-            <div
-              className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg border text-sm ${
-                entry?.isToday
-                  ? "border-brand bg-brand/5"
-                  : entry
-                    ? "border-neutral-200 bg-white"
-                    : "border-transparent text-neutral-300"
-              }`}
-            >
-              <span className="font-body">{day}</span>
-              {entry && (
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${CATEGORY_BG[entry.category]} ${
-                    entry.completed === false ? "opacity-40" : ""
-                  }`}
-                />
-              )}
-            </div>
-          );
-          if (entry && !entry.isFuture) {
-            return (
-              <Link key={i} to={entry.isToday ? "/app/today" : `/app/library/${iso}`}>
-                {content}
-              </Link>
-            );
-          }
-          return <div key={i}>{content}</div>;
-        })}
-      </div>
-      <div className="font-body mt-4 flex justify-center gap-4 text-sm text-neutral-500">
-        <span className="flex items-center gap-1.5">
-          <span className="bg-brand h-1.5 w-1.5 rounded-full" /> Played
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="bg-brand h-1.5 w-1.5 rounded-full opacity-40" /> Missed / Upcoming
-        </span>
-      </div>
-    </div>
-  );
-}
-
+// The Library is the full drill catalog -- every drill Golfable has, not
+// just what's scheduled today. Picking one plays it via /app/play/:drillId,
+// the same "Choose Your Own" flow Home's card links to -- Library and
+// Choose Your Own used to be two different screens for the same idea, so
+// this is just the one of them that stuck around. Your play history and
+// what's coming up live on Progress instead.
 export function LibraryScreen() {
-  const { session } = useAuth();
-  const userId = session!.user.id;
-
-  const [view, setView] = useState<"list" | "calendar">("list");
+  const { profile } = useAuth();
+  const [category, setCategory] = useState<SkillCategory | "all">("all");
+  const [favoriteFilter, setFavoriteFilter] = useState<FavoriteFilter>("all");
+  const [drills, setDrills] = useState<{ drill: Drill; maxScore: number }[]>([]);
+  const [ratingSummaries, setRatingSummaries] = useState<Record<string, DrillRatingSummary>>({});
+  const [myRatings, setMyRatings] = useState<Record<string, number>>({});
+  const [gameRatings, setGameRatings] = useState<Partial<Record<SkillCategory, number>>>({});
   const [loading, setLoading] = useState(true);
-  const [past, setPast] = useState<PastGolfableEntry[]>([]);
-  const [upcoming, setUpcoming] = useState<GolfableCalendarEntry[]>([]);
-  const [today, setToday] = useState<GolfableCalendarEntry | null>(null);
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const [pastEntries, upcomingEntries, todayEntry] = await Promise.all([
-        getPastGolfables(userId),
-        getUpcomingGolfables(),
-        getDrillForDate(todayISO()),
-      ]);
-      setPast(pastEntries);
-      setUpcoming(upcomingEntries);
-      setToday(todayEntry ? { date: todayISO(), drill: todayEntry.drill, maxScore: todayEntry.maxScore } : null);
+    setLoading(true);
+    Promise.all([
+      getAllDrills(category === "all" ? undefined : category),
+      getAllDrillRatingSummaries(),
+      profile ? getMyDrillRatings(profile.id) : Promise.resolve({}),
+      profile ? getMyGameRatings(profile.id) : Promise.resolve({}),
+    ]).then(([drillResult, summaries, mine, game]) => {
+      setDrills(drillResult);
+      setRatingSummaries(summaries);
+      setMyRatings(mine);
+      setGameRatings(game);
       setLoading(false);
-    })();
-  }, [userId]);
+    });
+  }, [category, profile]);
 
-  const calendarEntries = new Map<
-    string,
-    { category: string; completed?: boolean; isToday: boolean; isFuture: boolean }
-  >();
-  past.forEach((e) =>
-    calendarEntries.set(e.date, { category: e.drill.category, completed: e.completed, isToday: false, isFuture: false })
-  );
-  if (today) {
-    calendarEntries.set(today.date, { category: today.drill.category, isToday: true, isFuture: false });
-  }
-  upcoming.forEach((e) => calendarEntries.set(e.date, { category: e.drill.category, isToday: false, isFuture: true }));
+  const recommendedCategories = weakestCategories(gameRatings);
+
+  const visibleDrills = drills.filter(({ drill }) => {
+    if (favoriteFilter === "mine") return (myRatings[drill.id] ?? 0) >= FAVORITE_THRESHOLD;
+    if (favoriteFilter === "community") return (ratingSummaries[drill.id]?.avgRating ?? 0) >= FAVORITE_THRESHOLD;
+    if (favoriteFilter === "recommended") return recommendedCategories.includes(drill.category);
+    return true;
+  });
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <div className="mb-5 flex items-center justify-between">
-        <h1 className="font-display text-2xl tracking-wide">Library</h1>
-        <div className="flex rounded-full border border-neutral-200 bg-white p-0.5">
+      <h1 className="font-display text-2xl tracking-wide">Library</h1>
+      <p className="font-body text-sm text-neutral-500">
+        Every drill Golfable has -- pick any one and it counts just like today's Golfable.
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setCategory("all")}
+          className={`font-label rounded-full border px-3 py-1.5 text-sm font-semibold ${
+            category === "all" ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+          }`}
+        >
+          All
+        </button>
+        {SKILL_CATEGORIES.map((c) => (
           <button
+            key={c}
             type="button"
-            onClick={() => setView("list")}
-            className={`font-label rounded-full px-3 py-1 text-sm font-semibold ${
-              view === "list" ? "bg-brand text-white" : "text-neutral-500"
+            onClick={() => setCategory(c)}
+            className={`font-label rounded-full border px-3 py-1.5 text-sm font-semibold ${
+              category === c ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
             }`}
           >
-            List
+            {CATEGORY_INFO[c].label}
           </button>
-          <button
-            type="button"
-            onClick={() => setView("calendar")}
-            className={`font-label rounded-full px-3 py-1 text-sm font-semibold ${
-              view === "calendar" ? "bg-brand text-white" : "text-neutral-500"
-            }`}
-          >
-            Calendar
-          </button>
-        </div>
+        ))}
       </div>
 
-      {loading ? (
-        <p className="font-body text-center text-sm text-neutral-500">Loading…</p>
-      ) : view === "calendar" ? (
-        <CalendarView entries={calendarEntries} />
-      ) : (
-        <div className="space-y-8">
-          <section>
-            <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-              Past Golfables
-            </h2>
-            {past.length === 0 ? (
-              <p className="font-body text-sm text-neutral-500">Nothing here yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {past.map((entry) => (
-                  <PastRow key={entry.date} entry={entry} />
-                ))}
-              </div>
-            )}
-          </section>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {FAVORITE_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            onClick={() => setFavoriteFilter(f.value)}
+            className={`font-label rounded-full border px-3 py-1.5 text-sm font-semibold ${
+              favoriteFilter === f.value ? "bg-gold border-gold text-white" : "border-neutral-300 text-neutral-600"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
-          <section>
-            <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-              Upcoming Golfables
-            </h2>
-            {upcoming.length === 0 ? (
-              <p className="font-body text-sm text-neutral-500">Nothing scheduled yet.</p>
+      <div className="mt-4 space-y-2">
+        {loading ? (
+          <p className="font-body text-sm text-neutral-500">Loading…</p>
+        ) : visibleDrills.length === 0 ? (
+          <p className="font-body text-sm text-neutral-500">
+            {favoriteFilter === "mine" ? (
+              "Rate a Golfable 4 or 5 stars after playing it and it'll show up here."
+            ) : favoriteFilter === "community" ? (
+              "Nobody's rated enough Golfables here yet -- check back soon."
+            ) : favoriteFilter === "recommended" ? (
+              recommendedCategories.length === 0 ? (
+                <>
+                  Rate your game on{" "}
+                  <Link to="/app/profile" className="text-brand font-semibold underline">
+                    your profile
+                  </Link>{" "}
+                  and we'll recommend Golfables to work on.
+                </>
+              ) : (
+                "No drills in that category yet."
+              )
             ) : (
-              <div className="space-y-2">
-                {upcoming.slice(0, UPCOMING_LIST_LIMIT).map((entry) => (
-                  <UpcomingRow key={entry.date} entry={entry} />
-                ))}
-              </div>
+              "No drills in this category yet."
             )}
-          </section>
-        </div>
-      )}
+          </p>
+        ) : (
+          visibleDrills.map(({ drill }) => {
+            const summary = ratingSummaries[drill.id];
+            return (
+              <Link
+                key={drill.id}
+                to={`/app/play/${drill.id}`}
+                className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5 active:bg-neutral-50"
+              >
+                <div
+                  className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[drill.category]}`}
+                >
+                  <CategoryIcon category={drill.category} className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-label truncate text-sm font-semibold">{drill.name}</p>
+                  <p className="font-body truncate text-xs text-neutral-500">{CATEGORY_INFO[drill.category].label}</p>
+                </div>
+                {summary && (
+                  <div className="text-gold flex flex-none items-center gap-1">
+                    <StarIcon className="h-3.5 w-3.5" />
+                    <span className="font-label text-xs font-semibold">{summary.avgRating}</span>
+                  </div>
+                )}
+              </Link>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

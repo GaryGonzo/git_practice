@@ -1110,7 +1110,7 @@ export interface DrillRatingSummary {
   ratingCount: number;
 }
 
-// Keyed by drill_id so ChooseGolfableScreen can look up each drill's
+// Keyed by drill_id so the Library screen can look up each drill's
 // community rating without a query per card.
 export async function getAllDrillRatingSummaries(): Promise<Record<string, DrillRatingSummary>> {
   const { data } = await supabase.from("drill_rating_summary").select("drill_id, avg_rating, rating_count");

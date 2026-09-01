@@ -158,11 +158,11 @@ export function TodayScreen() {
   const backLink = (!isToday || isChooseYourOwn) && (
     <div className="mx-auto max-w-md px-4 pt-4">
       <Link
-        to={isChooseYourOwn ? "/app/choose" : "/app/library"}
+        to="/app/library"
         className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500"
       >
         <BackIcon className="h-4 w-4" />
-        {isChooseYourOwn ? "Back to Choose Your Own" : "Back to Library"}
+        Back to Library
       </Link>
     </div>
   );

@@ -162,7 +162,7 @@ export function HomeScreen() {
       )}
 
       <Link
-        to="/app/choose"
+        to="/app/library"
         className="mt-3 flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4"
       >
         <div className="bg-brand/10 flex h-10 w-10 flex-none items-center justify-center rounded-full">

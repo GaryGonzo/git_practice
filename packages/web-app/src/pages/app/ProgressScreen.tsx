@@ -5,7 +5,13 @@ import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
 import { CategoryIcon } from "../../components/CategoryIcon";
 import { GolfableScorePanel } from "../../components/GolfableScorePanel";
-import { getScoreHistory, getSessionsThisWeek, type ScoreHistoryEntry } from "../../lib/golfableApi";
+import {
+  getScoreHistory,
+  getSessionsThisWeek,
+  getUpcomingGolfables,
+  type GolfableCalendarEntry,
+  type ScoreHistoryEntry,
+} from "../../lib/golfableApi";
 
 const CATEGORY_BG: Record<SkillCategory, string> = {
   driver: "bg-driver",
@@ -13,6 +19,9 @@ const CATEGORY_BG: Record<SkillCategory, string> = {
   wedges: "bg-wedges",
   putter: "bg-putter",
 };
+
+const RECENT_SCORES_INITIAL_LIMIT = 5;
+const UPCOMING_LIMIT = 5;
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -23,6 +32,39 @@ interface CategoryStats {
   best: ScoreHistoryEntry | null;
 }
 
+function ChevronIcon({ className, open }: { className?: string; open: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={`${className} transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true">
+      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function UpcomingRow({ entry }: { entry: GolfableCalendarEntry }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-lg border border-neutral-200 bg-white p-3.5">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-3 text-left">
+        <div
+          className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[entry.drill.category]}`}
+        >
+          <CategoryIcon category={entry.drill.category} className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-label truncate text-sm font-semibold">{entry.drill.name}</p>
+          <p className="font-body text-sm text-neutral-500">{formatDate(entry.date)}</p>
+        </div>
+        <ChevronIcon open={open} className="h-5 w-5 flex-none text-neutral-400" />
+      </button>
+      {open && (
+        <p className="font-body mt-3 border-t border-neutral-100 pt-3 text-sm text-neutral-600">
+          {entry.drill.setup.description}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ProgressScreen() {
   const { session, profile } = useAuth();
   const userId = session!.user.id;
@@ -30,13 +72,20 @@ export function ProgressScreen() {
   const [loading, setLoading] = useState(true);
   const [sessionsThisWeek, setSessionsThisWeek] = useState(0);
   const [history, setHistory] = useState<ScoreHistoryEntry[]>([]);
+  const [visibleScoreCount, setVisibleScoreCount] = useState(RECENT_SCORES_INITIAL_LIMIT);
+  const [upcoming, setUpcoming] = useState<GolfableCalendarEntry[]>([]);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [weekCount, scoreHistory] = await Promise.all([getSessionsThisWeek(userId), getScoreHistory(userId)]);
+      const [weekCount, scoreHistory, upcomingGolfables] = await Promise.all([
+        getSessionsThisWeek(userId),
+        getScoreHistory(userId),
+        getUpcomingGolfables(),
+      ]);
       setSessionsThisWeek(weekCount);
       setHistory(scoreHistory);
+      setUpcoming(upcomingGolfables);
       setLoading(false);
     })();
   }, [userId]);
@@ -123,7 +172,7 @@ export function ProgressScreen() {
         <p className="font-body text-sm text-neutral-500">Log a score on Today's Golfable to get started.</p>
       ) : (
         <div className="space-y-2">
-          {history.slice(0, 8).map((entry, i) => {
+          {history.slice(0, visibleScoreCount).map((entry, i) => {
             const info = CATEGORY_INFO[entry.drill.category];
             return (
               <div
@@ -151,6 +200,28 @@ export function ProgressScreen() {
               </div>
             );
           })}
+        </div>
+      )}
+      {history.length > visibleScoreCount && (
+        <button
+          type="button"
+          onClick={() => setVisibleScoreCount(history.length)}
+          className="font-label text-brand mt-3 block w-full text-center text-sm font-semibold"
+        >
+          View More
+        </button>
+      )}
+
+      <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+        Upcoming Golfables
+      </h2>
+      {upcoming.length === 0 ? (
+        <p className="font-body text-sm text-neutral-500">Nothing scheduled yet -- check back soon.</p>
+      ) : (
+        <div className="space-y-2">
+          {upcoming.slice(0, UPCOMING_LIMIT).map((entry) => (
+            <UpcomingRow key={entry.date} entry={entry} />
+          ))}
         </div>
       )}
     </div>

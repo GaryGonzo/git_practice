@@ -27,7 +27,6 @@ import { ForumScreen } from "./pages/app/ForumScreen";
 import { ForumCategoryScreen } from "./pages/app/ForumCategoryScreen";
 import { ForumNewThreadScreen } from "./pages/app/ForumNewThreadScreen";
 import { ForumThreadScreen } from "./pages/app/ForumThreadScreen";
-import { ChooseGolfableScreen } from "./pages/app/ChooseGolfableScreen";
 import { ChallengesScreen } from "./pages/app/ChallengesScreen";
 import { NewChallengeScreen } from "./pages/app/NewChallengeScreen";
 import { ChallengeDetailScreen } from "./pages/app/ChallengeDetailScreen";
@@ -66,7 +65,6 @@ function App() {
         <Route path="golfable-score/:category" element={<GolfableScoreDetailScreen />} />
         <Route path="library" element={<LibraryScreen />} />
         <Route path="library/:date" element={<TodayScreen />} />
-        <Route path="choose" element={<ChooseGolfableScreen />} />
         <Route path="play/:drillId" element={<TodayScreen />} />
         <Route path="leaderboard" element={<LeaderboardHubScreen />} />
         <Route path="leaderboard/:drillId/:date" element={<LeaderboardScreen />} />
