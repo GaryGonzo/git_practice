@@ -21,8 +21,12 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "mine", label: "My Week" },
 ];
 
-function formatWeekday(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", { weekday: "short" });
+// Day names read fine with a handful of players, but once more people are
+// logging scores in a week, "Tue" x2 (from two different weeks, or just
+// hard to place at a glance) is more confusing than a plain date.
+function formatDateLabel(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function formatShortDate(iso: string): string {
@@ -151,7 +155,7 @@ export function LeaderboardHubScreen() {
                         : "border-neutral-300 text-neutral-600"
                     }`}
                   >
-                    {formatWeekday(d.date)}
+                    {formatDateLabel(d.date)}
                   </button>
                 ))}
               </div>
@@ -183,7 +187,7 @@ export function LeaderboardHubScreen() {
                 className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5"
               >
                 <div className="w-10 flex-none">
-                  <p className="font-label text-sm font-semibold">{formatWeekday(entry.date)}</p>
+                  <p className="font-label text-sm font-semibold">{formatDateLabel(entry.date)}</p>
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-label truncate text-sm font-semibold">{entry.drill.name}</p>

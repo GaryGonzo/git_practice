@@ -171,63 +171,8 @@ export function HomeScreen() {
         <ChevronRightIcon className="h-4 w-4 flex-none text-neutral-400" />
       </Link>
 
-      <div className="mt-4 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
-        <div>
-          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">This Week</p>
-          <p className="font-display text-2xl">
-            {sessionsThisWeek}/{profile.weekly_goal} Golfables
-          </p>
-        </div>
-        <WeeklyGoalRing completed={sessionsThisWeek} goal={profile.weekly_goal} size={64} />
-      </div>
-
-      {!loading && (
-        <div className="mt-6">
-          <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-            My Golfable Scores
-          </h2>
-          <GolfableScorePanel history={scoreHistory} />
-        </div>
-      )}
-
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <Link to="/app/library" className="rounded-lg border border-neutral-200 bg-white p-3">
-          <p className="font-label text-sm font-semibold">Library</p>
-          <p className="font-body text-xs text-neutral-500">Past Golfables</p>
-        </Link>
-        <Link to="/app/progress" className="rounded-lg border border-neutral-200 bg-white p-3">
-          <p className="font-label text-sm font-semibold">Progress</p>
-          <p className="font-body text-xs text-neutral-500">Your trend</p>
-        </Link>
-        <Link to="/app/forum" className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-3">
-          <ForumIcon className="h-4 w-4 flex-none text-neutral-400" />
-          <span>
-            <p className="font-label text-sm font-semibold">Forum</p>
-            <p className="font-body text-xs text-neutral-500">Talk shop</p>
-          </span>
-        </Link>
-        <Link to="/app/tools" className="rounded-lg border border-neutral-200 bg-white p-3">
-          <p className="font-label text-sm font-semibold">Tools</p>
-          <p className="font-body text-xs text-neutral-500">Metronome & more</p>
-        </Link>
-      </div>
-
-      <Link
-        to="/app/challenges"
-        className="border-gold/40 bg-gold/5 mt-4 flex items-center gap-3 rounded-lg border p-4"
-      >
-        <div className="bg-gold/15 flex h-10 w-10 flex-none items-center justify-center rounded-full">
-          <ChallengeIcon className="text-gold h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-label text-sm font-semibold">Challenge a Friend</p>
-          <p className="font-body text-xs text-neutral-500">Pick a drill, invite friends on the range, live scores</p>
-        </div>
-        <ChevronRightIcon className="h-4 w-4 flex-none text-neutral-400" />
-      </Link>
-
       {!loading && drill && (
-        <div className="mt-8">
+        <div className="mt-6">
           <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
             {studio ? `${studio.name} Leaderboard` : "Live Leaderboard"}
           </h2>
@@ -277,6 +222,61 @@ export function HomeScreen() {
           </Link>
         </div>
       )}
+
+      <Link
+        to="/app/challenges"
+        className="border-gold/40 bg-gold/5 mt-4 flex items-center gap-3 rounded-lg border p-4"
+      >
+        <div className="bg-gold/15 flex h-10 w-10 flex-none items-center justify-center rounded-full">
+          <ChallengeIcon className="text-gold h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-label text-sm font-semibold">Challenge a Friend</p>
+          <p className="font-body text-xs text-neutral-500">Pick a drill, invite friends on the range, live scores</p>
+        </div>
+        <ChevronRightIcon className="h-4 w-4 flex-none text-neutral-400" />
+      </Link>
+
+      <div className="mt-6 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
+        <div>
+          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">This Week</p>
+          <p className="font-display text-2xl">
+            {sessionsThisWeek}/{profile.weekly_goal} Golfables
+          </p>
+        </div>
+        <WeeklyGoalRing completed={sessionsThisWeek} goal={profile.weekly_goal} size={64} />
+      </div>
+
+      {!loading && (
+        <div className="mt-6">
+          <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+            My Golfable Scores
+          </h2>
+          <GolfableScorePanel history={scoreHistory} />
+        </div>
+      )}
+
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        <Link to="/app/library" className="rounded-lg border border-neutral-200 bg-white p-3">
+          <p className="font-label text-sm font-semibold">Library</p>
+          <p className="font-body text-xs text-neutral-500">Past Golfables</p>
+        </Link>
+        <Link to="/app/progress" className="rounded-lg border border-neutral-200 bg-white p-3">
+          <p className="font-label text-sm font-semibold">Progress</p>
+          <p className="font-body text-xs text-neutral-500">Your trend</p>
+        </Link>
+        <Link to="/app/forum" className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-3">
+          <ForumIcon className="h-4 w-4 flex-none text-neutral-400" />
+          <span>
+            <p className="font-label text-sm font-semibold">Forum</p>
+            <p className="font-body text-xs text-neutral-500">Talk shop</p>
+          </span>
+        </Link>
+        <Link to="/app/tools" className="rounded-lg border border-neutral-200 bg-white p-3">
+          <p className="font-label text-sm font-semibold">Tools</p>
+          <p className="font-body text-xs text-neutral-500">Metronome & more</p>
+        </Link>
+      </div>
     </div>
   );
 }
