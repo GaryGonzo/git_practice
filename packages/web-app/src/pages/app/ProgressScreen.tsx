@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { CATEGORY_INFO, SKILL_CATEGORIES, formatScore, scoreGoodness, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
@@ -137,6 +138,12 @@ export function ProgressScreen() {
                 <div className="min-w-0 flex-1">
                   <p className="font-label truncate text-sm font-semibold">{entry.drill.name}</p>
                   <p className="font-body text-sm text-neutral-500">{formatDate(entry.createdAt)}</p>
+                  <Link
+                    to={`/app/play/${entry.drill.id}`}
+                    className="font-label text-brand mt-0.5 inline-block text-xs font-semibold underline"
+                  >
+                    Play Again
+                  </Link>
                 </div>
                 <span className="font-label bg-brand/10 text-brand flex-none rounded-full px-3 py-1 text-sm font-semibold">
                   {formatScore(entry.score, entry.maxScore, entry.drill.scoreDirection)}

@@ -10,7 +10,7 @@ const TIER_TEXT: Record<HandicapTier, string> = {
   high: "text-tier-high",
 };
 import { useAuth } from "../../lib/AuthProvider";
-import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
+import { WeeklyGoalBar } from "../../components/WeeklyGoalBar";
 import { GolfableScorePanel } from "../../components/GolfableScorePanel";
 import { ForumIcon } from "../../components/AppNav";
 import {
@@ -124,6 +124,10 @@ export function HomeScreen() {
         <p className="font-label text-brand mt-1 text-xs font-semibold tracking-wide">Golfable × {studio.name}</p>
       )}
 
+      <div className="mt-4">
+        <WeeklyGoalBar completed={sessionsThisWeek} goal={profile.weekly_goal} />
+      </div>
+
       {loading ? (
         <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-8 text-center font-body text-neutral-500">
           Loading…
@@ -236,16 +240,6 @@ export function HomeScreen() {
         </div>
         <ChevronRightIcon className="h-4 w-4 flex-none text-neutral-400" />
       </Link>
-
-      <div className="mt-6 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
-        <div>
-          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">This Week</p>
-          <p className="font-display text-2xl">
-            {sessionsThisWeek}/{profile.weekly_goal} Golfables
-          </p>
-        </div>
-        <WeeklyGoalRing completed={sessionsThisWeek} goal={profile.weekly_goal} size={64} />
-      </div>
 
       {!loading && (
         <div className="mt-6">
