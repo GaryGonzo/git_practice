@@ -13,6 +13,16 @@ function studioSlugFromNext(next: string | null): string | null {
   return next?.match(/^\/my-studio\/([^/]+)$/)?.[1] ?? null;
 }
 
+function InfoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M10 9v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="10" cy="6.5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function SignupScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -25,6 +35,7 @@ export function SignupScreen() {
   const [tier, setTier] = useState<HandicapTier>("mid");
   const [weeklyGoal, setWeeklyGoal] = useState(4);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const [showWeeklyGoalInfo, setShowWeeklyGoalInfo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
@@ -190,9 +201,26 @@ export function SignupScreen() {
         </div>
 
         <div>
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-            Weekly goal
-          </label>
+          <div className="flex items-center gap-1.5">
+            <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              Weekly goal
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowWeeklyGoalInfo((v) => !v)}
+              aria-label="What is the weekly goal?"
+              className="text-neutral-400"
+            >
+              <InfoIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {showWeeklyGoalInfo && (
+            <p className="font-body mt-1 text-xs text-neutral-500">
+              How many Golfables you're aiming to play each week. It's just a personal target to track
+              your progress toward -- nothing happens if you miss it, and you can change it later in your
+              Profile.
+            </p>
+          )}
           <div className="mt-1 grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
