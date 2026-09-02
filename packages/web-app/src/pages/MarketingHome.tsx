@@ -118,6 +118,54 @@ const SNEAK_PEEK_DRILLS: { drill: Drill; maxScore: number }[] = [
   },
   {
     drill: {
+      id: "the-approach",
+      name: "The Approach",
+      category: "irons",
+      setup: {
+        equipment: ["Iron of your choice", "10 golf balls"],
+        description:
+          "Pick a green with a visible flag and play from your tier's distance: 100 yards (High), 125 yards (Mid), 150 yards (Low), or 165 yards (Scratch+). Hit 10 approach shots at the pin.",
+      },
+      rules: {
+        description:
+          "Play 3 full rounds of 10 approach shots from your tier's distance — record your best round. Each ball is judged on where it finishes, not how it looked getting there.",
+        scoring: [
+          "1 point per ball that finishes on the green",
+          "Play 3 rounds of 10 balls; your best round counts",
+          "10 balls per round",
+        ],
+      },
+      targets: { scratch: "7/10", low: "6/10", mid: "5/10", high: "3/10" },
+      scoreDirection: "higher",
+    },
+    maxScore: 10,
+  },
+  {
+    drill: {
+      id: "landing-zone",
+      name: "Landing Zone",
+      category: "wedges",
+      setup: {
+        equipment: ["Wedge", "9 golf balls", "3 target circles (10-foot radius) at 30, 50, and 70 yards"],
+        description:
+          "Find three targets on the driving range: 30, 50, and 70 yards out. Imagine a 10-foot circle landing zone around each one. Hit 3 balls to each distance, across 3 rounds — record your best score.",
+      },
+      rules: {
+        description:
+          "Play 3 balls per distance, starting at 30 yards and working out to 70. A ball counts if it lands inside the circle.",
+        scoring: [
+          "1 point per ball landing inside its circle",
+          "Play 3 rounds; record your best score",
+          "9 balls per round across the 3 distances",
+        ],
+      },
+      targets: { scratch: "7/9", low: "5/9", mid: "3/9", high: "1/9" },
+      scoreDirection: "higher",
+    },
+    maxScore: 9,
+  },
+  {
+    drill: {
       id: "the-gate",
       name: "The Gate",
       category: "putter",
@@ -796,14 +844,14 @@ export function MarketingHome() {
         <section className="bg-neutral-50 px-6 py-20 sm:py-28">
           <Reveal className="mx-auto max-w-3xl">
             <Eyebrow>How it works</Eyebrow>
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
               {HOW_IT_WORKS.map((item) => (
-                <div key={item.step} className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-                  <div className="font-display bg-brand flex h-8 w-8 items-center justify-center rounded-full text-sm text-white">
+                <div key={item.step} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
+                  <div className="font-display bg-brand flex h-7 w-7 items-center justify-center rounded-full text-sm text-white sm:h-8 sm:w-8">
                     {item.step}
                   </div>
-                  <h3 className="font-label mt-3 text-base font-semibold">{item.title}</h3>
-                  <p className="font-body mt-1.5 text-sm text-neutral-600">{item.body}</p>
+                  <h3 className="font-label mt-3 text-sm font-semibold sm:text-base">{item.title}</h3>
+                  <p className="font-body mt-1.5 text-xs text-neutral-600 sm:text-sm">{item.body}</p>
                 </div>
               ))}
             </div>
@@ -814,14 +862,14 @@ export function MarketingHome() {
           <Reveal className="mx-auto max-w-3xl">
             <Eyebrow tone="dark">A Peek Inside the App</Eyebrow>
             <p className="font-body mx-auto mt-3 max-w-xl text-center text-sm text-white/70">
-              Two real Golfables, shown exactly how they'd land on your Today screen the moment you open
-              the app.
+              Four real Golfables, one per skill category, shown exactly how they'd land on your Today
+              screen the moment you open the app. Swipe to see more.
             </p>
-            <div className="mt-10 grid justify-items-center gap-10 sm:grid-cols-2">
+            <div className="no-scrollbar -mx-6 mt-10 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-2">
               {SNEAK_PEEK_DRILLS.map(({ drill, maxScore }) => (
                 <div
                   key={drill.id}
-                  className="w-full max-w-[300px] rounded-[2.25rem] bg-neutral-900 p-2.5 shadow-2xl"
+                  className="w-[260px] flex-none snap-center rounded-[2.25rem] bg-neutral-900 p-2.5 shadow-2xl sm:w-[280px]"
                 >
                   <div className="flex justify-center pt-1 pb-1.5">
                     <div className="h-1.5 w-16 rounded-full bg-neutral-700" />
@@ -934,16 +982,16 @@ export function MarketingHome() {
               New this month: a bag that knows your yardages, a handicap that tracks itself, and a score
               built to show your real progress.
             </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4">
               {NEW_FEATURES.map((feature) => {
                 const Icon = feature.icon;
                 return (
-                  <div key={feature.title} className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-                    <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
-                      <Icon className="h-5 w-5" />
+                  <div key={feature.title} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
+                    <div className="bg-brand/10 text-brand flex h-9 w-9 items-center justify-center rounded-full sm:h-11 sm:w-11">
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <h4 className="font-label mt-3 text-base font-semibold">{feature.title}</h4>
-                    <p className="font-body mt-1.5 text-sm text-neutral-600">{feature.body}</p>
+                    <h4 className="font-label mt-3 text-sm font-semibold sm:text-base">{feature.title}</h4>
+                    <p className="font-body mt-1.5 text-xs text-neutral-600 sm:text-sm">{feature.body}</p>
                   </div>
                 );
               })}
@@ -960,16 +1008,16 @@ export function MarketingHome() {
             <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
               A free set of tools that live right in the app — no extra gadgets required.
             </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
               {TRAINING_TOOLS.map((tool) => {
                 const Icon = tool.icon;
                 return (
-                  <div key={tool.name} className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-                    <div className="bg-brand/10 text-brand flex h-11 w-11 items-center justify-center rounded-full">
-                      <Icon className="h-5 w-5" />
+                  <div key={tool.name} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
+                    <div className="bg-brand/10 text-brand flex h-9 w-9 items-center justify-center rounded-full sm:h-11 sm:w-11">
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <h4 className="font-label mt-3 text-base font-semibold">{tool.name}</h4>
-                    <p className="font-body mt-1.5 text-sm text-neutral-600">{tool.body}</p>
+                    <h4 className="font-label mt-3 text-sm font-semibold sm:text-base">{tool.name}</h4>
+                    <p className="font-body mt-1.5 text-xs text-neutral-600 sm:text-sm">{tool.body}</p>
                   </div>
                 );
               })}
@@ -1003,24 +1051,24 @@ export function MarketingHome() {
               Every Golfable falls into one of four categories, each with its own badge, color, and spot
               on the weekly calendar.
             </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4">
               {SKILL_CATEGORIES.map((category) => {
                 const info = CATEGORY_INFO[category];
                 const detail = CATEGORY_DETAIL[category];
                 return (
-                  <div key={category} className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center gap-3">
+                  <div key={category} className="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm sm:p-5">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <div
-                        className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
+                        className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white sm:h-10 sm:w-10 ${CATEGORY_BG[category]}`}
                       >
-                        <CategoryIcon category={category} className="h-5 w-5" />
+                        <CategoryIcon category={category} className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
-                      <span className={`font-label text-lg font-semibold ${CATEGORY_TEXT[category]}`}>
+                      <span className={`font-label text-sm font-semibold sm:text-lg ${CATEGORY_TEXT[category]}`}>
                         {info.label}
                       </span>
                     </div>
-                    <p className="font-body mt-3 text-sm text-neutral-700">{detail.description}</p>
-                    <p className="font-label mt-3 text-sm font-semibold tracking-wide text-neutral-500 uppercase">
+                    <p className="font-body mt-3 text-xs text-neutral-700 sm:text-sm">{detail.description}</p>
+                    <p className="font-label mt-3 text-xs font-semibold tracking-wide text-neutral-500 uppercase sm:text-sm">
                       {detail.schedule}
                     </p>
                   </div>
@@ -1084,19 +1132,19 @@ export function MarketingHome() {
               Targets get tougher as your handicap gets lower — the most fun way to get into the game and
               start practicing real skills, wherever you're starting from.
             </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4">
               {HANDICAP_TIERS.map((tier) => {
                 const info = TIER_INFO[tier];
                 const detail = TIER_DETAIL[tier];
                 return (
-                  <div key={tier} className={`rounded-xl border-2 bg-white p-5 shadow-sm ${TIER_BORDER[tier]}`}>
-                    <div className="flex items-baseline gap-2">
-                      <span className={`font-display text-3xl tracking-wide ${TIER_TEXT[tier]}`}>
+                  <div key={tier} className={`rounded-xl border-2 bg-white p-3.5 shadow-sm sm:p-5 ${TIER_BORDER[tier]}`}>
+                    <div className="flex items-baseline gap-1.5 sm:gap-2">
+                      <span className={`font-display text-2xl tracking-wide sm:text-3xl ${TIER_TEXT[tier]}`}>
                         {info.label}
                       </span>
-                      <span className="font-label text-sm text-neutral-500">{info.sublabel}</span>
+                      <span className="font-label text-xs text-neutral-500 sm:text-sm">{info.sublabel}</span>
                     </div>
-                    <p className="font-body mt-3 text-sm text-neutral-700">{detail.description}</p>
+                    <p className="font-body mt-3 text-xs text-neutral-700 sm:text-sm">{detail.description}</p>
                   </div>
                 );
               })}
@@ -1113,20 +1161,20 @@ export function MarketingHome() {
             <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
               No gimmicks, no upsells — just the tools that make practice worth showing up for.
             </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
               {MEMBER_BENEFITS.map((benefit) => {
                 const Icon = benefit.icon;
                 return (
-                  <div key={benefit.title} className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+                  <div key={benefit.title} className="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm sm:p-5">
                     <div
-                      className={`flex h-11 w-11 items-center justify-center rounded-full ${
+                      className={`flex h-9 w-9 items-center justify-center rounded-full sm:h-11 sm:w-11 ${
                         benefit.accent === "gold" ? "bg-gold/15 text-gold" : "bg-brand/10 text-brand"
                       }`}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <h4 className="font-label mt-3 text-base font-semibold">{benefit.title}</h4>
-                    <p className="font-body mt-1.5 text-sm text-neutral-600">{benefit.body}</p>
+                    <h4 className="font-label mt-3 text-sm font-semibold sm:text-base">{benefit.title}</h4>
+                    <p className="font-body mt-1.5 text-xs text-neutral-600 sm:text-sm">{benefit.body}</p>
                   </div>
                 );
               })}
