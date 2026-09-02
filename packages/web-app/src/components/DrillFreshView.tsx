@@ -1,6 +1,13 @@
 import { Link } from "react-router-dom";
 import type { Drill, HandicapTier } from "@golfable/shared";
-import { TIER_INFO, isBetterScore, isTargetHit, formatScore } from "@golfable/shared";
+import {
+  TIER_INFO,
+  isBetterScore,
+  isTargetHit,
+  formatScore,
+  generatePuttingHoleDistances,
+  PUTTING_ROTATION_DRILL_IDS,
+} from "@golfable/shared";
 import { WeeklyGoalRing } from "./WeeklyGoalRing";
 import { DrillHeroImage } from "./DrillHeroImage";
 
@@ -62,6 +69,8 @@ interface DrillFreshViewProps {
   maxScore: number;
   weeklyGoal: number;
   sessionsThisWeek: number;
+  /** The date this round is being played for -- seeds the putting-rotation distances so everyone playing that day sees the same 18 holes */
+  date: string;
   /** false renders the score form as a non-functional preview (marketing use) */
   interactive?: boolean;
   scoreInput?: string;
@@ -87,6 +96,7 @@ export function DrillFreshView({
   maxScore,
   weeklyGoal,
   sessionsThisWeek,
+  date,
   interactive = true,
   scoreInput = "",
   onScoreInputChange,
@@ -100,6 +110,9 @@ export function DrillFreshView({
 }: DrillFreshViewProps) {
   const tierTarget = drill.targets[tier];
   const tierInfo = TIER_INFO[tier];
+  const puttingDistances = (PUTTING_ROTATION_DRILL_IDS as readonly string[]).includes(drill.id)
+    ? generatePuttingHoleDistances(date)
+    : null;
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-6">
@@ -125,6 +138,20 @@ export function DrillFreshView({
             <li key={item}>{item}</li>
           ))}
         </ul>
+        {puttingDistances && (
+          <div className="mt-2 border-t border-neutral-100 pt-2">
+            <p className="font-label mb-1 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+              Today's 18 Holes
+            </p>
+            <div className="grid grid-cols-3 gap-x-3 gap-y-1">
+              {puttingDistances.map((distance, i) => (
+                <p key={i} className="font-body text-sm text-neutral-700">
+                  Hole {i + 1}: <span className="font-semibold">{distance} ft</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
         {drill.targetYardage !== undefined && (
           <div className="mt-2 border-t border-neutral-100 pt-2">
             <p className="font-body text-sm text-neutral-700">Distance: {drill.targetYardage} yds</p>

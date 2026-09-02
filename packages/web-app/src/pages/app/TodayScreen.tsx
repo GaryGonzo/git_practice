@@ -228,6 +228,7 @@ export function TodayScreen() {
         maxScore={maxScore}
         weeklyGoal={profile.weekly_goal}
         sessionsThisWeek={sessionsThisWeek}
+        date={date}
         scoreInput={scoreInput}
         onScoreInputChange={(value) => {
           setScoreInput(value);

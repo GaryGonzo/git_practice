@@ -12,7 +12,7 @@ import {
 import { GolfableMark } from "../components/GolfableMark";
 import { DrillFreshView } from "../components/DrillFreshView";
 import { CategoryIcon } from "../components/CategoryIcon";
-import { FOUNDER_SPOTS, getFounderSpotsRemaining } from "../lib/golfableApi";
+import { FOUNDER_SPOTS, getFounderSpotsRemaining, todayISO } from "../lib/golfableApi";
 
 // Once fewer than this fraction of founder spots remain, swap the generic
 // banner for a live countdown -- the scarcity reads as more real once it's
@@ -967,6 +967,7 @@ export function MarketingHome() {
                       maxScore={maxScore}
                       weeklyGoal={4}
                       sessionsThisWeek={2}
+                      date={todayISO()}
                       interactive={false}
                     />
                   </div>
