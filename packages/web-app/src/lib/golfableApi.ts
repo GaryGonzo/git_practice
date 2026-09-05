@@ -1630,7 +1630,10 @@ export async function getRoundHoles(roundId: string): Promise<RoundHole[]> {
 
 // Creates the round plus one blank hole row per hole (par defaulted to 4,
 // the most common -- adjusted per hole as you play since there's no course
-// data to pull real pars from).
+// data to pull real pars from; putts defaulted to 2, a green in
+// regulation's expectation -- both are real stored values from the start,
+// not just what the editor happens to display, so a hole nobody touches
+// still scores as a 2-putt instead of coming back blank).
 export async function startRound(userId: string, holeCount: 9 | 18): Promise<Round> {
   const { data, error } = await supabase
     .from("rounds")
@@ -1644,6 +1647,7 @@ export async function startRound(userId: string, holeCount: 9 | 18): Promise<Rou
     user_id: userId,
     hole_number: i + 1,
     par: 4,
+    putts: 2,
   }));
   const { error: holesError } = await supabase.from("round_holes").insert(holes);
   if (holesError) throw holesError;
