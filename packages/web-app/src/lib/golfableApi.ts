@@ -1230,6 +1230,7 @@ export interface ForumThread {
   status: ForumContentStatus;
   pinned: boolean;
   createdAt: string;
+  editedAt: string | null;
   authorId: string;
   authorFirstName: string;
   authorLastName: string;
@@ -1241,13 +1242,14 @@ export interface ForumReply {
   body: string;
   status: ForumContentStatus;
   createdAt: string;
+  editedAt: string | null;
   authorId: string;
   authorFirstName: string;
   authorLastName: string;
 }
 
 // How many new things are waiting in the forum since this user last opened
-// it -- computed server-side (get_forum_notification_count) since what
+// it -- computed server-side (get_forum_notification_counts) since what
 // counts differs by role: admins see every new thread (not replies);
 // everyone else sees new admin threads plus replies to threads they
 // started. Scoped per category (not one global cursor) so the hub screen
@@ -1316,7 +1318,9 @@ export async function getForumThreads(categoryId: string): Promise<ForumThreadSu
 export async function getForumThread(threadId: string): Promise<ForumThread | null> {
   const { data } = await supabase
     .from("forum_threads")
-    .select("id, category_id, title, body, status, pinned, created_at, author_id, profiles!inner(first_name, last_name)")
+    .select(
+      "id, category_id, title, body, status, pinned, created_at, edited_at, author_id, profiles!inner(first_name, last_name)"
+    )
     .eq("id", threadId)
     .maybeSingle();
   if (!data) return null;
@@ -1329,6 +1333,7 @@ export async function getForumThread(threadId: string): Promise<ForumThread | nu
     status: data.status as ForumContentStatus,
     pinned: data.pinned,
     createdAt: data.created_at,
+    editedAt: data.edited_at,
     authorId: data.author_id,
     authorFirstName: author.first_name as string,
     authorLastName: author.last_name as string,
@@ -1340,7 +1345,7 @@ export async function getForumThread(threadId: string): Promise<ForumThread | nu
 export async function getForumReplies(threadId: string): Promise<ForumReply[]> {
   const { data } = await supabase
     .from("forum_replies")
-    .select("id, thread_id, body, status, created_at, author_id, profiles!inner(first_name, last_name)")
+    .select("id, thread_id, body, status, created_at, edited_at, author_id, profiles!inner(first_name, last_name)")
     .eq("thread_id", threadId)
     .order("created_at", { ascending: true });
   if (!data) return [];
@@ -1352,6 +1357,7 @@ export async function getForumReplies(threadId: string): Promise<ForumReply[]> {
       body: row.body as string,
       status: row.status as ForumContentStatus,
       createdAt: row.created_at as string,
+      editedAt: row.edited_at as string | null,
       authorId: row.author_id as string,
       authorFirstName: author.first_name as string,
       authorLastName: author.last_name as string,
@@ -1390,6 +1396,39 @@ export async function createForumReply(accessToken: string, threadId: string, bo
   const result = await res.json();
   if (!res.ok) throw new Error(result.error ?? "Couldn't post that reply -- try again.");
   return { id: result.id, status: result.status, createdAt: result.createdAt };
+}
+
+export interface ForumEditResult {
+  id: string;
+  status: ForumContentStatus;
+  editedAt: string;
+}
+
+export async function editForumThread(
+  accessToken: string,
+  threadId: string,
+  title: string,
+  body: string
+): Promise<ForumEditResult> {
+  const res = await fetch("/api/forum-edit-thread", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ threadId, title, body }),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error ?? "Couldn't save that edit -- try again.");
+  return { id: result.id, status: result.status, editedAt: result.editedAt };
+}
+
+export async function editForumReply(accessToken: string, replyId: string, body: string): Promise<ForumEditResult> {
+  const res = await fetch("/api/forum-edit-reply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ replyId, body }),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error ?? "Couldn't save that edit -- try again.");
+  return { id: result.id, status: result.status, editedAt: result.editedAt };
 }
 
 // ---------------------------------------------------------------------------
