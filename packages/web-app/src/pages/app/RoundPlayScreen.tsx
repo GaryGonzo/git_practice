@@ -92,6 +92,12 @@ function greenCellText(hole: RoundHole): string {
   return hole.greenMissDirection ? GREEN_MISS_LABELS[hole.greenMissDirection] : "✕";
 }
 
+// Only applicable on a hole where the green was actually missed.
+function upAndDownCellText(hole: RoundHole): string {
+  if (hole.greenInRegulation !== false || hole.upAndDown === null) return "--";
+  return hole.upAndDown ? "✓" : "✕";
+}
+
 function Stepper({
   value,
   onChange,
@@ -121,6 +127,41 @@ function Stepper({
         className="font-label flex h-9 w-9 flex-none items-center justify-center rounded-full border border-neutral-300 text-lg font-semibold text-neutral-600 disabled:opacity-40"
       >
         +
+      </button>
+    </div>
+  );
+}
+
+function ToggleGroup({
+  value,
+  onChange,
+  yesLabel,
+  noLabel,
+}: {
+  value: boolean | null;
+  onChange: (value: boolean) => void;
+  yesLabel: string;
+  noLabel: string;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        onClick={() => onChange(true)}
+        className={`font-label rounded-md border px-3 py-2 text-sm font-semibold ${
+          value === true ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+        }`}
+      >
+        {yesLabel}
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange(false)}
+        className={`font-label rounded-md border px-3 py-2 text-sm font-semibold ${
+          value === false ? "border-neutral-700 bg-neutral-700 text-white" : "border-neutral-300 text-neutral-600"
+        }`}
+      >
+        {noLabel}
       </button>
     </div>
   );
@@ -319,6 +360,7 @@ export function RoundPlayScreen() {
     if (updates.greenMissDirection !== undefined) patch.greenMissDirection = updates.greenMissDirection;
     if (updates.putts !== undefined) patch.putts = updates.putts;
     if (updates.penaltyStrokes !== undefined) patch.penaltyStrokes = updates.penaltyStrokes;
+    if (updates.upAndDown !== undefined) patch.upAndDown = updates.upAndDown;
     return patch;
   }
 
@@ -375,7 +417,13 @@ export function RoundPlayScreen() {
               Fairways Hit
             </p>
           </div>
-          <div className="col-span-2 rounded-lg border border-neutral-200 bg-white p-4 text-center">
+          <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center">
+            <p className="font-display text-3xl">
+              {stats.upAndDownOpportunities > 0 ? `${stats.upAndDownHit}/${stats.upAndDownOpportunities}` : "--"}
+            </p>
+            <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Up &amp; Down</p>
+          </div>
+          <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center">
             <p className="font-display text-3xl">{stats.totalPenalties}</p>
             <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
               Penalty Strokes
@@ -395,6 +443,7 @@ export function RoundPlayScreen() {
                 <th className="px-2 py-2">Score</th>
                 <th className="px-2 py-2">FIR</th>
                 <th className="px-2 py-2">GIR</th>
+                <th className="px-2 py-2">U&amp;D</th>
                 <th className="px-2 py-2">Putts</th>
                 <th className="px-2 py-2">Pen.</th>
               </tr>
@@ -417,6 +466,7 @@ export function RoundPlayScreen() {
                   </td>
                   <td className="px-2 py-1.5">{fairwayCellText(hole)}</td>
                   <td className="px-2 py-1.5">{greenCellText(hole)}</td>
+                  <td className="px-2 py-1.5">{upAndDownCellText(hole)}</td>
                   <td className={`px-2 py-1.5 font-semibold ${hole.putts !== null ? puttsColorClass(hole.putts) : ""}`}>
                     {hole.putts ?? "--"}
                   </td>
@@ -542,11 +592,27 @@ export function RoundPlayScreen() {
             <GreenControl
               hit={hole.greenInRegulation}
               missDirection={hole.greenMissDirection}
-              onHit={() => patchHole(hole.id, { greenInRegulation: true, greenMissDirection: null })}
+              onHit={() => patchHole(hole.id, { greenInRegulation: true, greenMissDirection: null, upAndDown: null })}
               onMiss={(direction) => patchHole(hole.id, { greenInRegulation: false, greenMissDirection: direction })}
             />
           </div>
         </div>
+
+        {hole.greenInRegulation === false && (
+          <div>
+            <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              Up &amp; Down
+            </label>
+            <div className="mt-1">
+              <ToggleGroup
+                value={hole.upAndDown}
+                onChange={(value) => patchHole(hole.id, { upAndDown: value })}
+                yesLabel="Saved It"
+                noLabel="Missed"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
           <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Putts</label>
