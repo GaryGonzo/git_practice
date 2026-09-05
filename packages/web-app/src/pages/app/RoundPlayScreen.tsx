@@ -11,6 +11,8 @@ import {
   type Round,
   type RoundHole,
   type RoundHoleUpdate,
+  type FairwayMissSide,
+  type GreenMissDirection,
 } from "../../lib/golfableApi";
 
 function BackIcon({ className }: { className?: string }) {
@@ -44,6 +46,31 @@ function formatDate(iso: string): string {
 function scoreToParLabel(scoreToPar: number): string {
   if (scoreToPar === 0) return "E";
   return scoreToPar > 0 ? `+${scoreToPar}` : `${scoreToPar}`;
+}
+
+const FAIRWAY_MISS_LABELS: Record<FairwayMissSide, string> = { left: "L", right: "R" };
+
+const GREEN_MISS_LABELS: Record<GreenMissDirection, string> = {
+  long: "Lo",
+  long_right: "Lo-R",
+  right: "R",
+  short_right: "Sh-R",
+  short: "Sh",
+  short_left: "Sh-L",
+  left: "L",
+  long_left: "Lo-L",
+};
+
+function fairwayCellText(hole: RoundHole): string {
+  if (hole.par === 3 || hole.fairwayHit === null) return "--";
+  if (hole.fairwayHit) return "✓";
+  return hole.fairwayMissSide ? FAIRWAY_MISS_LABELS[hole.fairwayMissSide] : "✕";
+}
+
+function greenCellText(hole: RoundHole): string {
+  if (hole.greenInRegulation === null) return "--";
+  if (hole.greenInRegulation) return "✓";
+  return hole.greenMissDirection ? GREEN_MISS_LABELS[hole.greenMissDirection] : "✕";
 }
 
 function Stepper({
@@ -80,37 +107,121 @@ function Stepper({
   );
 }
 
-function ToggleGroup({
-  value,
-  onChange,
-  yesLabel,
-  noLabel,
+// Left / Hit / Right in a row -- mirrors standing over the ball and missing
+// one way or the other, simpler than the green's 8-way miss since there's
+// no long/short axis off the tee.
+function FairwayControl({
+  hit,
+  missSide,
+  onHit,
+  onMiss,
 }: {
-  value: boolean | null;
-  onChange: (value: boolean) => void;
-  yesLabel: string;
-  noLabel: string;
+  hit: boolean | null;
+  missSide: FairwayMissSide | null;
+  onHit: () => void;
+  onMiss: (side: FairwayMissSide) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-3 gap-2">
       <button
         type="button"
-        onClick={() => onChange(true)}
+        onClick={() => onMiss("left")}
         className={`font-label rounded-md border px-3 py-2 text-sm font-semibold ${
-          value === true ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+          hit === false && missSide === "left" ? "bg-neutral-700 border-neutral-700 text-white" : "border-neutral-300 text-neutral-600"
         }`}
       >
-        {yesLabel}
+        Left
       </button>
       <button
         type="button"
-        onClick={() => onChange(false)}
-        className={`font-label rounded-md border px-3 py-2 text-sm font-semibold ${
-          value === false ? "border-neutral-500 bg-neutral-500 text-white" : "border-neutral-300 text-neutral-600"
+        onClick={onHit}
+        className={`font-label rounded-md border-2 px-3 py-2 text-sm font-semibold ${
+          hit === true ? "bg-brand border-brand text-white" : "border-brand text-brand"
         }`}
       >
-        {noLabel}
+        Hit
       </button>
+      <button
+        type="button"
+        onClick={() => onMiss("right")}
+        className={`font-label rounded-md border px-3 py-2 text-sm font-semibold ${
+          hit === false && missSide === "right" ? "bg-neutral-700 border-neutral-700 text-white" : "border-neutral-300 text-neutral-600"
+        }`}
+      >
+        Right
+      </button>
+    </div>
+  );
+}
+
+const GREEN_GRID: (GreenMissDirection | "hit")[] = [
+  "long_left",
+  "long",
+  "long_right",
+  "left",
+  "hit",
+  "right",
+  "short_left",
+  "short",
+  "short_right",
+];
+
+const GREEN_GRID_LABELS: Record<GreenMissDirection, string> = {
+  long_left: "Long\nLeft",
+  long: "Long",
+  long_right: "Long\nRight",
+  left: "Left",
+  right: "Right",
+  short_left: "Short\nLeft",
+  short: "Short",
+  short_right: "Short\nRight",
+};
+
+// 3x3 grid standing in for a green from above -- tap the middle for a hit,
+// or whichever direction the miss actually went. Long/short (relative to
+// the pin) plus left/right covers all 8 misses a green can take.
+function GreenControl({
+  hit,
+  missDirection,
+  onHit,
+  onMiss,
+}: {
+  hit: boolean | null;
+  missDirection: GreenMissDirection | null;
+  onHit: () => void;
+  onMiss: (direction: GreenMissDirection) => void;
+}) {
+  return (
+    <div className="mx-auto grid max-w-[260px] grid-cols-3 gap-2">
+      {GREEN_GRID.map((cell) => {
+        if (cell === "hit") {
+          return (
+            <button
+              key="hit"
+              type="button"
+              onClick={onHit}
+              className={`font-label aspect-square rounded-full border-2 text-xs font-semibold ${
+                hit === true ? "bg-brand border-brand text-white" : "border-brand text-brand"
+              }`}
+            >
+              Hit
+            </button>
+          );
+        }
+        const active = hit === false && missDirection === cell;
+        return (
+          <button
+            key={cell}
+            type="button"
+            onClick={() => onMiss(cell)}
+            className={`font-label aspect-square rounded-lg border text-xs leading-tight font-semibold whitespace-pre-line ${
+              active ? "bg-neutral-700 border-neutral-700 text-white" : "border-neutral-300 text-neutral-600"
+            }`}
+          >
+            {GREEN_GRID_LABELS[cell]}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -124,6 +235,10 @@ export function RoundPlayScreen() {
   const [holes, setHoles] = useState<RoundHole[]>([]);
   const [holeIndex, setHoleIndex] = useState(0);
   const [finishing, setFinishing] = useState(false);
+  // Lets a finished round be reopened into the same hole-by-hole editor --
+  // separate from round.completedAt so re-editing doesn't require (or
+  // trigger) finishing it again.
+  const [forceEditor, setForceEditor] = useState(false);
 
   useEffect(() => {
     if (!roundId) return;
@@ -153,6 +268,7 @@ export function RoundPlayScreen() {
   }
 
   const stats = computeRoundStats(holes);
+  const isEditingCompleted = Boolean(round.completedAt) && forceEditor;
 
   async function handleFinish() {
     if (!round) return;
@@ -179,20 +295,34 @@ export function RoundPlayScreen() {
     if (updates.par !== undefined) patch.par = updates.par;
     if (updates.score !== undefined) patch.score = updates.score;
     if (updates.fairwayHit !== undefined) patch.fairwayHit = updates.fairwayHit;
+    if (updates.fairwayMissSide !== undefined) patch.fairwayMissSide = updates.fairwayMissSide;
     if (updates.greenInRegulation !== undefined) patch.greenInRegulation = updates.greenInRegulation;
+    if (updates.greenMissDirection !== undefined) patch.greenMissDirection = updates.greenMissDirection;
     if (updates.putts !== undefined) patch.putts = updates.putts;
     if (updates.penaltyStrokes !== undefined) patch.penaltyStrokes = updates.penaltyStrokes;
     return patch;
   }
 
-  // --- Completed round: read-only summary ---
-  if (round.completedAt) {
+  // --- Completed round: read-only summary (unless reopened for editing) ---
+  if (round.completedAt && !forceEditor) {
     return (
       <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-        <Link to="/app/round" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
-          <BackIcon className="h-4 w-4" />
-          Back to Round Tracker
-        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <Link to="/app/round" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
+            <BackIcon className="h-4 w-4" />
+            Back to Round Tracker
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              setHoleIndex(0);
+              setForceEditor(true);
+            }}
+            className="font-label text-brand flex-none text-xs font-semibold underline"
+          >
+            Edit Round
+          </button>
+        </div>
 
         <h1 className="font-display mt-3 text-2xl tracking-wide">
           {round.holeCount}-Hole Round
@@ -256,8 +386,8 @@ export function RoundPlayScreen() {
                   <td className="px-2 py-1.5 text-left font-semibold">{hole.holeNumber}</td>
                   <td className="px-2 py-1.5">{hole.par}</td>
                   <td className="px-2 py-1.5">{hole.score ?? "--"}</td>
-                  <td className="px-2 py-1.5">{hole.par === 3 ? "--" : hole.fairwayHit === null ? "--" : hole.fairwayHit ? "✓" : "✕"}</td>
-                  <td className="px-2 py-1.5">{hole.greenInRegulation === null ? "--" : hole.greenInRegulation ? "✓" : "✕"}</td>
+                  <td className="px-2 py-1.5">{fairwayCellText(hole)}</td>
+                  <td className="px-2 py-1.5">{greenCellText(hole)}</td>
                   <td className="px-2 py-1.5">{hole.putts ?? "--"}</td>
                   <td className="px-2 py-1.5">{hole.penaltyStrokes}</td>
                 </tr>
@@ -269,22 +399,36 @@ export function RoundPlayScreen() {
     );
   }
 
-  // --- In-progress round: live editor ---
+  // --- Live editor: a fresh round in progress, or a completed one reopened ---
   const hole = holes[holeIndex];
   if (!hole) {
     return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
   }
+  const isLastHole = holeIndex === holes.length - 1;
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <div className="flex items-center justify-between">
-        <Link to="/app/round" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
-          <BackIcon className="h-4 w-4" />
-          Round Tracker
-        </Link>
-        <button type="button" onClick={handleAbandon} className="font-label text-xs font-semibold text-neutral-400 underline">
-          Discard round
-        </button>
+        {isEditingCompleted ? (
+          <button
+            type="button"
+            onClick={() => setForceEditor(false)}
+            className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500"
+          >
+            <BackIcon className="h-4 w-4" />
+            Back to Summary
+          </button>
+        ) : (
+          <Link to="/app/round" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
+            <BackIcon className="h-4 w-4" />
+            Round Tracker
+          </Link>
+        )}
+        {!isEditingCompleted && (
+          <button type="button" onClick={handleAbandon} className="font-label text-xs font-semibold text-neutral-400 underline">
+            Discard round
+          </button>
+        )}
       </div>
 
       <div className="mt-4 flex items-center justify-between rounded-lg bg-brand px-4 py-3 text-white">
@@ -312,7 +456,7 @@ export function RoundPlayScreen() {
         <button
           type="button"
           onClick={() => setHoleIndex((i) => Math.min(holes.length - 1, i + 1))}
-          disabled={holeIndex === holes.length - 1}
+          disabled={isLastHole}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-300 text-neutral-500 disabled:opacity-30"
         >
           <ChevronRightIcon className="h-5 w-5" />
@@ -346,29 +490,29 @@ export function RoundPlayScreen() {
         {hole.par !== 3 && (
           <div>
             <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-              Fairway Hit
+              Fairway
             </label>
             <div className="mt-1">
-              <ToggleGroup
-                value={hole.fairwayHit}
-                onChange={(value) => patchHole(hole.id, { fairwayHit: value })}
-                yesLabel="Hit"
-                noLabel="Missed"
+              <FairwayControl
+                hit={hole.fairwayHit}
+                missSide={hole.fairwayMissSide}
+                onHit={() => patchHole(hole.id, { fairwayHit: true, fairwayMissSide: null })}
+                onMiss={(side) => patchHole(hole.id, { fairwayHit: false, fairwayMissSide: side })}
               />
             </div>
           </div>
         )}
 
         <div>
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-            Green in Regulation
+          <label className="font-label block text-center text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+            Green
           </label>
           <div className="mt-1">
-            <ToggleGroup
-              value={hole.greenInRegulation}
-              onChange={(value) => patchHole(hole.id, { greenInRegulation: value })}
-              yesLabel="Hit"
-              noLabel="Missed"
+            <GreenControl
+              hit={hole.greenInRegulation}
+              missDirection={hole.greenMissDirection}
+              onHit={() => patchHole(hole.id, { greenInRegulation: true, greenMissDirection: null })}
+              onMiss={(direction) => patchHole(hole.id, { greenInRegulation: false, greenMissDirection: direction })}
             />
           </div>
         </div>
@@ -386,14 +530,34 @@ export function RoundPlayScreen() {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleFinish}
-        disabled={finishing || !profile}
-        className="font-label bg-brand mt-8 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-      >
-        {finishing ? "Finishing…" : "Finish Round"}
-      </button>
+      <div className="mt-8 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setHoleIndex((i) => Math.min(holes.length - 1, i + 1))}
+          disabled={isLastHole}
+          className="font-label bg-brand flex-1 rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+        >
+          Next Hole
+        </button>
+        {isEditingCompleted ? (
+          <button
+            type="button"
+            onClick={() => setForceEditor(false)}
+            className="font-label flex-none rounded-md border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-600"
+          >
+            Done
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleFinish}
+            disabled={finishing || !profile}
+            className="font-label flex-none rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {finishing ? "Finishing…" : "Finish Round"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -1521,6 +1521,18 @@ export interface Round {
   completedAt: string | null;
 }
 
+export type FairwayMissSide = "left" | "right";
+
+export type GreenMissDirection =
+  | "long"
+  | "long_right"
+  | "right"
+  | "short_right"
+  | "short"
+  | "short_left"
+  | "left"
+  | "long_left";
+
 export interface RoundHole {
   id: string;
   roundId: string;
@@ -1528,7 +1540,9 @@ export interface RoundHole {
   par: number;
   score: number | null;
   fairwayHit: boolean | null;
+  fairwayMissSide: FairwayMissSide | null;
   greenInRegulation: boolean | null;
+  greenMissDirection: GreenMissDirection | null;
   putts: number | null;
   penaltyStrokes: number;
 }
@@ -1549,7 +1563,9 @@ function toRoundHole(row: {
   par: number;
   score: number | null;
   fairway_hit: boolean | null;
+  fairway_miss_side: string | null;
   green_in_regulation: boolean | null;
+  green_miss_direction: string | null;
   putts: number | null;
   penalty_strokes: number;
 }): RoundHole {
@@ -1560,14 +1576,17 @@ function toRoundHole(row: {
     par: row.par,
     score: row.score,
     fairwayHit: row.fairway_hit,
+    fairwayMissSide: row.fairway_miss_side as FairwayMissSide | null,
     greenInRegulation: row.green_in_regulation,
+    greenMissDirection: row.green_miss_direction as GreenMissDirection | null,
     putts: row.putts,
     penaltyStrokes: row.penalty_strokes,
   };
 }
 
 const ROUND_COLUMNS = "id, hole_count, started_at, completed_at";
-const ROUND_HOLE_COLUMNS = "id, round_id, hole_number, par, score, fairway_hit, green_in_regulation, putts, penalty_strokes";
+const ROUND_HOLE_COLUMNS =
+  "id, round_id, hole_number, par, score, fairway_hit, fairway_miss_side, green_in_regulation, green_miss_direction, putts, penalty_strokes";
 
 // A round left in progress (completed_at still null) -- at most one at a
 // time in practice, since starting a new one has no reason to happen while
@@ -1636,7 +1655,9 @@ export interface RoundHoleUpdate {
   par?: number;
   score?: number | null;
   fairwayHit?: boolean | null;
+  fairwayMissSide?: FairwayMissSide | null;
   greenInRegulation?: boolean | null;
+  greenMissDirection?: GreenMissDirection | null;
   putts?: number | null;
   penaltyStrokes?: number;
 }
@@ -1646,7 +1667,9 @@ export async function updateRoundHole(holeId: string, updates: RoundHoleUpdate):
   if (updates.par !== undefined) payload.par = updates.par;
   if (updates.score !== undefined) payload.score = updates.score;
   if (updates.fairwayHit !== undefined) payload.fairway_hit = updates.fairwayHit;
+  if (updates.fairwayMissSide !== undefined) payload.fairway_miss_side = updates.fairwayMissSide;
   if (updates.greenInRegulation !== undefined) payload.green_in_regulation = updates.greenInRegulation;
+  if (updates.greenMissDirection !== undefined) payload.green_miss_direction = updates.greenMissDirection;
   if (updates.putts !== undefined) payload.putts = updates.putts;
   if (updates.penaltyStrokes !== undefined) payload.penalty_strokes = updates.penaltyStrokes;
   const { error } = await supabase.from("round_holes").update(payload).eq("id", holeId);
