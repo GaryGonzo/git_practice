@@ -167,7 +167,11 @@ export function HomeScreen() {
         </Link>
       ) : (
         <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-8 text-center font-body text-neutral-500">
-          No Golfable scheduled for today yet — check back soon.
+          New Golfables are programmed Monday-Friday. Want to play one today? Pick any drill from the{" "}
+          <Link to="/app/library" className="text-brand font-semibold underline">
+            Library
+          </Link>
+          .
         </div>
       )}
 

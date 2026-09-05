@@ -182,11 +182,19 @@ export function TodayScreen() {
         {backLink}
         <div className="mx-auto max-w-md px-4 pt-6 pb-24 text-center">
           <p className="font-body text-neutral-600">
-            {isChooseYourOwn
-              ? "Couldn't find that drill."
-              : isToday
-                ? "No Golfable is scheduled for today yet — check back soon."
-                : "No Golfable was scheduled for this date."}
+            {isChooseYourOwn ? (
+              "Couldn't find that drill."
+            ) : isToday ? (
+              <>
+                New Golfables are programmed Monday-Friday. Want to play one today? Pick any drill from the{" "}
+                <Link to="/app/library" className="text-brand font-semibold underline">
+                  Library
+                </Link>
+                .
+              </>
+            ) : (
+              "No Golfable was scheduled for this date."
+            )}
           </p>
         </div>
       </div>
