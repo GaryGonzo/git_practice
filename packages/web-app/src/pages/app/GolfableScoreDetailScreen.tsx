@@ -85,7 +85,10 @@ function OverallScoreDetail({
 
       <div className="bg-brand mt-4 rounded-lg p-5 text-center text-white">
         <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">Your Score</p>
-        <p className="font-display text-5xl">{overallScore ?? "--"}</p>
+        <p className="font-display text-5xl">
+          {overallScore ?? "--"}
+          {overallScore !== null && <span className="text-xl font-normal text-white/50">/100</span>}
+        </p>
       </div>
 
       <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
@@ -116,7 +119,10 @@ function OverallScoreDetail({
                 <CategoryIcon category={category} className="h-4 w-4" />
               </div>
               <p className="font-label min-w-0 flex-1 text-sm font-semibold">{info.label}</p>
-              <span className="font-display text-xl">{score ?? "--"}</span>
+              <span className="font-display text-xl">
+                {score ?? "--"}
+                {score !== null && <span className="text-sm font-normal text-neutral-400">/100</span>}
+              </span>
             </Link>
           );
         })}
@@ -152,7 +158,10 @@ function CategoryScoreDetail({
         <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
           {info.label} Score
         </p>
-        <p className="font-display text-5xl">{score ?? "--"}</p>
+        <p className="font-display text-5xl">
+          {score ?? "--"}
+          {score !== null && <span className="text-xl font-normal text-white/50">/100</span>}
+        </p>
       </div>
 
       <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">

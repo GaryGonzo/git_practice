@@ -23,7 +23,10 @@ export function GolfableScorePanel({ history }: { history: ScoreHistoryEntry[] }
           <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
             Golfable Score
           </p>
-          <p className="font-display text-4xl">{overallScore}</p>
+          <p className="font-display text-4xl">
+            {overallScore}
+            <span className="text-lg font-normal text-white/50">/100</span>
+          </p>
         </Link>
       ) : (
         <Link
@@ -57,7 +60,10 @@ export function GolfableScorePanel({ history }: { history: ScoreHistoryEntry[] }
                 {info.label}
               </p>
               {score !== null ? (
-                <p className="font-display text-2xl">{score}</p>
+                <p className="font-display text-2xl">
+                  {score}
+                  <span className="text-sm font-normal text-neutral-400">/100</span>
+                </p>
               ) : (
                 <p className="font-body mt-0.5 text-xs text-neutral-400">
                   {attempts}/{GOLFABLE_SCORE_MIN_ATTEMPTS} logged
