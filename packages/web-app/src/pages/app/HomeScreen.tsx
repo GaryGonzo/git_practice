@@ -12,9 +12,11 @@ const TIER_TEXT: Record<HandicapTier, string> = {
 import { useAuth } from "../../lib/AuthProvider";
 import { WeeklyGoalBar } from "../../components/WeeklyGoalBar";
 import { GolfableScorePanel } from "../../components/GolfableScorePanel";
+import { NotificationBadge } from "../../components/NotificationBadge";
 import { ForumIcon } from "../../components/AppNav";
 import {
   getDrillForDate,
+  getForumNotificationCount,
   getGlobalLeaderboard,
   getMyScoreForDate,
   getScoreHistory,
@@ -80,6 +82,12 @@ export function HomeScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [studio, setStudio] = useState<Studio | null>(null);
   const [scoreHistory, setScoreHistory] = useState<ScoreHistoryEntry[]>([]);
+  const [forumUnread, setForumUnread] = useState(0);
+
+  useEffect(() => {
+    if (!profile) return;
+    getForumNotificationCount().then(setForumUnread);
+  }, [profile]);
 
   useEffect(() => {
     if (!profile) return;
@@ -259,12 +267,18 @@ export function HomeScreen() {
           <p className="font-label text-sm font-semibold">Progress</p>
           <p className="font-body text-xs text-neutral-500">Your trend</p>
         </Link>
-        <Link to="/app/forum" className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-3">
-          <ForumIcon className="h-4 w-4 flex-none text-neutral-400" />
-          <span>
-            <p className="font-label text-sm font-semibold">Forum</p>
-            <p className="font-body text-xs text-neutral-500">Talk shop</p>
+        <Link
+          to="/app/forum"
+          className="flex items-center justify-between gap-2 rounded-lg border border-neutral-200 bg-white p-3"
+        >
+          <span className="flex items-center gap-2">
+            <ForumIcon className="h-4 w-4 flex-none text-neutral-400" />
+            <span>
+              <p className="font-label text-sm font-semibold">Forum</p>
+              <p className="font-body text-xs text-neutral-500">Talk shop</p>
+            </span>
           </span>
+          <NotificationBadge count={forumUnread} />
         </Link>
         <Link to="/app/tools" className="rounded-lg border border-neutral-200 bg-white p-3">
           <p className="font-label text-sm font-semibold">Tools</p>

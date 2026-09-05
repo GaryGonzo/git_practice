@@ -340,6 +340,7 @@ export interface ProfileUpdate {
   weekly_goal?: number;
   has_seen_walkthrough?: boolean;
   share_scores_publicly?: boolean;
+  forum_last_seen_at?: string;
 }
 
 export async function updateProfile(userId: string, updates: ProfileUpdate): Promise<void> {
@@ -1244,6 +1245,23 @@ export interface ForumReply {
   authorId: string;
   authorFirstName: string;
   authorLastName: string;
+}
+
+// How many new things are waiting in the forum since this user last opened
+// it -- computed server-side (get_forum_notification_count) since what
+// counts differs by role: admins see every new thread (not replies);
+// everyone else sees new admin threads plus replies to threads they
+// started. Marking as seen is a plain profile update since
+// forum_last_seen_at has its own column-level grant, same as
+// has_seen_walkthrough.
+export async function getForumNotificationCount(): Promise<number> {
+  const { data, error } = await supabase.rpc("get_forum_notification_count");
+  if (error) throw error;
+  return data ?? 0;
+}
+
+export async function markForumSeen(userId: string): Promise<void> {
+  await updateProfile(userId, { forum_last_seen_at: new Date().toISOString() });
 }
 
 export async function getForumCategories(): Promise<ForumCategory[]> {

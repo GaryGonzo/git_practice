@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getForumCategories, type ForumCategory } from "../../lib/golfableApi";
+import { useAuth } from "../../lib/AuthProvider";
+import { getForumCategories, markForumSeen, type ForumCategory } from "../../lib/golfableApi";
 
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
@@ -11,11 +12,18 @@ function ChevronRightIcon({ className }: { className?: string }) {
 }
 
 export function ForumScreen() {
+  const { profile } = useAuth();
   const [categories, setCategories] = useState<ForumCategory[] | null>(null);
 
   useEffect(() => {
     getForumCategories().then(setCategories);
   }, []);
+
+  // Opening the forum hub is what clears the badge -- everything new is
+  // now one tap away, so there's nothing left to notify about.
+  useEffect(() => {
+    if (profile) markForumSeen(profile.id);
+  }, [profile]);
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
