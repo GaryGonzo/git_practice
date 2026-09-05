@@ -1549,8 +1549,6 @@ export interface RoundHole {
   greenMissDirection: GreenMissDirection | null;
   putts: number | null;
   penaltyStrokes: number;
-  /** Only meaningful when greenInRegulation is false -- did you get up and down after missing the green */
-  upAndDown: boolean | null;
 }
 
 function toRound(row: {
@@ -1574,7 +1572,6 @@ function toRoundHole(row: {
   green_miss_direction: string | null;
   putts: number | null;
   penalty_strokes: number;
-  up_and_down: boolean | null;
 }): RoundHole {
   return {
     id: row.id,
@@ -1588,13 +1585,12 @@ function toRoundHole(row: {
     greenMissDirection: row.green_miss_direction as GreenMissDirection | null,
     putts: row.putts,
     penaltyStrokes: row.penalty_strokes,
-    upAndDown: row.up_and_down,
   };
 }
 
 const ROUND_COLUMNS = "id, hole_count, started_at, completed_at";
 const ROUND_HOLE_COLUMNS =
-  "id, round_id, hole_number, par, score, fairway_hit, fairway_miss_side, green_in_regulation, green_miss_direction, putts, penalty_strokes, up_and_down";
+  "id, round_id, hole_number, par, score, fairway_hit, fairway_miss_side, green_in_regulation, green_miss_direction, putts, penalty_strokes";
 
 // A round left in progress (completed_at still null) -- at most one at a
 // time in practice, since starting a new one has no reason to happen while
@@ -1672,7 +1668,6 @@ export interface RoundHoleUpdate {
   greenMissDirection?: GreenMissDirection | null;
   putts?: number | null;
   penaltyStrokes?: number;
-  upAndDown?: boolean | null;
 }
 
 export async function updateRoundHole(holeId: string, updates: RoundHoleUpdate): Promise<void> {
@@ -1685,7 +1680,6 @@ export async function updateRoundHole(holeId: string, updates: RoundHoleUpdate):
   if (updates.greenMissDirection !== undefined) payload.green_miss_direction = updates.greenMissDirection;
   if (updates.putts !== undefined) payload.putts = updates.putts;
   if (updates.penaltyStrokes !== undefined) payload.penalty_strokes = updates.penaltyStrokes;
-  if (updates.upAndDown !== undefined) payload.up_and_down = updates.upAndDown;
   const { error } = await supabase.from("round_holes").update(payload).eq("id", holeId);
   if (error) throw error;
 }
@@ -1716,6 +1710,15 @@ export interface RoundStats {
   upAndDownOpportunities: number;
 }
 
+// Up and down (did you save par after missing the green) is never asked of
+// the player directly -- missing the green but still carding par or better
+// only happens by holing the chip or getting up and down in two, so score
+// vs. par on a missed-green hole *is* the stat.
+export function upAndDownResult(hole: RoundHole): boolean | null {
+  if (hole.greenInRegulation !== false || hole.score === null) return null;
+  return hole.score <= hole.par;
+}
+
 // Fairway-hit only makes sense on par 4s/5s (there's no fairway target off
 // the tee on a par 3), so those holes are excluded from the FIR
 // opportunity count entirely rather than counted as a miss. Up and down
@@ -1725,7 +1728,7 @@ export function computeRoundStats(holes: RoundHole[]): RoundStats {
   const played = holes.filter((h) => h.score !== null);
   const firEligible = holes.filter((h) => h.par !== 3 && h.fairwayHit !== null);
   const girTracked = holes.filter((h) => h.greenInRegulation !== null);
-  const upAndDownEligible = holes.filter((h) => h.greenInRegulation === false && h.upAndDown !== null);
+  const upAndDownEligible = holes.filter((h) => upAndDownResult(h) !== null);
   return {
     holesPlayed: played.length,
     totalScore: played.reduce((sum, h) => sum + (h.score ?? 0), 0),
@@ -1740,7 +1743,7 @@ export function computeRoundStats(holes: RoundHole[]): RoundStats {
     // phantom putts for holes nobody's gotten to yet.
     totalPutts: played.reduce((sum, h) => sum + (h.putts ?? 0), 0),
     totalPenalties: played.reduce((sum, h) => sum + h.penaltyStrokes, 0),
-    upAndDownHit: upAndDownEligible.filter((h) => h.upAndDown).length,
+    upAndDownHit: upAndDownEligible.filter((h) => upAndDownResult(h)).length,
     upAndDownOpportunities: upAndDownEligible.length,
   };
 }
@@ -1810,9 +1813,9 @@ const ROUND_DERIVED_SCORERS: Record<RoundDerivedDrillId, (holes: RoundHole[]) =>
   // doesn't distinguish the drill's 2-point "holed it directly" case --
   // the round tracker only records a yes/no save, not how.
   "up-and-down": (holes) => {
-    const eligible = holes.filter((h) => h.greenInRegulation === false && h.upAndDown !== null);
+    const eligible = holes.filter((h) => upAndDownResult(h) !== null);
     if (eligible.length === 0) return null;
-    const raw = eligible.reduce((sum, h) => sum + (h.upAndDown ? 1 : -1), 0);
+    const raw = eligible.reduce((sum, h) => sum + (upAndDownResult(h) ? 1 : -1), 0);
     return { score: Math.max(0, raw), maxScore: eligible.length * 2, holesUsed: eligible.length };
   },
 };
@@ -1939,9 +1942,9 @@ export async function getRoundCategorySignals(userId: string): Promise<Partial<R
     signals.irons = ratingFromRange(girPct, 0, 0.6);
   }
 
-  const upAndDownHoles = allHoles.filter((h) => h.greenInRegulation === false && h.upAndDown !== null);
+  const upAndDownHoles = allHoles.filter((h) => upAndDownResult(h) !== null);
   if (upAndDownHoles.length > 0) {
-    const upAndDownPct = upAndDownHoles.filter((h) => h.upAndDown).length / upAndDownHoles.length;
+    const upAndDownPct = upAndDownHoles.filter((h) => upAndDownResult(h)).length / upAndDownHoles.length;
     signals.wedges = ratingFromRange(upAndDownPct, 0, 0.45); // 45%+ scrambling is already a strong amateur number
   }
 
