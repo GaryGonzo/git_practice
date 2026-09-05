@@ -1506,3 +1506,194 @@ export async function reviewForumFlag(
   const body = await res.json();
   if (!res.ok) throw new Error(body.error ?? "Couldn't review that flag -- try again.");
 }
+
+// ---------------------------------------------------------------------------
+// In-round tracker -- a live, freeform scorecard (no course database; par is
+// entered per hole as you play). Purely personal data, so unlike scores
+// (public, for the leaderboard) both tables are private to their owner and
+// written directly from the client under RLS, not through a server
+// endpoint -- there's no moderation concern here.
+
+export interface Round {
+  id: string;
+  holeCount: number;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+export interface RoundHole {
+  id: string;
+  roundId: string;
+  holeNumber: number;
+  par: number;
+  score: number | null;
+  fairwayHit: boolean | null;
+  greenInRegulation: boolean | null;
+  putts: number | null;
+  penaltyStrokes: number;
+}
+
+function toRound(row: {
+  id: string;
+  hole_count: number;
+  started_at: string;
+  completed_at: string | null;
+}): Round {
+  return { id: row.id, holeCount: row.hole_count, startedAt: row.started_at, completedAt: row.completed_at };
+}
+
+function toRoundHole(row: {
+  id: string;
+  round_id: string;
+  hole_number: number;
+  par: number;
+  score: number | null;
+  fairway_hit: boolean | null;
+  green_in_regulation: boolean | null;
+  putts: number | null;
+  penalty_strokes: number;
+}): RoundHole {
+  return {
+    id: row.id,
+    roundId: row.round_id,
+    holeNumber: row.hole_number,
+    par: row.par,
+    score: row.score,
+    fairwayHit: row.fairway_hit,
+    greenInRegulation: row.green_in_regulation,
+    putts: row.putts,
+    penaltyStrokes: row.penalty_strokes,
+  };
+}
+
+const ROUND_COLUMNS = "id, hole_count, started_at, completed_at";
+const ROUND_HOLE_COLUMNS = "id, round_id, hole_number, par, score, fairway_hit, green_in_regulation, putts, penalty_strokes";
+
+// A round left in progress (completed_at still null) -- at most one at a
+// time in practice, since starting a new one has no reason to happen while
+// another is open, but this just takes the most recent if there's ever more
+// than one.
+export async function getActiveRound(userId: string): Promise<Round | null> {
+  const { data } = await supabase
+    .from("rounds")
+    .select(ROUND_COLUMNS)
+    .eq("user_id", userId)
+    .is("completed_at", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ? toRound(data) : null;
+}
+
+export async function getRoundHistory(userId: string): Promise<Round[]> {
+  const { data } = await supabase
+    .from("rounds")
+    .select(ROUND_COLUMNS)
+    .eq("user_id", userId)
+    .not("completed_at", "is", null)
+    .order("completed_at", { ascending: false });
+  return (data ?? []).map(toRound);
+}
+
+export async function getRound(roundId: string): Promise<Round | null> {
+  const { data } = await supabase.from("rounds").select(ROUND_COLUMNS).eq("id", roundId).maybeSingle();
+  return data ? toRound(data) : null;
+}
+
+export async function getRoundHoles(roundId: string): Promise<RoundHole[]> {
+  const { data } = await supabase
+    .from("round_holes")
+    .select(ROUND_HOLE_COLUMNS)
+    .eq("round_id", roundId)
+    .order("hole_number");
+  return (data ?? []).map(toRoundHole);
+}
+
+// Creates the round plus one blank hole row per hole (par defaulted to 4,
+// the most common -- adjusted per hole as you play since there's no course
+// data to pull real pars from).
+export async function startRound(userId: string, holeCount: 9 | 18): Promise<Round> {
+  const { data, error } = await supabase
+    .from("rounds")
+    .insert({ user_id: userId, hole_count: holeCount })
+    .select(ROUND_COLUMNS)
+    .single();
+  if (error) throw error;
+
+  const holes = Array.from({ length: holeCount }, (_, i) => ({
+    round_id: data.id,
+    user_id: userId,
+    hole_number: i + 1,
+    par: 4,
+  }));
+  const { error: holesError } = await supabase.from("round_holes").insert(holes);
+  if (holesError) throw holesError;
+
+  return toRound(data);
+}
+
+export interface RoundHoleUpdate {
+  par?: number;
+  score?: number | null;
+  fairwayHit?: boolean | null;
+  greenInRegulation?: boolean | null;
+  putts?: number | null;
+  penaltyStrokes?: number;
+}
+
+export async function updateRoundHole(holeId: string, updates: RoundHoleUpdate): Promise<void> {
+  const payload: Record<string, unknown> = {};
+  if (updates.par !== undefined) payload.par = updates.par;
+  if (updates.score !== undefined) payload.score = updates.score;
+  if (updates.fairwayHit !== undefined) payload.fairway_hit = updates.fairwayHit;
+  if (updates.greenInRegulation !== undefined) payload.green_in_regulation = updates.greenInRegulation;
+  if (updates.putts !== undefined) payload.putts = updates.putts;
+  if (updates.penaltyStrokes !== undefined) payload.penalty_strokes = updates.penaltyStrokes;
+  const { error } = await supabase.from("round_holes").update(payload).eq("id", holeId);
+  if (error) throw error;
+}
+
+export async function finishRound(roundId: string): Promise<void> {
+  const { error } = await supabase.from("rounds").update({ completed_at: new Date().toISOString() }).eq("id", roundId);
+  if (error) throw error;
+}
+
+// Discards a round started by mistake -- cascades to its hole rows.
+export async function abandonRound(roundId: string): Promise<void> {
+  const { error } = await supabase.from("rounds").delete().eq("id", roundId);
+  if (error) throw error;
+}
+
+export interface RoundStats {
+  holesPlayed: number;
+  totalScore: number;
+  totalPar: number;
+  scoreToPar: number;
+  girHit: number;
+  girOpportunities: number;
+  firHit: number;
+  firOpportunities: number;
+  totalPutts: number;
+  totalPenalties: number;
+}
+
+// Fairway-hit only makes sense on par 4s/5s (there's no fairway target off
+// the tee on a par 3), so those holes are excluded from the FIR
+// opportunity count entirely rather than counted as a miss.
+export function computeRoundStats(holes: RoundHole[]): RoundStats {
+  const played = holes.filter((h) => h.score !== null);
+  const firEligible = holes.filter((h) => h.par !== 3 && h.fairwayHit !== null);
+  const girTracked = holes.filter((h) => h.greenInRegulation !== null);
+  return {
+    holesPlayed: played.length,
+    totalScore: played.reduce((sum, h) => sum + (h.score ?? 0), 0),
+    totalPar: played.reduce((sum, h) => sum + h.par, 0),
+    scoreToPar: played.reduce((sum, h) => sum + (h.score ?? 0) - h.par, 0),
+    girHit: girTracked.filter((h) => h.greenInRegulation).length,
+    girOpportunities: girTracked.length,
+    firHit: firEligible.filter((h) => h.fairwayHit).length,
+    firOpportunities: firEligible.length,
+    totalPutts: holes.reduce((sum, h) => sum + (h.putts ?? 0), 0),
+    totalPenalties: holes.reduce((sum, h) => sum + h.penaltyStrokes, 0),
+  };
+}

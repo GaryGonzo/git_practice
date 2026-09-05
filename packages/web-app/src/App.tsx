@@ -12,6 +12,8 @@ import { TodayScreen } from "./pages/app/TodayScreen";
 import { ProgressScreen } from "./pages/app/ProgressScreen";
 import { GolfableScoreDetailScreen } from "./pages/app/GolfableScoreDetailScreen";
 import { LibraryScreen } from "./pages/app/LibraryScreen";
+import { RoundScreen } from "./pages/app/RoundScreen";
+import { RoundPlayScreen } from "./pages/app/RoundPlayScreen";
 import { ProfileScreen } from "./pages/app/ProfileScreen";
 import { MyBagScreen } from "./pages/app/MyBagScreen";
 import { LeaderboardScreen } from "./pages/app/LeaderboardScreen";
@@ -65,6 +67,8 @@ function App() {
         <Route path="golfable-score/:category" element={<GolfableScoreDetailScreen />} />
         <Route path="library" element={<LibraryScreen />} />
         <Route path="library/:date" element={<TodayScreen />} />
+        <Route path="round" element={<RoundScreen />} />
+        <Route path="round/:roundId" element={<RoundPlayScreen />} />
         <Route path="play/:drillId" element={<TodayScreen />} />
         <Route path="leaderboard" element={<LeaderboardHubScreen />} />
         <Route path="leaderboard/:drillId/:date" element={<LeaderboardScreen />} />

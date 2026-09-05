@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: "/app", label: "Home", end: true, icon: HomeIcon },
   { to: "/app/progress", label: "Progress", end: false, icon: ProgressIcon },
   { to: "/app/library", label: "Library", end: false, icon: LibraryIcon },
+  { to: "/app/round", label: "Round", end: false, icon: RoundIcon },
   { to: "/app/leaderboard", label: "Leaderboard", end: false, icon: LeaderboardIcon },
   { to: "/app/profile", label: "Profile", end: false, icon: ProfileIcon },
 ];
@@ -64,6 +65,16 @@ export function LibraryIcon({ className }: { className?: string }) {
       <rect x="4" y="5" width="16" height="4" rx="1" stroke="currentColor" strokeWidth="1.6" />
       <rect x="4" y="11" width="16" height="4" rx="1" stroke="currentColor" strokeWidth="1.6" />
       <rect x="4" y="17" width="10" height="2.5" rx="1" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+export function RoundIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M7 20V4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M7 4l9 3.5L7 11" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <ellipse cx="7" cy="20.5" rx="4" ry="1.2" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   );
 }
