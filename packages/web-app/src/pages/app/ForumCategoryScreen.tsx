@@ -4,6 +4,7 @@ import { useAuth } from "../../lib/AuthProvider";
 import {
   getForumCategoryBySlug,
   getForumThreads,
+  markForumCategorySeen,
   type ForumCategory,
   type ForumThreadSummary,
 } from "../../lib/golfableApi";
@@ -43,6 +44,12 @@ export function ForumCategoryScreen() {
     if (!category) return;
     getForumThreads(category.id).then(setThreads);
   }, [category]);
+
+  // Opening this category is what clears its badge -- its threads are
+  // right here now, so there's nothing left to notify about for it.
+  useEffect(() => {
+    if (category && profile) markForumCategorySeen(profile.id, category.id);
+  }, [category, profile]);
 
   if (category === undefined || (category && threads === null)) {
     return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;

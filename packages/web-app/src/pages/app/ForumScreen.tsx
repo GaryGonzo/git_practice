@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../lib/AuthProvider";
-import { getForumCategories, markForumSeen, type ForumCategory } from "../../lib/golfableApi";
+import { NotificationBadge } from "../../components/NotificationBadge";
+import { getForumCategories, getForumNotificationCounts, type ForumCategory } from "../../lib/golfableApi";
 
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
@@ -12,18 +12,13 @@ function ChevronRightIcon({ className }: { className?: string }) {
 }
 
 export function ForumScreen() {
-  const { profile } = useAuth();
   const [categories, setCategories] = useState<ForumCategory[] | null>(null);
+  const [unreadByCategory, setUnreadByCategory] = useState<Record<string, number>>({});
 
   useEffect(() => {
     getForumCategories().then(setCategories);
+    getForumNotificationCounts().then(setUnreadByCategory);
   }, []);
-
-  // Opening the forum hub is what clears the badge -- everything new is
-  // now one tap away, so there's nothing left to notify about.
-  useEffect(() => {
-    if (profile) markForumSeen(profile.id);
-  }, [profile]);
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
@@ -44,7 +39,10 @@ export function ForumScreen() {
                 <p className="font-label text-base font-semibold">{category.name}</p>
                 <p className="font-body mt-1 text-sm text-neutral-600">{category.description}</p>
               </div>
-              <ChevronRightIcon className="h-5 w-5 flex-none text-neutral-300" />
+              <div className="flex flex-none items-center gap-2">
+                <NotificationBadge count={unreadByCategory[category.id] ?? 0} />
+                <ChevronRightIcon className="h-5 w-5 text-neutral-300" />
+              </div>
             </Link>
           ))}
         </div>

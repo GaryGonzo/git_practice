@@ -340,7 +340,6 @@ export interface ProfileUpdate {
   weekly_goal?: number;
   has_seen_walkthrough?: boolean;
   share_scores_publicly?: boolean;
-  forum_last_seen_at?: string;
 }
 
 export async function updateProfile(userId: string, updates: ProfileUpdate): Promise<void> {
@@ -1251,17 +1250,24 @@ export interface ForumReply {
 // it -- computed server-side (get_forum_notification_count) since what
 // counts differs by role: admins see every new thread (not replies);
 // everyone else sees new admin threads plus replies to threads they
-// started. Marking as seen is a plain profile update since
-// forum_last_seen_at has its own column-level grant, same as
-// has_seen_walkthrough.
-export async function getForumNotificationCount(): Promise<number> {
-  const { data, error } = await supabase.rpc("get_forum_notification_count");
+// started. Scoped per category (not one global cursor) so the hub screen
+// can show which category actually has something new, keyed by category
+// id for easy lookup.
+export async function getForumNotificationCounts(): Promise<Record<string, number>> {
+  const { data, error } = await supabase.rpc("get_forum_notification_counts");
   if (error) throw error;
-  return data ?? 0;
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) counts[row.category_id] = row.unread_count;
+  return counts;
 }
 
-export async function markForumSeen(userId: string): Promise<void> {
-  await updateProfile(userId, { forum_last_seen_at: new Date().toISOString() });
+// "Seen" happens when a category is actually opened -- not the hub screen,
+// which would zero out every badge before showing which category it was in.
+export async function markForumCategorySeen(userId: string, categoryId: string): Promise<void> {
+  const { error } = await supabase
+    .from("forum_category_last_seen")
+    .upsert({ user_id: userId, category_id: categoryId, last_seen_at: new Date().toISOString() });
+  if (error) throw error;
 }
 
 export async function getForumCategories(): Promise<ForumCategory[]> {

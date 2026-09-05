@@ -16,7 +16,7 @@ import { NotificationBadge } from "../../components/NotificationBadge";
 import { ForumIcon } from "../../components/AppNav";
 import {
   getDrillForDate,
-  getForumNotificationCount,
+  getForumNotificationCounts,
   getGlobalLeaderboard,
   getMyScoreForDate,
   getScoreHistory,
@@ -86,7 +86,9 @@ export function HomeScreen() {
 
   useEffect(() => {
     if (!profile) return;
-    getForumNotificationCount().then(setForumUnread);
+    getForumNotificationCounts().then((counts) =>
+      setForumUnread(Object.values(counts).reduce((sum, n) => sum + n, 0))
+    );
   }, [profile]);
 
   useEffect(() => {
