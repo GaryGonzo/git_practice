@@ -6,6 +6,7 @@ import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
 import { CategoryIcon } from "../../components/CategoryIcon";
 import { GolfableScorePanel } from "../../components/GolfableScorePanel";
 import {
+  getBlendedScoreHistory,
   getScoreHistory,
   getSessionsThisWeek,
   getUpcomingGolfables,
@@ -72,19 +73,25 @@ export function ProgressScreen() {
   const [loading, setLoading] = useState(true);
   const [sessionsThisWeek, setSessionsThisWeek] = useState(0);
   const [history, setHistory] = useState<ScoreHistoryEntry[]>([]);
+  // Feeds only the Golfable Score panel below -- blended with round-derived
+  // scores, unlike `history` above (Recent Scores, By Category), which
+  // stays real logged attempts only.
+  const [golfableScoreHistory, setGolfableScoreHistory] = useState<ScoreHistoryEntry[]>([]);
   const [visibleScoreCount, setVisibleScoreCount] = useState(RECENT_SCORES_INITIAL_LIMIT);
   const [upcoming, setUpcoming] = useState<GolfableCalendarEntry[]>([]);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [weekCount, scoreHistory, upcomingGolfables] = await Promise.all([
+      const [weekCount, scoreHistory, blendedHistory, upcomingGolfables] = await Promise.all([
         getSessionsThisWeek(userId),
         getScoreHistory(userId),
+        getBlendedScoreHistory(userId),
         getUpcomingGolfables(),
       ]);
       setSessionsThisWeek(weekCount);
       setHistory(scoreHistory);
+      setGolfableScoreHistory(blendedHistory);
       setUpcoming(upcomingGolfables);
       setLoading(false);
     })();
@@ -133,7 +140,7 @@ export function ProgressScreen() {
       <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
         My Golfable Scores
       </h2>
-      <GolfableScorePanel history={history} />
+      <GolfableScorePanel history={golfableScoreHistory} />
 
       <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
         By Category

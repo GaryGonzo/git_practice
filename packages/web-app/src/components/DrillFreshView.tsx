@@ -85,6 +85,14 @@ interface DrillFreshViewProps {
   error?: string | null;
   /** The player's bag-matched club for drill.targetYardage, if both are set */
   suggestedClub?: string | null;
+  /** This drill's own rubric, re-scored against the player's best completed
+   *  round -- only set for drills with a round-derived mapping (see
+   *  ROUND_DERIVED_DRILL_IDS in golfableApi.ts) and only once they have one */
+  roundBest?: { score: number; maxScore: number; holesUsed: number; completedAt: string } | null;
+}
+
+function formatRoundBestDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 // The "fresh arrival" state of the Today screen: drill cards + score form,
@@ -107,6 +115,7 @@ export function DrillFreshView({
   result,
   error,
   suggestedClub,
+  roundBest,
 }: DrillFreshViewProps) {
   const tierTarget = drill.targets[tier];
   const tierInfo = TIER_INFO[tier];
@@ -183,6 +192,15 @@ export function DrillFreshView({
           Your Target &middot; {tierInfo.label}
         </p>
         <p className={`font-display text-4xl ${TIER_TEXT[tier]}`}>{tierTarget}</p>
+        {roundBest && (
+          <p className="font-body mt-2 border-t border-neutral-100 pt-2 text-sm text-neutral-600">
+            Your best round:{" "}
+            <span className="font-label text-brand font-semibold">
+              {formatScore(roundBest.score, roundBest.maxScore, drill.scoreDirection)}
+            </span>{" "}
+            on {formatRoundBestDate(roundBest.completedAt)} ({roundBest.holesUsed} holes)
+          </p>
+        )}
       </div>
 
       {result ? (

@@ -13,12 +13,14 @@ import {
   getMyScoreForDate,
   getLastAttemptScore,
   getPersonalBest,
+  getBestRoundDerivedScore,
   submitScore,
   getRankBoard,
   getStudioById,
   getMyBag,
   todayISO,
   type LeaderboardEntry,
+  type RoundDerivedBest,
   type Studio,
 } from "../../lib/golfableApi";
 
@@ -67,6 +69,7 @@ export function TodayScreen() {
   const [showRatingPrompt, setShowRatingPrompt] = useState(false);
   const [bag, setBag] = useState<BagEntry[]>([]);
   const [studio, setStudio] = useState<Studio | null>(null);
+  const [roundBest, setRoundBest] = useState<RoundDerivedBest | null>(null);
 
   useEffect(() => {
     getMyBag(userId).then(setBag);
@@ -99,15 +102,17 @@ export function TodayScreen() {
       setDrill(found.drill);
       setMaxScore(found.maxScore);
 
-      const [weekCount, existingScore, last, best] = await Promise.all([
+      const [weekCount, existingScore, last, best, roundBestResult] = await Promise.all([
         getSessionsThisWeek(userId),
         getMyScoreForDate(userId, found.drill.id, date),
         getLastAttemptScore(userId, found.drill.id, date),
         getPersonalBest(userId, found.drill.id, found.drill.scoreDirection),
+        getBestRoundDerivedScore(userId, found.drill.id, found.drill.scoreDirection),
       ]);
       setSessionsThisWeek(weekCount);
       setLastAttempt(last);
       setPersonalBest(best);
+      setRoundBest(roundBestResult);
       if (existingScore !== null) {
         setSubmittedScore(existingScore);
         const board = await getRankBoard(
@@ -280,6 +285,7 @@ export function TodayScreen() {
         suggestedClub={
           drill.targetYardage !== undefined ? suggestClubForYardage(bag, drill.targetYardage) : undefined
         }
+        roundBest={roundBest}
       />
       {showRatingPrompt && (
         <div className="mx-auto max-w-md px-4">

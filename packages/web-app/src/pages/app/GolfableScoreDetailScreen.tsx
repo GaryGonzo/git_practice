@@ -4,7 +4,7 @@ import { CATEGORY_INFO, SKILL_CATEGORIES, type SkillCategory } from "@golfable/s
 import { useAuth } from "../../lib/AuthProvider";
 import { CategoryIcon } from "../../components/CategoryIcon";
 import {
-  getScoreHistory,
+  getBlendedScoreHistory,
   computeGolfableScores,
   recentCategoryAttempts,
   GOLFABLE_SCORE_MIN_ATTEMPTS,
@@ -44,7 +44,7 @@ export function GolfableScoreDetailScreen() {
   const [history, setHistory] = useState<ScoreHistoryEntry[] | null>(null);
 
   useEffect(() => {
-    getScoreHistory(userId).then(setHistory);
+    getBlendedScoreHistory(userId).then(setHistory);
   }, [userId]);
 
   if (history === null) {
@@ -188,7 +188,10 @@ function CategoryScoreDetail({
             >
               <div className="min-w-0 flex-1">
                 <p className="font-label truncate text-sm font-semibold">{entry.drill.name}</p>
-                <p className="font-body text-sm text-neutral-500">{formatDate(entry.createdAt)}</p>
+                <p className="font-body text-sm text-neutral-500">
+                  {formatDate(entry.createdAt)}
+                  {entry.source === "round" && " · From a round"}
+                </p>
               </div>
               <span className="font-label bg-brand/10 text-brand flex-none rounded-full px-3 py-1 text-sm font-semibold">
                 {entry.score}/{entry.maxScore} · {Math.round((entry.score / entry.maxScore) * 100)}%

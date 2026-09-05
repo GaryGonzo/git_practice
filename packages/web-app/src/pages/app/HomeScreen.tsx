@@ -15,11 +15,11 @@ import { GolfableScorePanel } from "../../components/GolfableScorePanel";
 import { NotificationBadge } from "../../components/NotificationBadge";
 import { ForumIcon } from "../../components/AppNav";
 import {
+  getBlendedScoreHistory,
   getDrillForDate,
   getForumNotificationCounts,
   getGlobalLeaderboard,
   getMyScoreForDate,
-  getScoreHistory,
   getSessionsThisWeek,
   getStudioById,
   getStudioLeaderboard,
@@ -119,7 +119,7 @@ export function HomeScreen() {
         setLeaderboard([]);
       }
       setSessionsThisWeek(await getSessionsThisWeek(profile.id));
-      setScoreHistory(await getScoreHistory(profile.id));
+      setScoreHistory(await getBlendedScoreHistory(profile.id));
       setLoading(false);
     })();
   }, [profile]);

@@ -8,6 +8,8 @@ import {
   getAllDrillRatingSummaries,
   getMyDrillRatings,
   getMyGameRatings,
+  getRoundCategorySignals,
+  blendGameRatings,
   type DrillRatingSummary,
 } from "../../lib/golfableApi";
 
@@ -69,11 +71,12 @@ export function LibraryScreen() {
       getAllDrillRatingSummaries(),
       profile ? getMyDrillRatings(profile.id) : Promise.resolve({}),
       profile ? getMyGameRatings(profile.id) : Promise.resolve({}),
-    ]).then(([drillResult, summaries, mine, game]) => {
+      profile ? getRoundCategorySignals(profile.id) : Promise.resolve({}),
+    ]).then(([drillResult, summaries, mine, game, roundSignals]) => {
       setDrills(drillResult);
       setRatingSummaries(summaries);
       setMyRatings(mine);
-      setGameRatings(game);
+      setGameRatings(blendGameRatings(game, roundSignals));
       setLoading(false);
     });
   }, [category, profile]);
@@ -148,6 +151,10 @@ export function LibraryScreen() {
                   Rate your game on{" "}
                   <Link to="/app/profile" className="text-brand font-semibold underline">
                     your profile
+                  </Link>{" "}
+                  or log a few{" "}
+                  <Link to="/app/round" className="text-brand font-semibold underline">
+                    rounds
                   </Link>{" "}
                   and we'll recommend Golfables to work on.
                 </>

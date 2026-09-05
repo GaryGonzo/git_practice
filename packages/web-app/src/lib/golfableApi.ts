@@ -1,5 +1,5 @@
 import type { BagClub, BagEntry, Drill, HandicapTier, ScoreDirection, SkillCategory } from "@golfable/shared";
-import { BAG_CLUBS, SKILL_CATEGORIES } from "@golfable/shared";
+import { BAG_CLUBS, SKILL_CATEGORIES, isBetterScore } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
 
 interface DrillRow {
@@ -381,6 +381,10 @@ export interface ScoreHistoryEntry {
   drill: Drill;
   maxScore: number;
   score: number;
+  /** Set only for an entry synthesized from a round (see getRoundDerivedScoreHistoryEntries)
+   *  -- there's no real scores row behind it, just round data re-scored through
+   *  that drill's own rubric. Real logged attempts leave this undefined. */
+  source?: "round";
 }
 
 // A category needs 3+ logged attempts before its Golfable Score populates.
@@ -1720,7 +1724,209 @@ export function computeRoundStats(holes: RoundHole[]): RoundStats {
     girOpportunities: girTracked.length,
     firHit: firEligible.filter((h) => h.fairwayHit).length,
     firOpportunities: firEligible.length,
-    totalPutts: holes.reduce((sum, h) => sum + (h.putts ?? 0), 0),
-    totalPenalties: holes.reduce((sum, h) => sum + h.penaltyStrokes, 0),
+    // played, not holes -- putts defaults to 2 for every hole from the
+    // moment a round starts, so summing unplayed holes here would count
+    // phantom putts for holes nobody's gotten to yet.
+    totalPutts: played.reduce((sum, h) => sum + (h.putts ?? 0), 0),
+    totalPenalties: played.reduce((sum, h) => sum + h.penaltyStrokes, 0),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Round-derived Golfable scores -- a round played on the course re-scored
+// through a specific drill's own rubric, so it's directly comparable to a
+// practice-session attempt at that drill. Only drills whose entire scoring
+// rubric is something the round tracker actually captures get a mapping
+// here -- e.g. an approach/GIR drill that also awards proximity-to-hole
+// points doesn't, since the round tracker only records a hit/miss, and a
+// naive "1 point per GIR" translation would understate what the real drill
+// asks for. Deliberately never written to the scores table (that stays
+// real logged attempts only, since it's also what the daily leaderboard
+// reads) -- these are computed on the fly and blended in only where a
+// Golfable Score number is calculated.
+
+export type RoundDerivedDrillId = "no-3-putts" | "18-holes" | "fairway-finder";
+
+export const ROUND_DERIVED_DRILL_IDS: RoundDerivedDrillId[] = ["no-3-putts", "18-holes", "fairway-finder"];
+
+export interface RoundDerivedScore {
+  score: number;
+  maxScore: number;
+  holesUsed: number;
+}
+
+const ROUND_DERIVED_SCORERS: Record<RoundDerivedDrillId, (holes: RoundHole[]) => RoundDerivedScore | null> = {
+  // Same 2/1/0-per-hole rubric as the drill itself, applied to real putts
+  // per hole instead of the drill's simulated distances. Gated on score
+  // (not putts) being set -- putts defaults to 2 for every hole the moment
+  // a round starts, played or not, so it can't be used to tell whether a
+  // hole was actually played.
+  "no-3-putts": (holes) => {
+    const played = holes.filter((h) => h.score !== null);
+    if (played.length === 0) return null;
+    const score = played.reduce((sum, h) => sum + (h.putts === 1 ? 2 : h.putts === 2 ? 1 : 0), 0);
+    return { score, maxScore: played.length * 2, holesUsed: played.length };
+  },
+  // Total putts, fewer is better -- same idea as the drill, scaled to
+  // however many holes were actually played (the real drill's own 60-over-
+  // 18-holes ceiling, applied per hole played).
+  "18-holes": (holes) => {
+    const played = holes.filter((h) => h.score !== null);
+    if (played.length === 0) return null;
+    const score = played.reduce((sum, h) => sum + (h.putts ?? 0), 0);
+    const maxScore = Math.round((60 / 18) * played.length);
+    return { score, maxScore, holesUsed: played.length };
+  },
+  // Fairway hits out of fairway opportunities (par 4s/5s only) -- a
+  // fraction rather than forced onto the drill's fixed 10 attempts, since a
+  // round rarely has exactly 10 of them.
+  "fairway-finder": (holes) => {
+    const eligible = holes.filter((h) => h.par !== 3 && h.fairwayHit !== null);
+    if (eligible.length === 0) return null;
+    const score = eligible.filter((h) => h.fairwayHit).length;
+    return { score, maxScore: eligible.length, holesUsed: eligible.length };
+  },
+};
+
+export function getRoundDerivedScore(drillId: string, holes: RoundHole[]): RoundDerivedScore | null {
+  const scorer = ROUND_DERIVED_SCORERS[drillId as RoundDerivedDrillId];
+  return scorer ? scorer(holes) : null;
+}
+
+export interface RoundDerivedBest extends RoundDerivedScore {
+  roundId: string;
+  completedAt: string;
+}
+
+// The best of all your completed rounds, re-scored through this drill's
+// rubric -- shown next to your actual Golfable personal best so "how good
+// am I at this in a controlled rep vs. for real on the course" sit side by
+// side. Returns null for a drill with no mapping, or if you have no rounds
+// with the relevant data yet.
+export async function getBestRoundDerivedScore(
+  userId: string,
+  drillId: string,
+  direction: ScoreDirection
+): Promise<RoundDerivedBest | null> {
+  if (!(drillId in ROUND_DERIVED_SCORERS)) return null;
+  const rounds = await getRoundHistory(userId);
+  let best: RoundDerivedBest | null = null;
+  for (const round of rounds) {
+    if (!round.completedAt) continue;
+    const holes = await getRoundHoles(round.id);
+    const result = getRoundDerivedScore(drillId, holes);
+    if (!result) continue;
+    if (!best || isBetterScore(result.score, best.score, direction)) {
+      best = { ...result, roundId: round.id, completedAt: round.completedAt };
+    }
+  }
+  return best;
+}
+
+// Every completed round, re-scored through every mapped drill it has data
+// for, as synthetic ScoreHistoryEntry rows -- merge these into a real
+// getScoreHistory() result (then re-sort by createdAt) before computing
+// Golfable Score so round performance is factored in, without those rows
+// ever touching the scores table itself.
+export async function getRoundDerivedScoreHistoryEntries(userId: string): Promise<ScoreHistoryEntry[]> {
+  const rounds = await getRoundHistory(userId);
+  if (rounds.length === 0) return [];
+
+  const drillCache = new Map<string, Drill | null>();
+  async function drillFor(id: string): Promise<Drill | null> {
+    if (!drillCache.has(id)) {
+      const found = await getDrillById(id);
+      drillCache.set(id, found?.drill ?? null);
+    }
+    return drillCache.get(id) ?? null;
+  }
+
+  const entries: ScoreHistoryEntry[] = [];
+  for (const round of rounds) {
+    if (!round.completedAt) continue;
+    const holes = await getRoundHoles(round.id);
+    for (const drillId of ROUND_DERIVED_DRILL_IDS) {
+      const derived = getRoundDerivedScore(drillId, holes);
+      if (!derived) continue;
+      const drill = await drillFor(drillId);
+      if (!drill) continue;
+      entries.push({
+        date: round.completedAt.slice(0, 10),
+        createdAt: round.completedAt,
+        drill,
+        maxScore: derived.maxScore,
+        score: derived.score,
+        source: "round",
+      });
+    }
+  }
+  return entries;
+}
+
+// Real logged attempts plus round-derived ones, merged and re-sorted
+// newest-first -- the single history array anything computing a Golfable
+// Score should use, so the number and "here's what makes it up" breakdown
+// (GolfableScoreDetailScreen) always agree.
+export async function getBlendedScoreHistory(userId: string): Promise<ScoreHistoryEntry[]> {
+  const [real, roundDerived] = await Promise.all([getScoreHistory(userId), getRoundDerivedScoreHistoryEntries(userId)]);
+  return [...real, ...roundDerived].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+// ---------------------------------------------------------------------------
+// Round-derived signals for "Recommended for You" -- blended with the
+// self-rating (game_ratings) so a category can be flagged weak either
+// because you said so, or because your actual rounds show it. Rough,
+// hand-picked calibration converting each stat into the same 1-10 scale as
+// the self-rating; there's no round-tracked short-game stat, so wedges only
+// ever comes from the self-rating.
+function ratingFromRange(value: number, worst: number, best: number): number {
+  const t = (value - worst) / (best - worst);
+  return Math.max(1, Math.min(10, Math.round(1 + 9 * Math.max(0, Math.min(1, t)))));
+}
+
+export async function getRoundCategorySignals(userId: string): Promise<Partial<Record<SkillCategory, number>>> {
+  const rounds = await getRoundHistory(userId);
+  if (rounds.length === 0) return {};
+
+  const allHoles = (await Promise.all(rounds.map((r) => getRoundHoles(r.id)))).flat();
+  const signals: Partial<Record<SkillCategory, number>> = {};
+
+  // score, not putts, is the "was this hole actually played" signal --
+  // putts defaults to 2 for every hole from the moment a round starts.
+  const puttedHoles = allHoles.filter((h) => h.score !== null);
+  if (puttedHoles.length > 0) {
+    const avgPutts = puttedHoles.reduce((sum, h) => sum + (h.putts ?? 0), 0) / puttedHoles.length;
+    signals.putter = ratingFromRange(avgPutts, 2.3, 1.7); // fewer putts is better, so "best" is the low end
+  }
+
+  const firHoles = allHoles.filter((h) => h.par !== 3 && h.fairwayHit !== null);
+  if (firHoles.length > 0) {
+    const firPct = firHoles.filter((h) => h.fairwayHit).length / firHoles.length;
+    signals.driver = ratingFromRange(firPct, 0, 0.7);
+  }
+
+  const girHoles = allHoles.filter((h) => h.greenInRegulation !== null);
+  if (girHoles.length > 0) {
+    const girPct = girHoles.filter((h) => h.greenInRegulation).length / girHoles.length;
+    signals.irons = ratingFromRange(girPct, 0, 0.6);
+  }
+
+  return signals;
+}
+
+// Averages the two signals where both exist, otherwise takes whichever one
+// is present -- a category with neither stays unset, same as today.
+export function blendGameRatings(
+  selfRatings: Partial<Record<SkillCategory, number>>,
+  roundSignals: Partial<Record<SkillCategory, number>>
+): Partial<Record<SkillCategory, number>> {
+  const blended: Partial<Record<SkillCategory, number>> = {};
+  for (const category of SKILL_CATEGORIES) {
+    const self = selfRatings[category];
+    const round = roundSignals[category];
+    if (self !== undefined && round !== undefined) blended[category] = (self + round) / 2;
+    else if (self !== undefined) blended[category] = self;
+    else if (round !== undefined) blended[category] = round;
+  }
+  return blended;
 }
