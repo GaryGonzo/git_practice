@@ -61,6 +61,25 @@ const GREEN_MISS_LABELS: Record<GreenMissDirection, string> = {
   long_left: "Lo-L",
 };
 
+// Traditional scorecard marks, relative to par -- shape only, no color:
+// birdie or better circled, par plain, bogey boxed, double-or-worse
+// double-boxed.
+function scoreBadgeClass(scoreToPar: number): string {
+  if (scoreToPar <= -1) return "rounded-full border border-neutral-700";
+  if (scoreToPar === 0) return "";
+  if (scoreToPar === 1) return "rounded-none border border-neutral-700";
+  return "rounded-none border-4 border-double border-neutral-700";
+}
+
+// Putts per hole, colored (this one *does* use color, unlike the score
+// marks above): 1-putt green, 2-putt left as the default text color,
+// 3-putt-or-worse red.
+function puttsColorClass(putts: number): string {
+  if (putts <= 1) return "text-green-600";
+  if (putts === 2) return "";
+  return "text-red-600";
+}
+
 function fairwayCellText(hole: RoundHole): string {
   if (hole.par === 3 || hole.fairwayHit === null) return "--";
   if (hole.fairwayHit) return "✓";
@@ -385,10 +404,22 @@ export function RoundPlayScreen() {
                 <tr key={hole.id} className="border-b border-neutral-100 last:border-0">
                   <td className="px-2 py-1.5 text-left font-semibold">{hole.holeNumber}</td>
                   <td className="px-2 py-1.5">{hole.par}</td>
-                  <td className="px-2 py-1.5">{hole.score ?? "--"}</td>
+                  <td className="px-2 py-1.5">
+                    {hole.score === null ? (
+                      "--"
+                    ) : (
+                      <span
+                        className={`inline-flex h-6 w-6 items-center justify-center font-semibold ${scoreBadgeClass(hole.score - hole.par)}`}
+                      >
+                        {hole.score}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-2 py-1.5">{fairwayCellText(hole)}</td>
                   <td className="px-2 py-1.5">{greenCellText(hole)}</td>
-                  <td className="px-2 py-1.5">{hole.putts ?? "--"}</td>
+                  <td className={`px-2 py-1.5 font-semibold ${hole.putts !== null ? puttsColorClass(hole.putts) : ""}`}>
+                    {hole.putts ?? "--"}
+                  </td>
                   <td className="px-2 py-1.5">{hole.penaltyStrokes}</td>
                 </tr>
               ))}
