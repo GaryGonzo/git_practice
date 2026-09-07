@@ -35,6 +35,7 @@ import { NewChallengeScreen } from "./pages/app/NewChallengeScreen";
 import { ChallengeDetailScreen } from "./pages/app/ChallengeDetailScreen";
 import { AdminScreen } from "./pages/app/AdminScreen";
 import { FitScreen } from "./pages/app/FitScreen";
+import { FitWorkoutScreen } from "./pages/app/FitWorkoutScreen";
 import { StudioAdminScreen } from "./pages/app/StudioAdminScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
@@ -96,6 +97,14 @@ function App() {
           element={
             <RequireFitAccess>
               <FitScreen />
+            </RequireFitAccess>
+          }
+        />
+        <Route
+          path="fit/workout/:workoutLogId"
+          element={
+            <RequireFitAccess>
+              <FitWorkoutScreen />
             </RequireFitAccess>
           }
         />

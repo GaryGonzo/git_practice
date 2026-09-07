@@ -2060,6 +2060,12 @@ export interface FitSection {
   exercises: FitExercise[];
 }
 
+export interface FitSessionTemplate {
+  id: string;
+  name: string;
+  sections: FitSection[];
+}
+
 export interface FitBlock {
   id: string;
   name: string;
@@ -2068,12 +2074,12 @@ export interface FitBlock {
   stepGoal: number | null;
   careNotes: string | null;
   status: "active" | "completed" | "planned";
-  sections: FitSection[];
+  templates: FitSessionTemplate[];
 }
 
-// The active block plus its full circuit, nested and ordered -- one round
-// trip instead of the screen stitching sections and exercises together
-// itself.
+// The active block plus every session template's full circuit, nested and
+// ordered -- one round trip instead of the screen stitching templates,
+// sections, and exercises together itself.
 export async function getActiveFitBlock(userId: string): Promise<FitBlock | null> {
   const { data: blockRow } = await supabase
     .from("fit_blocks")
@@ -2085,11 +2091,30 @@ export async function getActiveFitBlock(userId: string): Promise<FitBlock | null
     .maybeSingle();
   if (!blockRow) return null;
 
+  const { data: templateRows } = await supabase
+    .from("fit_session_templates")
+    .select("id, name, order_index")
+    .eq("block_id", blockRow.id)
+    .order("order_index");
+  const templateIds = (templateRows ?? []).map((t) => t.id);
+  if (templateIds.length === 0) {
+    return {
+      id: blockRow.id,
+      name: blockRow.name,
+      weekCount: blockRow.week_count,
+      sessionsPerWeek: blockRow.sessions_per_week,
+      stepGoal: blockRow.step_goal,
+      careNotes: blockRow.care_notes,
+      status: blockRow.status as FitBlock["status"],
+      templates: [],
+    };
+  }
+
   const [{ data: sectionRows }, { data: exerciseRows }] = await Promise.all([
     supabase
       .from("fit_block_sections")
-      .select("id, title, set_count, order_index")
-      .eq("block_id", blockRow.id)
+      .select("id, session_template_id, title, set_count, order_index")
+      .in("session_template_id", templateIds)
       .order("order_index"),
     supabase
       .from("fit_block_exercises")
@@ -2104,11 +2129,17 @@ export async function getActiveFitBlock(userId: string): Promise<FitBlock | null
     exercisesBySection.set(row.section_id, list);
   }
 
-  const sections: FitSection[] = (sectionRows ?? []).map((s) => ({
-    id: s.id,
-    title: s.title,
-    setCount: s.set_count,
-    exercises: exercisesBySection.get(s.id) ?? [],
+  const sectionsByTemplate = new Map<string, FitSection[]>();
+  for (const s of sectionRows ?? []) {
+    const list = sectionsByTemplate.get(s.session_template_id) ?? [];
+    list.push({ id: s.id, title: s.title, setCount: s.set_count, exercises: exercisesBySection.get(s.id) ?? [] });
+    sectionsByTemplate.set(s.session_template_id, list);
+  }
+
+  const templates: FitSessionTemplate[] = (templateRows ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    sections: sectionsByTemplate.get(t.id) ?? [],
   }));
 
   return {
@@ -2119,30 +2150,212 @@ export async function getActiveFitBlock(userId: string): Promise<FitBlock | null
     stepGoal: blockRow.step_goal,
     careNotes: blockRow.care_notes,
     status: blockRow.status as FitBlock["status"],
+    templates,
+  };
+}
+
+export interface FitWorkoutInstance {
+  id: string;
+  sessionTemplateId: string | null;
+  status: "in_progress" | "completed";
+  startedAt: string;
+  completedAt: string | null;
+}
+
+function toFitWorkoutInstance(row: {
+  id: string;
+  session_template_id: string | null;
+  status: string;
+  started_at: string;
+  completed_at: string | null;
+}): FitWorkoutInstance {
+  return {
+    id: row.id,
+    sessionTemplateId: row.session_template_id,
+    status: row.status as FitWorkoutInstance["status"],
+    startedAt: row.started_at,
+    completedAt: row.completed_at,
+  };
+}
+
+// This week's session instances (in progress or completed), oldest first --
+// paired with the block's ordered templates client-side to render "Workout
+// 1, Workout 2, ..." slots, since which slot each instance filled is just
+// its position among the week's instances, not something stored.
+export async function getWorkoutInstancesThisWeek(userId: string, blockId: string): Promise<FitWorkoutInstance[]> {
+  const { data } = await supabase
+    .from("fit_workout_logs")
+    .select("id, session_template_id, status, started_at, completed_at")
+    .eq("user_id", userId)
+    .eq("block_id", blockId)
+    .gte("started_at", startOfWeekISO())
+    .order("started_at");
+  return (data ?? []).map(toFitWorkoutInstance);
+}
+
+// Starts a new session instance for the given template, seeding one
+// exercise-log row per exercise in it (unchecked, no actual value yet --
+// the runner screen shows each exercise's own prescription as the default
+// until the player overrides it).
+export async function startWorkout(userId: string, blockId: string, sessionTemplateId: string): Promise<string> {
+  const { data: logRow, error } = await supabase
+    .from("fit_workout_logs")
+    .insert({ user_id: userId, block_id: blockId, session_template_id: sessionTemplateId, status: "in_progress" })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  const { data: sectionRows } = await supabase
+    .from("fit_block_sections")
+    .select("id")
+    .eq("session_template_id", sessionTemplateId);
+  const sectionIds = (sectionRows ?? []).map((s) => s.id);
+
+  if (sectionIds.length > 0) {
+    const { data: exerciseRows } = await supabase
+      .from("fit_block_exercises")
+      .select("id, order_index")
+      .in("section_id", sectionIds);
+    const logs = (exerciseRows ?? []).map((e) => ({
+      workout_log_id: logRow.id,
+      exercise_id: e.id,
+      user_id: userId,
+      order_index: e.order_index,
+    }));
+    if (logs.length > 0) {
+      const { error: logsError } = await supabase.from("fit_exercise_logs").insert(logs);
+      if (logsError) throw logsError;
+    }
+  }
+
+  return logRow.id;
+}
+
+export interface FitWorkoutExercise {
+  logId: string;
+  exerciseId: string;
+  name: string;
+  cue: string | null;
+  defaultPrescription: string | null;
+  actualPrescription: string | null;
+  completed: boolean;
+}
+
+export interface FitWorkoutSectionView {
+  id: string;
+  title: string;
+  setCount: number | null;
+  exercises: FitWorkoutExercise[];
+}
+
+export interface FitWorkoutSession {
+  id: string;
+  blockId: string;
+  templateName: string;
+  status: "in_progress" | "completed";
+  startedAt: string;
+  completedAt: string | null;
+  sections: FitWorkoutSectionView[];
+}
+
+// Everything the workout runner screen needs for one instance, nested and
+// ordered -- pulled fresh from fit_exercise_logs/fit_block_exercises rather
+// than reusing the block's own template data, so it stays correct even if
+// the template's exercises change after this instance was started.
+export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkoutSession | null> {
+  const { data: logRow } = await supabase
+    .from("fit_workout_logs")
+    .select("id, block_id, session_template_id, status, started_at, completed_at")
+    .eq("id", workoutLogId)
+    .maybeSingle();
+  if (!logRow) return null;
+
+  const [{ data: templateRow }, { data: exerciseLogRows }] = await Promise.all([
+    logRow.session_template_id
+      ? supabase.from("fit_session_templates").select("name").eq("id", logRow.session_template_id).maybeSingle()
+      : Promise.resolve({ data: null as { name: string } | null }),
+    supabase
+      .from("fit_exercise_logs")
+      .select("id, exercise_id, completed, actual_prescription, order_index")
+      .eq("workout_log_id", workoutLogId)
+      .order("order_index"),
+  ]);
+
+  const exerciseIds = (exerciseLogRows ?? []).map((r) => r.exercise_id);
+  const { data: exerciseRows } =
+    exerciseIds.length > 0
+      ? await supabase
+          .from("fit_block_exercises")
+          .select("id, section_id, name, prescription, cue")
+          .in("id", exerciseIds)
+      : { data: [] };
+  const exerciseById = new Map((exerciseRows ?? []).map((e) => [e.id, e]));
+
+  const sectionIds = [...new Set((exerciseRows ?? []).map((e) => e.section_id))];
+  const { data: sectionRows } =
+    sectionIds.length > 0
+      ? await supabase.from("fit_block_sections").select("id, title, set_count, order_index").in("id", sectionIds)
+      : { data: [] };
+
+  const exercisesBySection = new Map<string, FitWorkoutExercise[]>();
+  for (const logRow2 of exerciseLogRows ?? []) {
+    const exercise = exerciseById.get(logRow2.exercise_id);
+    if (!exercise) continue;
+    const list = exercisesBySection.get(exercise.section_id) ?? [];
+    list.push({
+      logId: logRow2.id,
+      exerciseId: exercise.id,
+      name: exercise.name,
+      cue: exercise.cue,
+      defaultPrescription: exercise.prescription,
+      actualPrescription: logRow2.actual_prescription,
+      completed: logRow2.completed,
+    });
+    exercisesBySection.set(exercise.section_id, list);
+  }
+
+  const sections: FitWorkoutSectionView[] = (sectionRows ?? [])
+    .sort((a, b) => a.order_index - b.order_index)
+    .map((s) => ({
+      id: s.id,
+      title: s.title,
+      setCount: s.set_count,
+      exercises: exercisesBySection.get(s.id) ?? [],
+    }));
+
+  return {
+    id: logRow.id,
+    blockId: logRow.block_id,
+    templateName: templateRow?.name ?? "Workout",
+    status: logRow.status as FitWorkoutSession["status"],
+    startedAt: logRow.started_at,
+    completedAt: logRow.completed_at,
     sections,
   };
 }
 
-export async function getWorkoutsThisWeek(userId: string, blockId: string): Promise<string[]> {
-  const { data } = await supabase
-    .from("fit_workout_logs")
-    .select("completed_on")
-    .eq("user_id", userId)
-    .eq("block_id", blockId)
-    .gte("completed_on", startOfWeekISO())
-    .order("completed_on");
-  return (data ?? []).map((row) => row.completed_on as string);
+export async function updateExerciseLog(
+  logId: string,
+  updates: { completed?: boolean; actualPrescription?: string | null }
+): Promise<void> {
+  const payload: Record<string, unknown> = {};
+  if (updates.completed !== undefined) payload.completed = updates.completed;
+  if (updates.actualPrescription !== undefined) payload.actual_prescription = updates.actualPrescription;
+  const { error } = await supabase.from("fit_exercise_logs").update(payload).eq("id", logId);
+  if (error) throw error;
 }
 
-// Idempotent per day -- logging twice in one day is a no-op, not a second
-// session.
-export async function logWorkoutToday(userId: string, blockId: string): Promise<void> {
+export async function finishWorkout(workoutLogId: string): Promise<void> {
   const { error } = await supabase
     .from("fit_workout_logs")
-    .upsert(
-      { user_id: userId, block_id: blockId, completed_on: todayISO() },
-      { onConflict: "user_id,block_id,completed_on" }
-    );
+    .update({ status: "completed", completed_at: new Date().toISOString() })
+    .eq("id", workoutLogId);
+  if (error) throw error;
+}
+
+// Backs out of a workout started by mistake -- cascades to its exercise logs.
+export async function abandonWorkout(workoutLogId: string): Promise<void> {
+  const { error } = await supabase.from("fit_workout_logs").delete().eq("id", workoutLogId);
   if (error) throw error;
 }
 
