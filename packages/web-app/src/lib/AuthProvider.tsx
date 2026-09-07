@@ -18,6 +18,7 @@ export interface Profile {
   share_scores_publicly: boolean;
   individual_tier: string | null;
   subscription_status: string | null;
+  fit_access: boolean;
 }
 
 interface AuthState {

@@ -7,6 +7,7 @@ import { TermsScreen } from "./pages/TermsScreen";
 import { AppShell } from "./components/AppNav";
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireAdmin } from "./components/RequireAdmin";
+import { RequireFitAccess } from "./components/RequireFitAccess";
 import { HomeScreen } from "./pages/app/HomeScreen";
 import { TodayScreen } from "./pages/app/TodayScreen";
 import { ProgressScreen } from "./pages/app/ProgressScreen";
@@ -33,6 +34,7 @@ import { ChallengesScreen } from "./pages/app/ChallengesScreen";
 import { NewChallengeScreen } from "./pages/app/NewChallengeScreen";
 import { ChallengeDetailScreen } from "./pages/app/ChallengeDetailScreen";
 import { AdminScreen } from "./pages/app/AdminScreen";
+import { FitScreen } from "./pages/app/FitScreen";
 import { StudioAdminScreen } from "./pages/app/StudioAdminScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
@@ -89,6 +91,14 @@ function App() {
         <Route path="profile" element={<ProfileScreen />} />
         <Route path="bag" element={<MyBagScreen />} />
         <Route path="studio-admin" element={<StudioAdminScreen />} />
+        <Route
+          path="fit"
+          element={
+            <RequireFitAccess>
+              <FitScreen />
+            </RequireFitAccess>
+          }
+        />
         <Route
           path="admin"
           element={

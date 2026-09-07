@@ -14,7 +14,13 @@ const PAD_Y = 16;
 // mark spec. Brand green throughout since direction (better/worse) is
 // already carried by the delta badge next to this chart, not by color
 // here -- this line is just shape.
-export function HandicapTrendChart({ points }: { points: TrendPoint[] }) {
+export function HandicapTrendChart({
+  points,
+  label = "Handicap trend over time",
+}: {
+  points: TrendPoint[];
+  label?: string;
+}) {
   if (points.length < 2) return null;
 
   const values = points.map((p) => p.value);
@@ -33,7 +39,7 @@ export function HandicapTrendChart({ points }: { points: TrendPoint[] }) {
   const last = coords[coords.length - 1];
 
   return (
-    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mt-2 w-full" role="img" aria-label="Handicap trend over time">
+    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mt-2 w-full" role="img" aria-label={label}>
       <path d={path} fill="none" stroke="#1F4D36" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       {coords.map((c, i) => (
         <circle key={i} cx={c.x} cy={c.y} r={3} fill="#1F4D36" />

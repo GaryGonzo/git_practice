@@ -1967,3 +1967,200 @@ export function blendGameRatings(
   }
   return blended;
 }
+
+// ---------------------------------------------------------------------------
+// Golfable Fit -- gated behind profiles.fit_access, same pattern as
+// is_admin, since it's visible to one person for now rather than rolled
+// out generally.
+
+export interface FitProfile {
+  goals: string | null;
+  goalWeightLossLbs: number | null;
+  fitnessLevel: string | null;
+  injuries: string | null;
+  swingFocus: string | null;
+  tightAreas: string | null;
+  exercisePreferences: string | null;
+  updatedAt: string;
+}
+
+function toFitProfile(row: {
+  goals: string | null;
+  goal_weight_loss_lbs: number | null;
+  fitness_level: string | null;
+  injuries: string | null;
+  swing_focus: string | null;
+  tight_areas: string | null;
+  exercise_preferences: string | null;
+  updated_at: string;
+}): FitProfile {
+  return {
+    goals: row.goals,
+    goalWeightLossLbs: row.goal_weight_loss_lbs,
+    fitnessLevel: row.fitness_level,
+    injuries: row.injuries,
+    swingFocus: row.swing_focus,
+    tightAreas: row.tight_areas,
+    exercisePreferences: row.exercise_preferences,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function getFitProfile(userId: string): Promise<FitProfile | null> {
+  const { data } = await supabase.from("fit_profiles").select("*").eq("user_id", userId).maybeSingle();
+  return data ? toFitProfile(data) : null;
+}
+
+export interface FitNutritionPlan {
+  dailyCalories: number | null;
+  proteinLevel: string | null;
+  carbLevel: string | null;
+  fatLevel: string | null;
+  produceLevel: string | null;
+  mealsPerDay: number | null;
+  rules: string[];
+}
+
+function toFitNutritionPlan(row: {
+  daily_calories: number | null;
+  protein_level: string | null;
+  carb_level: string | null;
+  fat_level: string | null;
+  produce_level: string | null;
+  meals_per_day: number | null;
+  rules: string[];
+}): FitNutritionPlan {
+  return {
+    dailyCalories: row.daily_calories,
+    proteinLevel: row.protein_level,
+    carbLevel: row.carb_level,
+    fatLevel: row.fat_level,
+    produceLevel: row.produce_level,
+    mealsPerDay: row.meals_per_day,
+    rules: row.rules,
+  };
+}
+
+export async function getFitNutritionPlan(userId: string): Promise<FitNutritionPlan | null> {
+  const { data } = await supabase.from("fit_nutrition_plans").select("*").eq("user_id", userId).maybeSingle();
+  return data ? toFitNutritionPlan(data) : null;
+}
+
+export interface FitExercise {
+  id: string;
+  name: string;
+  prescription: string | null;
+  cue: string | null;
+}
+
+export interface FitSection {
+  id: string;
+  title: string;
+  setCount: number | null;
+  exercises: FitExercise[];
+}
+
+export interface FitBlock {
+  id: string;
+  name: string;
+  weekCount: number;
+  sessionsPerWeek: number;
+  stepGoal: number | null;
+  careNotes: string | null;
+  status: "active" | "completed" | "planned";
+  sections: FitSection[];
+}
+
+// The active block plus its full circuit, nested and ordered -- one round
+// trip instead of the screen stitching sections and exercises together
+// itself.
+export async function getActiveFitBlock(userId: string): Promise<FitBlock | null> {
+  const { data: blockRow } = await supabase
+    .from("fit_blocks")
+    .select("id, name, week_count, sessions_per_week, step_goal, care_notes, status")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("order_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!blockRow) return null;
+
+  const [{ data: sectionRows }, { data: exerciseRows }] = await Promise.all([
+    supabase
+      .from("fit_block_sections")
+      .select("id, title, set_count, order_index")
+      .eq("block_id", blockRow.id)
+      .order("order_index"),
+    supabase
+      .from("fit_block_exercises")
+      .select("id, section_id, name, prescription, cue, order_index")
+      .eq("user_id", userId),
+  ]);
+
+  const exercisesBySection = new Map<string, FitExercise[]>();
+  for (const row of (exerciseRows ?? []).sort((a, b) => a.order_index - b.order_index)) {
+    const list = exercisesBySection.get(row.section_id) ?? [];
+    list.push({ id: row.id, name: row.name, prescription: row.prescription, cue: row.cue });
+    exercisesBySection.set(row.section_id, list);
+  }
+
+  const sections: FitSection[] = (sectionRows ?? []).map((s) => ({
+    id: s.id,
+    title: s.title,
+    setCount: s.set_count,
+    exercises: exercisesBySection.get(s.id) ?? [],
+  }));
+
+  return {
+    id: blockRow.id,
+    name: blockRow.name,
+    weekCount: blockRow.week_count,
+    sessionsPerWeek: blockRow.sessions_per_week,
+    stepGoal: blockRow.step_goal,
+    careNotes: blockRow.care_notes,
+    status: blockRow.status as FitBlock["status"],
+    sections,
+  };
+}
+
+export async function getWorkoutsThisWeek(userId: string, blockId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("fit_workout_logs")
+    .select("completed_on")
+    .eq("user_id", userId)
+    .eq("block_id", blockId)
+    .gte("completed_on", startOfWeekISO())
+    .order("completed_on");
+  return (data ?? []).map((row) => row.completed_on as string);
+}
+
+// Idempotent per day -- logging twice in one day is a no-op, not a second
+// session.
+export async function logWorkoutToday(userId: string, blockId: string): Promise<void> {
+  const { error } = await supabase
+    .from("fit_workout_logs")
+    .upsert(
+      { user_id: userId, block_id: blockId, completed_on: todayISO() },
+      { onConflict: "user_id,block_id,completed_on" }
+    );
+  if (error) throw error;
+}
+
+export interface FitBodyLogEntry {
+  weightLbs: number;
+  recordedAt: string;
+}
+
+export async function getFitBodyLogHistory(userId: string): Promise<FitBodyLogEntry[]> {
+  const { data } = await supabase
+    .from("fit_body_logs")
+    .select("weight_lbs, recorded_at")
+    .eq("user_id", userId)
+    .order("recorded_at", { ascending: true });
+  return (data ?? []).map((row) => ({ weightLbs: row.weight_lbs as number, recordedAt: row.recorded_at as string }));
+}
+
+export async function logFitBodyWeight(userId: string, weightLbs: number): Promise<void> {
+  const { error } = await supabase.from("fit_body_logs").insert({ user_id: userId, weight_lbs: weightLbs });
+  if (error) throw error;
+}

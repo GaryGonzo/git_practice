@@ -767,6 +767,15 @@ export function ProfileScreen() {
         </Link>
       )}
 
+      {profile.fit_access && (
+        <Link
+          to="/app/fit"
+          className="font-label bg-brand mt-3 block w-full rounded-md px-4 py-2.5 text-center text-sm font-semibold text-white"
+        >
+          Golfable Fit
+        </Link>
+      )}
+
       {profile.is_admin && (
         <Link
           to="/app/admin"
