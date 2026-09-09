@@ -22,6 +22,19 @@ function BackIcon({ className }: { className?: string }) {
   );
 }
 
+function ChevronDownIcon({ className, open }: { className?: string; open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className={`${className} transition-transform ${open ? "rotate-180" : ""}`}
+      aria-hidden="true"
+    >
+      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function CheckIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
@@ -230,49 +243,66 @@ function ExerciseRow({
 function SectionBlock({
   section,
   readOnly,
+  open,
+  onToggleOpen,
   onToggle,
   onChangeCount,
 }: {
   section: FitWorkoutSectionView;
   readOnly: boolean;
+  open: boolean;
+  onToggleOpen: () => void;
   onToggle: (exercise: FitWorkoutExercise) => void;
   onChangeCount: (exercise: FitWorkoutExercise, value: number) => void;
 }) {
   const flavor = sectionFlavor(section.title);
   const totalExercises = section.sets.reduce((sum, s) => sum + s.exercises.length, 0);
   const completedExercises = section.sets.reduce((sum, s) => sum + s.exercises.filter((e) => e.completed).length, 0);
+  const allDone = totalExercises > 0 && completedExercises === totalExercises;
 
   return (
-    <div className={`rounded-xl border-l-4 bg-white p-3.5 shadow-sm ${FLAVOR_BORDER[flavor]}`}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-label text-base font-semibold">{section.title}</p>
-        <span className={`font-label rounded-full px-2 py-0.5 text-xs font-semibold ${FLAVOR_SOFT_BG[flavor]} ${FLAVOR_TEXT[flavor]}`}>
-          {completedExercises}/{totalExercises}
-        </span>
-      </div>
-      <div className="mt-3 space-y-4">
-        {section.sets.map((set) => (
-          <div key={set.setNumber}>
-            {section.setCount !== null && section.setCount > 1 && (
-              <p className={`font-label mb-1.5 text-xs font-semibold tracking-wide uppercase ${FLAVOR_TEXT[flavor]}`}>
-                Set {set.setNumber} of {section.setCount}
-              </p>
-            )}
-            <div className="space-y-1.5">
-              {set.exercises.map((exercise) => (
-                <ExerciseRow
-                  key={exercise.logId}
-                  exercise={exercise}
-                  flavor={flavor}
-                  readOnly={readOnly}
-                  onToggle={() => onToggle(exercise)}
-                  onChangeCount={(value) => onChangeCount(exercise, value)}
-                />
-              ))}
+    <div className={`rounded-xl border-l-4 bg-white shadow-sm ${FLAVOR_BORDER[flavor]}`}>
+      <button type="button" onClick={onToggleOpen} className="flex w-full items-center justify-between gap-2 p-3.5 text-left">
+        <div className="flex items-center gap-2">
+          <p className="font-label text-base font-semibold">{section.title}</p>
+          {allDone && !open && (
+            <span className={`flex h-5 w-5 flex-none items-center justify-center rounded-full text-white ${FLAVOR_BG[flavor]}`}>
+              <CheckIcon className="h-3 w-3" />
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`font-label rounded-full px-2 py-0.5 text-xs font-semibold ${FLAVOR_SOFT_BG[flavor]} ${FLAVOR_TEXT[flavor]}`}>
+            {completedExercises}/{totalExercises}
+          </span>
+          <ChevronDownIcon open={open} className="h-4 w-4 flex-none text-neutral-400" />
+        </div>
+      </button>
+      {open && (
+        <div className="space-y-4 px-3.5 pb-3.5">
+          {section.sets.map((set) => (
+            <div key={set.setNumber}>
+              {section.setCount !== null && section.setCount > 1 && (
+                <p className={`font-label mb-1.5 text-xs font-semibold tracking-wide uppercase ${FLAVOR_TEXT[flavor]}`}>
+                  Set {set.setNumber} of {section.setCount}
+                </p>
+              )}
+              <div className="space-y-1.5">
+                {set.exercises.map((exercise) => (
+                  <ExerciseRow
+                    key={exercise.logId}
+                    exercise={exercise}
+                    flavor={flavor}
+                    readOnly={readOnly}
+                    onToggle={() => onToggle(exercise)}
+                    onChangeCount={(value) => onChangeCount(exercise, value)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -286,11 +316,27 @@ export function FitWorkoutScreen() {
   const [finishing, setFinishing] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [cooldownHref, setCooldownHref] = useState<string | null>(null);
+  // Only the first circuit starts open -- seeded once when the workout
+  // loads, not re-derived on every local edit, so checking off an exercise
+  // doesn't snap other sections open or shut.
+  const [openSectionIds, setOpenSectionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!workoutLogId) return;
-    getWorkoutSession(workoutLogId).then(setSession);
+    getWorkoutSession(workoutLogId).then((result) => {
+      setSession(result);
+      if (result) setOpenSectionIds(new Set(result.sections.length > 0 ? [result.sections[0].id] : []));
+    });
   }, [workoutLogId]);
+
+  function toggleSectionOpen(sectionId: string) {
+    setOpenSectionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  }
 
   if (session === undefined) {
     return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
@@ -415,9 +461,17 @@ export function FitWorkoutScreen() {
         </p>
       )}
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-4 space-y-3">
         {session.sections.map((section) => (
-          <SectionBlock key={section.id} section={section} readOnly={readOnly} onToggle={handleToggle} onChangeCount={handleCountChange} />
+          <SectionBlock
+            key={section.id}
+            section={section}
+            readOnly={readOnly}
+            open={openSectionIds.has(section.id)}
+            onToggleOpen={() => toggleSectionOpen(section.id)}
+            onToggle={handleToggle}
+            onChangeCount={handleCountChange}
+          />
         ))}
       </div>
 
