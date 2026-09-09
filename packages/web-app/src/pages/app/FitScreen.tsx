@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthProvider";
 import {
   getFitProfile,
   getFitNutritionPlan,
   getActiveFitBlock,
   getWorkoutInstancesThisWeek,
+  getActiveWorkoutInstance,
   startWorkout,
   getFitBodyLogHistory,
   logFitBodyWeight,
@@ -77,6 +78,34 @@ function DumbbellIcon({ className }: { className?: string }) {
       <rect x="16" y="9" width="3" height="6" rx="1" stroke="currentColor" strokeWidth="1.6" />
       <path d="M8 12h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
+  );
+}
+
+function PlayIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M8 5.5v13l11-6.5-11-6.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+// Always visible regardless of week boundaries or which card is collapsed
+// -- leaving mid-workout and coming back should never require hunting
+// through a collapsed section to find your way back in.
+function ResumeWorkoutBanner({ instance, templateName }: { instance: FitWorkoutInstance; templateName: string }) {
+  return (
+    <Link
+      to={`/app/fit/workout/${instance.id}`}
+      className="bg-gold/15 border-gold/40 mt-4 flex items-center gap-3 rounded-lg border p-4 active:opacity-80"
+    >
+      <div className="bg-gold flex h-11 w-11 flex-none items-center justify-center rounded-full text-white">
+        <PlayIcon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-label text-sm font-semibold text-neutral-800">Workout in progress</p>
+        <p className="font-body text-sm text-neutral-600">{templateName} &middot; tap to continue</p>
+      </div>
+    </Link>
   );
 }
 
@@ -457,6 +486,7 @@ export function FitScreen() {
   const [fitProfile, setFitProfile] = useState<FitProfile | null>(null);
   const [nutritionPlan, setNutritionPlan] = useState<FitNutritionPlan | null>(null);
   const [block, setBlock] = useState<FitBlock | null>(null);
+  const [activeInstance, setActiveInstance] = useState<FitWorkoutInstance | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -465,12 +495,15 @@ export function FitScreen() {
       setNutritionPlan(n);
       setBlock(b);
       setLoading(false);
+      if (b) setActiveInstance(await getActiveWorkoutInstance(userId, b.id));
     })();
   }, [userId]);
 
   if (loading) {
     return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
   }
+
+  const activeTemplateName = block?.templates.find((t) => t.id === activeInstance?.sessionTemplateId)?.name ?? "Workout";
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
@@ -479,6 +512,8 @@ export function FitScreen() {
         Golfable <span className="text-brand">Fit</span>
       </h1>
       <p className="font-body mt-1 text-sm text-neutral-500">Training built around your body and your swing.</p>
+
+      {activeInstance && <ResumeWorkoutBanner instance={activeInstance} templateName={activeTemplateName} />}
 
       <div className="mt-4">
         {fitProfile && <ConsultationCard profile={fitProfile} />}

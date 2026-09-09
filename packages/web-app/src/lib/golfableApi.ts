@@ -2194,6 +2194,24 @@ export async function getWorkoutInstancesThisWeek(userId: string, blockId: strin
   return (data ?? []).map(toFitWorkoutInstance);
 }
 
+// Not week-bounded, unlike the query above -- a workout started right
+// before a week boundary (or just left mid-circuit for a few days) would
+// otherwise fall out of "this week"'s slot list and become impossible to
+// get back into. Used to surface an always-visible "resume" banner
+// regardless of which week it technically started in.
+export async function getActiveWorkoutInstance(userId: string, blockId: string): Promise<FitWorkoutInstance | null> {
+  const { data } = await supabase
+    .from("fit_workout_logs")
+    .select("id, session_template_id, status, started_at, completed_at")
+    .eq("user_id", userId)
+    .eq("block_id", blockId)
+    .eq("status", "in_progress")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ? toFitWorkoutInstance(data) : null;
+}
+
 // Starts a new session instance for the given template, seeding one
 // exercise-log row per exercise *per set* -- a 3-set circuit produces 3
 // loggable rows per exercise, unchecked with no actual count yet, so
