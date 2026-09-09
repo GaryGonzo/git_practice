@@ -2416,3 +2416,26 @@ export async function logFitBodyWeight(userId: string, weightLbs: number): Promi
   const { error } = await supabase.from("fit_body_logs").insert({ user_id: userId, weight_lbs: weightLbs });
   if (error) throw error;
 }
+
+export interface FitStepLogEntry {
+  steps: number;
+  loggedDate: string;
+}
+
+export async function getFitStepLogHistory(userId: string): Promise<FitStepLogEntry[]> {
+  const { data } = await supabase
+    .from("fit_step_logs")
+    .select("steps, logged_date")
+    .eq("user_id", userId)
+    .order("logged_date", { ascending: true });
+  return (data ?? []).map((row) => ({ steps: row.steps as number, loggedDate: row.logged_date as string }));
+}
+
+// One row per day -- logging today's steps twice updates the same entry
+// instead of creating a second one.
+export async function logFitSteps(userId: string, steps: number): Promise<void> {
+  const { error } = await supabase
+    .from("fit_step_logs")
+    .upsert({ user_id: userId, logged_date: todayISO(), steps }, { onConflict: "user_id,logged_date" });
+  if (error) throw error;
+}

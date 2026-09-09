@@ -10,10 +10,14 @@ import {
   startWorkout,
   getFitBodyLogHistory,
   logFitBodyWeight,
+  getFitStepLogHistory,
+  logFitSteps,
+  todayISO,
   type FitProfile,
   type FitNutritionPlan,
   type FitBlock,
   type FitBodyLogEntry,
+  type FitStepLogEntry,
   type FitWorkoutInstance,
 } from "../../lib/golfableApi";
 import { HandicapTrendChart } from "../../components/HandicapTrendChart";
@@ -81,6 +85,20 @@ function DumbbellIcon({ className }: { className?: string }) {
   );
 }
 
+function FootIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M9 21c-1.5 0-2.5-1-2.5-2.5 0-2 1.5-3 1.5-5.5S6.5 9 6.5 6.5 8 3 10 3s3 1.5 3 4c0 3 2 4.5 2 8 0 3.5-2.5 6-4.5 6H9Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M9.5 8.5c.5.8 1.5 1 2.2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function PlayIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -109,13 +127,14 @@ function ResumeWorkoutBanner({ instance, templateName }: { instance: FitWorkoutI
   );
 }
 
-type CardAccent = "warmup" | "circuit" | "recover" | "finisher";
+type CardAccent = "warmup" | "circuit" | "recover" | "finisher" | "steps";
 
 const ACCENT_BORDER: Record<CardAccent, string> = {
   warmup: "border-l-fit-warmup",
   circuit: "border-l-fit-circuit",
   recover: "border-l-fit-recover",
   finisher: "border-l-fit-finisher",
+  steps: "border-l-gold",
 };
 
 const ACCENT_ICON_BG: Record<CardAccent, string> = {
@@ -123,6 +142,7 @@ const ACCENT_ICON_BG: Record<CardAccent, string> = {
   circuit: "bg-fit-circuit/10 text-fit-circuit",
   recover: "bg-fit-recover/10 text-fit-recover",
   finisher: "bg-fit-finisher/10 text-fit-finisher",
+  steps: "bg-gold/15 text-gold",
 };
 
 // Every top-level Fit card starts collapsed -- this is a lot of personal
@@ -347,6 +367,120 @@ function WeightCard({ userId, goalWeightLossLbs }: { userId: string; goalWeightL
   );
 }
 
+function StepsCard({ userId, stepGoal }: { userId: string; stepGoal: number | null }) {
+  const [history, setHistory] = useState<FitStepLogEntry[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getFitStepLogHistory(userId).then(setHistory);
+  }, [userId]);
+
+  const todayEntry = history.find((h) => h.loggedDate === todayISO()) ?? null;
+  const atGoal = todayEntry !== null && stepGoal !== null && todayEntry.steps >= stepGoal;
+
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) {
+      setError("Enter a valid step count.");
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    try {
+      await logFitSteps(userId, Math.round(num));
+      setHistory(await getFitStepLogHistory(userId));
+      setEditing(false);
+      setValue("");
+    } catch {
+      setError("Couldn't save that -- try again.");
+    }
+    setSaving(false);
+  }
+
+  return (
+    <CollapsibleCard
+      title="Steps"
+      icon={<FootIcon className="h-4.5 w-4.5" />}
+      accent="steps"
+      summary={
+        todayEntry ? (
+          <p className="font-display text-2xl">{todayEntry.steps.toLocaleString()}</p>
+        ) : (
+          <p className="font-body text-sm text-neutral-500">Not logged today</p>
+        )
+      }
+    >
+      {todayEntry ? (
+        <div className="flex flex-wrap items-baseline gap-2">
+          <p className={`font-display text-3xl ${atGoal ? "text-gold" : ""}`}>{todayEntry.steps.toLocaleString()}</p>
+          <span className="font-body text-sm text-neutral-500">today</span>
+        </div>
+      ) : (
+        <p className="font-body text-sm text-neutral-500">Not logged yet today.</p>
+      )}
+      {stepGoal !== null && (
+        <p className="font-body mt-1 text-sm text-neutral-600">
+          Goal: {stepGoal.toLocaleString()} steps/day
+          {todayEntry
+            ? atGoal
+              ? " -- hit it!"
+              : ` -- ${(stepGoal - todayEntry.steps).toLocaleString()} to go`
+            : ""}
+          .
+        </p>
+      )}
+      {history.length > 2 && (
+        <HandicapTrendChart points={history.map((h) => ({ value: h.steps, recordedAt: h.loggedDate }))} label="Steps trend over time" />
+      )}
+
+      {editing ? (
+        <form onSubmit={handleSave} className="mt-3 space-y-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="e.g. 8400"
+            className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+          />
+          {error && <p className="font-body text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="font-label flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-600"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !value}
+              className="font-label bg-brand flex-1 rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setValue(todayEntry ? String(todayEntry.steps) : "");
+            setEditing(true);
+          }}
+          className="font-label text-brand mt-3 text-sm font-semibold underline"
+        >
+          {todayEntry ? "Update today's steps" : "Log today's steps"}
+        </button>
+      )}
+    </CollapsibleCard>
+  );
+}
+
 // One slot in the week -- "Workout 2", subtitled with whichever session
 // template fills it. Not started yet has no instance at all; tapping it
 // starts one. In progress resumes it. Completed opens a read-only recap.
@@ -519,6 +653,7 @@ export function FitScreen() {
         {fitProfile && <ConsultationCard profile={fitProfile} />}
         {nutritionPlan && <NutritionCard plan={nutritionPlan} />}
         <WeightCard userId={userId} goalWeightLossLbs={fitProfile?.goalWeightLossLbs ?? null} />
+        <StepsCard userId={userId} stepGoal={block?.stepGoal ?? null} />
         {block ? (
           <BlockCard userId={userId} block={block} />
         ) : (
