@@ -2049,7 +2049,8 @@ export async function getFitNutritionPlan(userId: string): Promise<FitNutritionP
 export interface FitExercise {
   id: string;
   name: string;
-  prescription: string | null;
+  targetCount: number | null;
+  unit: string | null;
   cue: string | null;
 }
 
@@ -2118,14 +2119,14 @@ export async function getActiveFitBlock(userId: string): Promise<FitBlock | null
       .order("order_index"),
     supabase
       .from("fit_block_exercises")
-      .select("id, section_id, name, prescription, cue, order_index")
+      .select("id, section_id, name, target_count, unit, cue, order_index")
       .eq("user_id", userId),
   ]);
 
   const exercisesBySection = new Map<string, FitExercise[]>();
   for (const row of (exerciseRows ?? []).sort((a, b) => a.order_index - b.order_index)) {
     const list = exercisesBySection.get(row.section_id) ?? [];
-    list.push({ id: row.id, name: row.name, prescription: row.prescription, cue: row.cue });
+    list.push({ id: row.id, name: row.name, targetCount: row.target_count, unit: row.unit, cue: row.cue });
     exercisesBySection.set(row.section_id, list);
   }
 
@@ -2194,9 +2195,10 @@ export async function getWorkoutInstancesThisWeek(userId: string, blockId: strin
 }
 
 // Starts a new session instance for the given template, seeding one
-// exercise-log row per exercise in it (unchecked, no actual value yet --
-// the runner screen shows each exercise's own prescription as the default
-// until the player overrides it).
+// exercise-log row per exercise *per set* -- a 3-set circuit produces 3
+// loggable rows per exercise, unchecked with no actual count yet, so
+// they're logged one set at a time as the player goes through it. A
+// section with no set_count (e.g. Foam Roll) still gets exactly one row.
 export async function startWorkout(userId: string, blockId: string, sessionTemplateId: string): Promise<string> {
   const { data: logRow, error } = await supabase
     .from("fit_workout_logs")
@@ -2207,21 +2209,26 @@ export async function startWorkout(userId: string, blockId: string, sessionTempl
 
   const { data: sectionRows } = await supabase
     .from("fit_block_sections")
-    .select("id")
+    .select("id, set_count")
     .eq("session_template_id", sessionTemplateId);
-  const sectionIds = (sectionRows ?? []).map((s) => s.id);
+  const setCountBySection = new Map((sectionRows ?? []).map((s) => [s.id, s.set_count ?? 1]));
+  const sectionIds = [...setCountBySection.keys()];
 
   if (sectionIds.length > 0) {
     const { data: exerciseRows } = await supabase
       .from("fit_block_exercises")
-      .select("id, order_index")
+      .select("id, section_id, order_index")
       .in("section_id", sectionIds);
-    const logs = (exerciseRows ?? []).map((e) => ({
-      workout_log_id: logRow.id,
-      exercise_id: e.id,
-      user_id: userId,
-      order_index: e.order_index,
-    }));
+    const logs = (exerciseRows ?? []).flatMap((e) => {
+      const setCount = setCountBySection.get(e.section_id) ?? 1;
+      return Array.from({ length: setCount }, (_, i) => ({
+        workout_log_id: logRow.id,
+        exercise_id: e.id,
+        user_id: userId,
+        order_index: e.order_index,
+        set_number: i + 1,
+      }));
+    });
     if (logs.length > 0) {
       const { error: logsError } = await supabase.from("fit_exercise_logs").insert(logs);
       if (logsError) throw logsError;
@@ -2236,16 +2243,23 @@ export interface FitWorkoutExercise {
   exerciseId: string;
   name: string;
   cue: string | null;
-  defaultPrescription: string | null;
-  actualPrescription: string | null;
+  targetCount: number | null;
+  unit: string | null;
+  actualCount: number | null;
   completed: boolean;
+  setNumber: number;
+}
+
+export interface FitWorkoutSetGroup {
+  setNumber: number;
+  exercises: FitWorkoutExercise[];
 }
 
 export interface FitWorkoutSectionView {
   id: string;
   title: string;
   setCount: number | null;
-  exercises: FitWorkoutExercise[];
+  sets: FitWorkoutSetGroup[];
 }
 
 export interface FitWorkoutSession {
@@ -2276,7 +2290,7 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
       : Promise.resolve({ data: null as { name: string } | null }),
     supabase
       .from("fit_exercise_logs")
-      .select("id, exercise_id, completed, actual_prescription, order_index")
+      .select("id, exercise_id, completed, actual_count, set_number, order_index")
       .eq("workout_log_id", workoutLogId)
       .order("order_index"),
   ]);
@@ -2286,7 +2300,7 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
     exerciseIds.length > 0
       ? await supabase
           .from("fit_block_exercises")
-          .select("id, section_id, name, prescription, cue")
+          .select("id, section_id, name, target_count, unit, cue")
           .in("id", exerciseIds)
       : { data: [] };
   const exerciseById = new Map((exerciseRows ?? []).map((e) => [e.id, e]));
@@ -2297,31 +2311,38 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
       ? await supabase.from("fit_block_sections").select("id, title, set_count, order_index").in("id", sectionIds)
       : { data: [] };
 
-  const exercisesBySection = new Map<string, FitWorkoutExercise[]>();
+  // Group into section -> set number -> exercises, so the runner screen
+  // can render "Set 1", "Set 2", ... as its own block within a section.
+  const exercisesBySectionAndSet = new Map<string, Map<number, FitWorkoutExercise[]>>();
   for (const logRow2 of exerciseLogRows ?? []) {
     const exercise = exerciseById.get(logRow2.exercise_id);
     if (!exercise) continue;
-    const list = exercisesBySection.get(exercise.section_id) ?? [];
+    const bySet = exercisesBySectionAndSet.get(exercise.section_id) ?? new Map<number, FitWorkoutExercise[]>();
+    const list = bySet.get(logRow2.set_number) ?? [];
     list.push({
       logId: logRow2.id,
       exerciseId: exercise.id,
       name: exercise.name,
       cue: exercise.cue,
-      defaultPrescription: exercise.prescription,
-      actualPrescription: logRow2.actual_prescription,
+      targetCount: exercise.target_count,
+      unit: exercise.unit,
+      actualCount: logRow2.actual_count,
       completed: logRow2.completed,
+      setNumber: logRow2.set_number,
     });
-    exercisesBySection.set(exercise.section_id, list);
+    bySet.set(logRow2.set_number, list);
+    exercisesBySectionAndSet.set(exercise.section_id, bySet);
   }
 
   const sections: FitWorkoutSectionView[] = (sectionRows ?? [])
     .sort((a, b) => a.order_index - b.order_index)
-    .map((s) => ({
-      id: s.id,
-      title: s.title,
-      setCount: s.set_count,
-      exercises: exercisesBySection.get(s.id) ?? [],
-    }));
+    .map((s) => {
+      const bySet = exercisesBySectionAndSet.get(s.id) ?? new Map<number, FitWorkoutExercise[]>();
+      const sets: FitWorkoutSetGroup[] = [...bySet.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([setNumber, exercises]) => ({ setNumber, exercises }));
+      return { id: s.id, title: s.title, setCount: s.set_count, sets };
+    });
 
   return {
     id: logRow.id,
@@ -2336,11 +2357,11 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
 
 export async function updateExerciseLog(
   logId: string,
-  updates: { completed?: boolean; actualPrescription?: string | null }
+  updates: { completed?: boolean; actualCount?: number | null }
 ): Promise<void> {
   const payload: Record<string, unknown> = {};
   if (updates.completed !== undefined) payload.completed = updates.completed;
-  if (updates.actualPrescription !== undefined) payload.actual_prescription = updates.actualPrescription;
+  if (updates.actualCount !== undefined) payload.actual_count = updates.actualCount;
   const { error } = await supabase.from("fit_exercise_logs").update(payload).eq("id", logId);
   if (error) throw error;
 }

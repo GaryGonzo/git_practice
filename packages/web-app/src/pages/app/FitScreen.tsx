@@ -30,24 +30,97 @@ function ChevronDownIcon({ className, open }: { className?: string; open: boolea
   );
 }
 
+function ClipboardIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="6" y="4.5" width="12" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9 4.5V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9 11h6M9 15h6M9 19h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function AppleIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 8.5c-3-3-8-1.5-8 4 0 5 3.5 9.5 6.5 9.5 1 0 1.5-.5 2.5-.5s1.5.5 2.5.5c2.6 0 5.7-3.7 6.4-7.8.2-1.4-.5-3-2-3.4-1.6-.5-2.9.4-3.9.4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M12 8.5c0-2 1-4 3-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ScaleIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M8 16c0-2.2 1.8-4 4-4s4 1.8 4 4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="9.5" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function DumbbellIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M3 12h2M19 12h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="5" y="9" width="3" height="6" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="16" y="9" width="3" height="6" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 12h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+type CardAccent = "warmup" | "circuit" | "recover" | "finisher";
+
+const ACCENT_BORDER: Record<CardAccent, string> = {
+  warmup: "border-l-fit-warmup",
+  circuit: "border-l-fit-circuit",
+  recover: "border-l-fit-recover",
+  finisher: "border-l-fit-finisher",
+};
+
+const ACCENT_ICON_BG: Record<CardAccent, string> = {
+  warmup: "bg-fit-warmup/10 text-fit-warmup",
+  circuit: "bg-fit-circuit/10 text-fit-circuit",
+  recover: "bg-fit-recover/10 text-fit-recover",
+  finisher: "bg-fit-finisher/10 text-fit-finisher",
+};
+
 // Every top-level Fit card starts collapsed -- this is a lot of personal
 // detail to load onto one screen at once, so nothing shows until asked for.
+// Each one carries its own color and icon so the screen doesn't read as a
+// flat stack of identical white cards.
 function CollapsibleCard({
   title,
+  icon,
+  accent,
   summary,
   children,
   defaultOpen = false,
 }: {
   title: string;
+  icon: React.ReactNode;
+  accent: CardAccent;
   summary?: React.ReactNode;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mt-3 rounded-lg border border-neutral-200 bg-white">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between gap-3 p-4 text-left">
-        <div className="min-w-0">
+    <div className={`mt-3 rounded-lg border border-l-4 border-neutral-200 bg-white ${ACCENT_BORDER[accent]}`}>
+      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-3 p-4 text-left">
+        <div className={`flex h-9 w-9 flex-none items-center justify-center rounded-full ${ACCENT_ICON_BG[accent]}`}>{icon}</div>
+        <div className="min-w-0 flex-1">
           <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">{title}</p>
           {!open && summary && <div className="mt-1">{summary}</div>}
         </div>
@@ -70,7 +143,12 @@ function InfoRow({ label, value }: { label: string; value: string | null }) {
 
 function ConsultationCard({ profile }: { profile: FitProfile }) {
   return (
-    <CollapsibleCard title="Your Consultation" summary={<p className="font-body text-sm text-neutral-600">{profile.goals}</p>}>
+    <CollapsibleCard
+      title="Your Consultation"
+      icon={<ClipboardIcon className="h-4.5 w-4.5" />}
+      accent="warmup"
+      summary={<p className="font-body text-sm text-neutral-600">{profile.goals}</p>}
+    >
       <InfoRow label="Goal" value={profile.goals} />
       <InfoRow label="Current Fitness Level" value={profile.fitnessLevel} />
       <InfoRow label="Injuries" value={profile.injuries} />
@@ -85,6 +163,8 @@ function NutritionCard({ plan }: { plan: FitNutritionPlan }) {
   return (
     <CollapsibleCard
       title="Nutrition"
+      icon={<AppleIcon className="h-4.5 w-4.5" />}
+      accent="circuit"
       summary={
         plan.dailyCalories !== null && (
           <p className="font-display text-2xl">
@@ -173,6 +253,8 @@ function WeightCard({ userId, goalWeightLossLbs }: { userId: string; goalWeightL
   return (
     <CollapsibleCard
       title="Body Weight"
+      icon={<ScaleIcon className="h-4.5 w-4.5" />}
+      accent="recover"
       summary={latest && <p className="font-display text-2xl">{latest.weightLbs} lbs</p>}
     >
       {latest ? (
@@ -311,6 +393,8 @@ function BlockCard({ userId, block }: { userId: string; block: FitBlock }) {
   return (
     <CollapsibleCard
       title="Current Block"
+      icon={<DumbbellIcon className="h-4.5 w-4.5" />}
+      accent="finisher"
       summary={
         <p className="font-body text-sm text-neutral-600">
           {block.name} &middot; {completedCount}/{block.sessionsPerWeek} sessions this week

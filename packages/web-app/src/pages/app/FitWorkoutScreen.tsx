@@ -6,6 +6,7 @@ import {
   finishWorkout,
   abandonWorkout,
   type FitWorkoutSession,
+  type FitWorkoutSectionView,
   type FitWorkoutExercise,
 } from "../../lib/golfableApi";
 
@@ -25,57 +26,204 @@ function CheckIcon({ className }: { className?: string }) {
   );
 }
 
+// Section flavor by keyword in its title -- deliberately loose matching so
+// section titles a future block invents still land somewhere sensible
+// (default to the "circuit" color) instead of falling back to plain gray.
+type SectionFlavor = "recover" | "warmup" | "circuit" | "finisher";
+
+function sectionFlavor(title: string): SectionFlavor {
+  const t = title.toLowerCase();
+  if (t.includes("warm")) return "warmup";
+  if (t.includes("finish")) return "finisher";
+  if (t.includes("roll") || t.includes("recover")) return "recover";
+  return "circuit";
+}
+
+const FLAVOR_BORDER: Record<SectionFlavor, string> = {
+  recover: "border-fit-recover",
+  warmup: "border-fit-warmup",
+  circuit: "border-fit-circuit",
+  finisher: "border-fit-finisher",
+};
+
+const FLAVOR_BG: Record<SectionFlavor, string> = {
+  recover: "bg-fit-recover",
+  warmup: "bg-fit-warmup",
+  circuit: "bg-fit-circuit",
+  finisher: "bg-fit-finisher",
+};
+
+const FLAVOR_TEXT: Record<SectionFlavor, string> = {
+  recover: "text-fit-recover",
+  warmup: "text-fit-warmup",
+  circuit: "text-fit-circuit",
+  finisher: "text-fit-finisher",
+};
+
+const FLAVOR_SOFT_BG: Record<SectionFlavor, string> = {
+  recover: "bg-fit-recover/10",
+  warmup: "bg-fit-warmup/10",
+  circuit: "bg-fit-circuit/10",
+  finisher: "bg-fit-finisher/10",
+};
+
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+// A real +/- stepper with an editable number box in the middle, not just a
+// static display -- tapping the box lets you type a number directly, same
+// as nudging it with the buttons.
+function CountStepper({
+  value,
+  onChange,
+  color,
+  min = 0,
+  max = 999,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  color: string;
+  min?: number;
+  max?: number;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(min, value - 1))}
+        disabled={value <= min}
+        className={`font-label flex h-8 w-8 flex-none items-center justify-center rounded-full border text-base font-semibold disabled:opacity-30 ${color}`}
+      >
+        −
+      </button>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => {
+          const n = Number(e.target.value);
+          if (Number.isFinite(n)) onChange(Math.max(min, Math.min(max, Math.round(n))));
+        }}
+        className="font-display w-12 rounded-md border border-neutral-300 py-1 text-center text-lg"
+      />
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(max, value + 1))}
+        disabled={value >= max}
+        className={`font-label flex h-8 w-8 flex-none items-center justify-center rounded-full border text-base font-semibold disabled:opacity-30 ${color}`}
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
 function ExerciseRow({
   exercise,
+  flavor,
   readOnly,
   onToggle,
-  onChangeActual,
+  onChangeCount,
 }: {
   exercise: FitWorkoutExercise;
+  flavor: SectionFlavor;
   readOnly: boolean;
   onToggle: () => void;
-  onChangeActual: (value: string) => void;
+  onChangeCount: (value: number) => void;
 }) {
-  const displayValue = exercise.actualPrescription ?? exercise.defaultPrescription ?? "";
+  const displayCount = exercise.actualCount ?? exercise.targetCount ?? 0;
+  const stepperColorClass = `${FLAVOR_TEXT[flavor]} border-current`;
 
   return (
-    <div className={`rounded-lg border p-3 ${exercise.completed ? "border-brand/30 bg-brand/5" : "border-neutral-200 bg-white"}`}>
-      <div className="flex items-start gap-3">
+    <div
+      className={`rounded-lg border p-3 ${exercise.completed ? `${FLAVOR_BORDER[flavor]} ${FLAVOR_SOFT_BG[flavor]}` : "border-neutral-200 bg-white"}`}
+    >
+      <div className="flex items-center gap-3">
         {!readOnly && (
           <button
             type="button"
             onClick={onToggle}
-            className={`mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full border-2 ${
-              exercise.completed ? "bg-brand border-brand text-white" : "border-neutral-300 text-transparent"
+            className={`flex h-7 w-7 flex-none items-center justify-center rounded-full border-2 ${
+              exercise.completed ? `${FLAVOR_BG[flavor]} border-transparent text-white` : "border-neutral-300 text-transparent"
             }`}
           >
-            <CheckIcon className="h-3.5 w-3.5" />
+            <CheckIcon className="h-4 w-4" />
           </button>
         )}
         {readOnly && exercise.completed && (
-          <div className="bg-brand mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full text-white">
-            <CheckIcon className="h-3.5 w-3.5" />
+          <div className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-white ${FLAVOR_BG[flavor]}`}>
+            <CheckIcon className="h-4 w-4" />
           </div>
         )}
         <div className="min-w-0 flex-1">
           <p className="font-body text-sm font-semibold text-neutral-800">{exercise.name}</p>
           {exercise.cue && <p className="font-body mt-0.5 text-xs text-neutral-500">{exercise.cue}</p>}
-          {readOnly ? (
-            <p className="font-label mt-1.5 text-xs font-semibold text-neutral-600">{displayValue || "--"}</p>
-          ) : (
-            <input
-              type="text"
-              value={displayValue}
-              onChange={(e) => onChangeActual(e.target.value)}
-              placeholder={exercise.defaultPrescription ?? ""}
-              className="font-body mt-1.5 w-full rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm"
-            />
-          )}
         </div>
+        {exercise.targetCount !== null && (
+          <div className="flex-none text-right">
+            {readOnly ? (
+              <p className="font-display text-lg">
+                {displayCount} <span className="font-label text-xs font-normal text-neutral-500">{exercise.unit}</span>
+              </p>
+            ) : (
+              <>
+                <CountStepper value={displayCount} onChange={onChangeCount} color={stepperColorClass} />
+                {exercise.unit && <p className="font-label mt-0.5 text-center text-xs text-neutral-500">{exercise.unit}</p>}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SectionBlock({
+  section,
+  readOnly,
+  onToggle,
+  onChangeCount,
+}: {
+  section: FitWorkoutSectionView;
+  readOnly: boolean;
+  onToggle: (exercise: FitWorkoutExercise) => void;
+  onChangeCount: (exercise: FitWorkoutExercise, value: number) => void;
+}) {
+  const flavor = sectionFlavor(section.title);
+  const totalExercises = section.sets.reduce((sum, s) => sum + s.exercises.length, 0);
+  const completedExercises = section.sets.reduce((sum, s) => sum + s.exercises.filter((e) => e.completed).length, 0);
+
+  return (
+    <div className={`rounded-xl border-l-4 bg-white p-3.5 shadow-sm ${FLAVOR_BORDER[flavor]}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-label text-base font-semibold">{section.title}</p>
+        <span className={`font-label rounded-full px-2 py-0.5 text-xs font-semibold ${FLAVOR_SOFT_BG[flavor]} ${FLAVOR_TEXT[flavor]}`}>
+          {completedExercises}/{totalExercises}
+        </span>
+      </div>
+      <div className="mt-3 space-y-4">
+        {section.sets.map((set) => (
+          <div key={set.setNumber}>
+            {section.setCount !== null && section.setCount > 1 && (
+              <p className={`font-label mb-1.5 text-xs font-semibold tracking-wide uppercase ${FLAVOR_TEXT[flavor]}`}>
+                Set {set.setNumber} of {section.setCount}
+              </p>
+            )}
+            <div className="space-y-1.5">
+              {set.exercises.map((exercise) => (
+                <ExerciseRow
+                  key={exercise.logId}
+                  exercise={exercise}
+                  flavor={flavor}
+                  readOnly={readOnly}
+                  onToggle={() => onToggle(exercise)}
+                  onChangeCount={(value) => onChangeCount(exercise, value)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -108,8 +256,11 @@ export function FitWorkoutScreen() {
   }
 
   const readOnly = session.status === "completed";
-  const totalExercises = session.sections.reduce((sum, s) => sum + s.exercises.length, 0);
-  const completedExercises = session.sections.reduce((sum, s) => sum + s.exercises.filter((e) => e.completed).length, 0);
+  const totalExercises = session.sections.reduce((sum, s) => sum + s.sets.reduce((n, set) => n + set.exercises.length, 0), 0);
+  const completedExercises = session.sections.reduce(
+    (sum, s) => sum + s.sets.reduce((n, set) => n + set.exercises.filter((e) => e.completed).length, 0),
+    0
+  );
 
   function updateLocalExercise(logId: string, patch: Partial<FitWorkoutExercise>) {
     setSession((prev) =>
@@ -118,7 +269,10 @@ export function FitWorkoutScreen() {
             ...prev,
             sections: prev.sections.map((s) => ({
               ...s,
-              exercises: s.exercises.map((e) => (e.logId === logId ? { ...e, ...patch } : e)),
+              sets: s.sets.map((set) => ({
+                ...set,
+                exercises: set.exercises.map((e) => (e.logId === logId ? { ...e, ...patch } : e)),
+              })),
             })),
           }
         : prev
@@ -127,13 +281,17 @@ export function FitWorkoutScreen() {
 
   async function handleToggle(exercise: FitWorkoutExercise) {
     const completed = !exercise.completed;
-    updateLocalExercise(exercise.logId, { completed });
-    await updateExerciseLog(exercise.logId, { completed });
+    // Marking a set complete without ever touching the stepper should still
+    // leave a concrete recorded count, not a blank -- default it to the
+    // target the moment it's checked off.
+    const actualCount = completed && exercise.actualCount === null ? (exercise.targetCount ?? 0) : exercise.actualCount;
+    updateLocalExercise(exercise.logId, { completed, actualCount });
+    await updateExerciseLog(exercise.logId, { completed, actualCount });
   }
 
-  async function handleActualChange(exercise: FitWorkoutExercise, value: string) {
-    updateLocalExercise(exercise.logId, { actualPrescription: value });
-    await updateExerciseLog(exercise.logId, { actualPrescription: value === "" ? null : value });
+  async function handleCountChange(exercise: FitWorkoutExercise, value: number) {
+    updateLocalExercise(exercise.logId, { actualCount: value });
+    await updateExerciseLog(exercise.logId, { actualCount: value });
   }
 
   async function handleFinish() {
@@ -179,33 +337,13 @@ export function FitWorkoutScreen() {
 
       {!readOnly && (
         <p className="font-label mt-2 text-sm font-semibold text-neutral-600">
-          {completedExercises}/{totalExercises} exercises logged
+          {completedExercises}/{totalExercises} logged
         </p>
       )}
 
-      <div className="mt-4 space-y-5">
+      <div className="mt-4 space-y-4">
         {session.sections.map((section) => (
-          <div key={section.id}>
-            <div className="flex items-center gap-2">
-              <p className="font-label text-sm font-semibold">{section.title}</p>
-              {section.setCount !== null && (
-                <span className="font-label bg-brand/10 text-brand rounded-full px-2 py-0.5 text-xs font-semibold">
-                  {section.setCount} set{section.setCount === 1 ? "" : "s"}
-                </span>
-              )}
-            </div>
-            <div className="mt-1.5 space-y-1.5">
-              {section.exercises.map((exercise) => (
-                <ExerciseRow
-                  key={exercise.logId}
-                  exercise={exercise}
-                  readOnly={readOnly}
-                  onToggle={() => handleToggle(exercise)}
-                  onChangeActual={(value) => handleActualChange(exercise, value)}
-                />
-              ))}
-            </div>
-          </div>
+          <SectionBlock key={section.id} section={section} readOnly={readOnly} onToggle={handleToggle} onChangeCount={handleCountChange} />
         ))}
       </div>
 
