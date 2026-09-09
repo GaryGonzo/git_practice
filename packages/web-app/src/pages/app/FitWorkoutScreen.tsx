@@ -60,14 +60,14 @@ function CooldownPrompt({ onConfirm, onDismiss }: { onConfirm: () => void; onDis
           onClick={onConfirm}
           className="font-label bg-brand mt-6 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white"
         >
-          Let's cool down
+          Yes
         </button>
         <button
           type="button"
           onClick={onDismiss}
           className="font-label mt-2 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-neutral-500"
         >
-          Not now
+          No Thanks
         </button>
       </div>
     </div>
