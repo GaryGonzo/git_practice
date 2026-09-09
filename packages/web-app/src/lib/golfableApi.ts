@@ -2439,3 +2439,60 @@ export async function logFitSteps(userId: string, steps: number): Promise<void> 
     .upsert({ user_id: userId, logged_date: todayISO(), steps }, { onConflict: "user_id,logged_date" });
   if (error) throw error;
 }
+
+export interface FitWorkoutHistoryEntry {
+  id: string;
+  templateName: string;
+  blockName: string;
+  completedAt: string;
+  exercisesCompleted: number;
+  exercisesTotal: number;
+}
+
+// Every completed session instance across every block, newest first --
+// each entry reopens read-only in the same runner screen used to log it
+// live, so there's no separate detail view to keep in sync.
+export async function getFitWorkoutHistory(userId: string): Promise<FitWorkoutHistoryEntry[]> {
+  const { data: logRows } = await supabase
+    .from("fit_workout_logs")
+    .select("id, block_id, session_template_id, completed_at")
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false });
+  if (!logRows || logRows.length === 0) return [];
+
+  const blockIds = [...new Set(logRows.map((r) => r.block_id))];
+  const templateIds = [...new Set(logRows.map((r) => r.session_template_id).filter((id): id is string => id !== null))];
+  const logIds = logRows.map((r) => r.id);
+
+  const [{ data: blockRows }, { data: templateRows }, { data: exerciseLogRows }] = await Promise.all([
+    supabase.from("fit_blocks").select("id, name").in("id", blockIds),
+    templateIds.length > 0
+      ? supabase.from("fit_session_templates").select("id, name").in("id", templateIds)
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    supabase.from("fit_exercise_logs").select("workout_log_id, completed").in("workout_log_id", logIds),
+  ]);
+
+  const blockNameById = new Map((blockRows ?? []).map((b) => [b.id, b.name as string]));
+  const templateNameById = new Map((templateRows ?? []).map((t) => [t.id, t.name as string]));
+
+  const statsByLog = new Map<string, { total: number; completed: number }>();
+  for (const row of exerciseLogRows ?? []) {
+    const stat = statsByLog.get(row.workout_log_id) ?? { total: 0, completed: 0 };
+    stat.total += 1;
+    if (row.completed) stat.completed += 1;
+    statsByLog.set(row.workout_log_id, stat);
+  }
+
+  return logRows.map((row) => {
+    const stat = statsByLog.get(row.id) ?? { total: 0, completed: 0 };
+    return {
+      id: row.id,
+      templateName: (row.session_template_id && templateNameById.get(row.session_template_id)) || "Workout",
+      blockName: blockNameById.get(row.block_id) ?? "Block",
+      completedAt: row.completed_at ?? "",
+      exercisesCompleted: stat.completed,
+      exercisesTotal: stat.total,
+    };
+  });
+}

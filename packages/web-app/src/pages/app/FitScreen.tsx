@@ -609,6 +609,10 @@ function BlockCard({ userId, block }: { userId: string; block: FitBlock }) {
           )}
         </div>
       </div>
+
+      <Link to="/app/fit/history" className="font-label text-brand mt-4 block text-center text-sm font-semibold underline">
+        View Workout History
+      </Link>
     </CollapsibleCard>
   );
 }
