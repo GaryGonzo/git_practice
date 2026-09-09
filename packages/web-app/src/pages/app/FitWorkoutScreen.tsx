@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../lib/AuthProvider";
 import {
   getWorkoutSession,
   updateExerciseLog,
   finishWorkout,
   abandonWorkout,
+  getDrillForDate,
+  getMyScoreForDate,
+  todayISO,
   type FitWorkoutSession,
   type FitWorkoutSectionView,
   type FitWorkoutExercise,
@@ -23,6 +27,50 @@ function CheckIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
       <path d="M4 10.5l3.5 3.5L16 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+function LeafIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M5 19c3-6 6-9 11-11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Offered once a workout is finished -- a low-key nudge toward the day's
+// practice, not a hard gate, so declining just moves on to Fit as usual.
+function CooldownPrompt({ onConfirm, onDismiss }: { onConfirm: () => void; onDismiss: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 px-6">
+      <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl">
+        <div className="bg-brand/10 text-brand mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+          <LeafIcon className="h-8 w-8" />
+        </div>
+        <h2 className="font-display mt-4 text-2xl tracking-wide">Nice work!</h2>
+        <p className="font-body mt-2 text-sm text-neutral-600">Complete today's Golfable as a cooldown?</p>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="font-label bg-brand mt-6 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white"
+        >
+          Let's cool down
+        </button>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="font-label mt-2 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-neutral-500"
+        >
+          Not now
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -232,9 +280,12 @@ function SectionBlock({
 export function FitWorkoutScreen() {
   const { workoutLogId } = useParams();
   const navigate = useNavigate();
+  const { session: authSession } = useAuth();
+  const userId = authSession!.user.id;
   const [session, setSession] = useState<FitWorkoutSession | null | undefined>(undefined);
   const [finishing, setFinishing] = useState(false);
   const [canceling, setCanceling] = useState(false);
+  const [cooldownHref, setCooldownHref] = useState<string | null>(null);
 
   useEffect(() => {
     if (!workoutLogId) return;
@@ -299,10 +350,33 @@ export function FitWorkoutScreen() {
     setFinishing(true);
     try {
       await finishWorkout(workoutLogId);
-      navigate("/app/fit");
+
+      const date = todayISO();
+      const found = await getDrillForDate(date);
+      if (found) {
+        const existingScore = await getMyScoreForDate(userId, found.drill.id, date);
+        if (existingScore !== null) {
+          // Already played today's Golfable -- nothing to nudge toward.
+          navigate("/app/fit");
+          return;
+        }
+        setCooldownHref("/app/today");
+      } else {
+        // No Golfable scheduled today (e.g. a weekend) -- point at Choose
+        // Your Own instead.
+        setCooldownHref("/app/library");
+      }
     } finally {
       setFinishing(false);
     }
+  }
+
+  function handleCooldownConfirm() {
+    if (cooldownHref) navigate(cooldownHref);
+  }
+
+  function handleCooldownDismiss() {
+    navigate("/app/fit");
   }
 
   async function handleCancel() {
@@ -367,6 +441,8 @@ export function FitWorkoutScreen() {
           </button>
         </div>
       )}
+
+      {cooldownHref && <CooldownPrompt onConfirm={handleCooldownConfirm} onDismiss={handleCooldownDismiss} />}
     </div>
   );
 }
