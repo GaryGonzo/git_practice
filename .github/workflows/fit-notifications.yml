@@ -1,0 +1,20 @@
+name: Golfable Fit notifications
+
+# Vercel's own Cron Jobs are capped at once-per-day on the Hobby plan, which
+# can't drive a per-user chosen notification time. This runs every 15
+# minutes instead -- outside Vercel's cron limits -- and just pings the
+# endpoint, which only actually sends to a user once their own chosen time
+# falls inside the current window (see api/send-fit-notifications.ts).
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call send-fit-notifications
+        run: |
+          curl -sS -f -X POST "https://golfable.co/api/send-fit-notifications" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

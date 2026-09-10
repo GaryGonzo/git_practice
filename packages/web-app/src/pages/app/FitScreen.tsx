@@ -651,6 +651,13 @@ export function FitScreen() {
       </h1>
       <p className="font-body mt-1 text-sm text-neutral-500">Training built around your body and your swing.</p>
 
+      <Link
+        to="/app/fit/plan"
+        className="font-label border-fit-warmup/30 bg-fit-warmup/10 text-fit-warmup mt-3 flex items-center justify-center gap-2 rounded-lg border py-3 text-sm font-semibold"
+      >
+        Plan Your Day
+      </Link>
+
       {activeInstance && <ResumeWorkoutBanner instance={activeInstance} templateName={activeTemplateName} />}
 
       <div className="mt-4">

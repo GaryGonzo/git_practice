@@ -2496,3 +2496,96 @@ export async function getFitWorkoutHistory(userId: string): Promise<FitWorkoutHi
     };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Golfable Fit day planning -- walks (timed, multiple per day) and planned
+// workout days (no time, just a date). Separate from the round tracker's
+// step logging: this is what you *intend* to do, not what you did.
+
+export interface FitWalk {
+  id: string;
+  timeOfDay: string;
+  durationMinutes: number;
+}
+
+function toFitWalk(row: { id: string; time_of_day: string; duration_minutes: number }): FitWalk {
+  return { id: row.id, timeOfDay: row.time_of_day, durationMinutes: row.duration_minutes };
+}
+
+export async function getFitWalks(userId: string, date: string): Promise<FitWalk[]> {
+  const { data } = await supabase
+    .from("fit_walks")
+    .select("id, time_of_day, duration_minutes")
+    .eq("user_id", userId)
+    .eq("walk_date", date)
+    .order("time_of_day");
+  return (data ?? []).map(toFitWalk);
+}
+
+export async function addFitWalk(
+  userId: string,
+  date: string,
+  timeOfDay: string,
+  durationMinutes: number
+): Promise<void> {
+  const { error } = await supabase
+    .from("fit_walks")
+    .insert({ user_id: userId, walk_date: date, time_of_day: timeOfDay, duration_minutes: durationMinutes });
+  if (error) throw error;
+}
+
+export async function deleteFitWalk(walkId: string): Promise<void> {
+  const { error } = await supabase.from("fit_walks").delete().eq("id", walkId);
+  if (error) throw error;
+}
+
+export async function isWorkoutPlanned(userId: string, date: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("fit_workout_plans")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("planned_date", date)
+    .maybeSingle();
+  return data !== null;
+}
+
+export async function setWorkoutPlanned(userId: string, date: string, planned: boolean): Promise<void> {
+  if (planned) {
+    const { error } = await supabase
+      .from("fit_workout_plans")
+      .upsert({ user_id: userId, planned_date: date }, { onConflict: "user_id,planned_date" });
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("fit_workout_plans")
+      .delete()
+      .eq("user_id", userId)
+      .eq("planned_date", date);
+    if (error) throw error;
+  }
+}
+
+export interface FitNotificationSettings {
+  enabled: boolean;
+  notifyTime: string;
+}
+
+export async function getFitNotificationSettings(userId: string): Promise<FitNotificationSettings> {
+  const { data } = await supabase
+    .from("fit_notification_settings")
+    .select("enabled, notify_time")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data ? { enabled: data.enabled, notifyTime: data.notify_time } : { enabled: false, notifyTime: "08:00" };
+}
+
+export async function updateFitNotificationSettings(
+  userId: string,
+  updates: { enabled?: boolean; notifyTime?: string }
+): Promise<void> {
+  const payload: Record<string, unknown> = { user_id: userId, updated_at: new Date().toISOString() };
+  if (updates.enabled !== undefined) payload.enabled = updates.enabled;
+  if (updates.notifyTime !== undefined) payload.notify_time = updates.notifyTime;
+  const { error } = await supabase.from("fit_notification_settings").upsert(payload, { onConflict: "user_id" });
+  if (error) throw error;
+}
