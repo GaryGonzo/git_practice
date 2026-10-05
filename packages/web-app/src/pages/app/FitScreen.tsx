@@ -12,6 +12,9 @@ import {
   logFitBodyWeight,
   getFitStepLogHistory,
   logFitSteps,
+  endFitBlock,
+  getNextPlannedFitBlock,
+  beginFitBlock,
   todayISO,
   type FitProfile,
   type FitNutritionPlan,
@@ -19,6 +22,7 @@ import {
   type FitBodyLogEntry,
   type FitStepLogEntry,
   type FitWorkoutInstance,
+  type FitPlannedBlock,
 } from "../../lib/golfableApi";
 import { HandicapTrendChart } from "../../components/HandicapTrendChart";
 
@@ -124,6 +128,76 @@ function ResumeWorkoutBanner({ instance, templateName }: { instance: FitWorkoutI
         <p className="font-body text-sm text-neutral-600">{templateName} &middot; tap to continue</p>
       </div>
     </Link>
+  );
+}
+
+function FlagIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M6 3v18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M6 4h12l-3 4 3 4H6" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RocketIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 3c2.5 1.5 4 4.5 4 8 0 2-1 4-1 4H9s-1-2-1-4c0-3.5 1.5-6.5 4-8Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="9" r="1.3" fill="currentColor" />
+      <path d="M9 15l-2 4M15 15l2 4M10 19h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Tap "End Current Program" to open this, then tap "Yes, End Program"
+// inside it to actually end it -- two deliberate taps so ending a block
+// early can't happen by a single accidental tap.
+function EndProgramModal({
+  blockName,
+  ending,
+  onConfirm,
+  onCancel,
+}: {
+  blockName: string;
+  ending: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 px-6">
+      <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <FlagIcon className="h-8 w-8" />
+        </div>
+        <h2 className="font-display mt-4 text-2xl tracking-wide">End {blockName}?</h2>
+        <p className="font-body mt-2 text-sm text-neutral-600">
+          This stops any workout in progress and moves {blockName} to your history. You'll need to begin a new program to
+          keep training.
+        </p>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={ending}
+          className="font-label mt-6 w-full rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {ending ? "Ending…" : "Yes, End Program"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={ending}
+          className="font-label mt-2 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-neutral-500 disabled:opacity-60"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -526,10 +600,12 @@ function WorkoutSlot({
   );
 }
 
-function BlockCard({ userId, block }: { userId: string; block: FitBlock }) {
+function BlockCard({ userId, block, onEnded }: { userId: string; block: FitBlock; onEnded: () => void }) {
   const navigate = useNavigate();
   const [instances, setInstances] = useState<FitWorkoutInstance[]>([]);
   const [startingSlot, setStartingSlot] = useState<number | null>(null);
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
+  const [ending, setEnding] = useState(false);
 
   useEffect(() => {
     getWorkoutInstancesThisWeek(userId, block.id).then(setInstances);
@@ -545,6 +621,17 @@ function BlockCard({ userId, block }: { userId: string; block: FitBlock }) {
       navigate(`/app/fit/workout/${id}`);
     } finally {
       setStartingSlot(null);
+    }
+  }
+
+  async function handleConfirmEnd() {
+    setEnding(true);
+    try {
+      await endFitBlock(userId, block.id);
+      setConfirmingEnd(false);
+      onEnded();
+    } finally {
+      setEnding(false);
     }
   }
 
@@ -613,7 +700,59 @@ function BlockCard({ userId, block }: { userId: string; block: FitBlock }) {
       <Link to="/app/fit/history" className="font-label text-brand mt-4 block text-center text-sm font-semibold underline">
         View Workout History
       </Link>
+
+      <div className="mt-3 text-center">
+        <button
+          type="button"
+          onClick={() => setConfirmingEnd(true)}
+          className="font-label text-sm font-semibold text-red-600 underline"
+        >
+          End Current Program
+        </button>
+      </div>
+
+      {confirmingEnd && (
+        <EndProgramModal
+          blockName={block.name}
+          ending={ending}
+          onConfirm={handleConfirmEnd}
+          onCancel={() => setConfirmingEnd(false)}
+        />
+      )}
     </CollapsibleCard>
+  );
+}
+
+function NoActiveBlockCard({
+  plannedBlock,
+  beginning,
+  onBegin,
+}: {
+  plannedBlock: FitPlannedBlock | null;
+  beginning: boolean;
+  onBegin: () => void;
+}) {
+  if (!plannedBlock) {
+    return (
+      <div className="mt-3 rounded-lg border border-dashed border-neutral-300 bg-white p-4 text-center">
+        <p className="font-body text-sm text-neutral-500">No active training block yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-brand/30 bg-brand/5 mt-3 rounded-lg border p-4 text-center">
+      <p className="font-body text-sm text-neutral-600">{plannedBlock.name} is ready whenever you are.</p>
+      <button
+        type="button"
+        onClick={onBegin}
+        disabled={beginning}
+        className="font-label bg-brand mt-3 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+      >
+        <RocketIcon className="h-4 w-4" />
+        {beginning ? "Starting…" : `Begin New Program: ${plannedBlock.name}`}
+      </button>
+    </div>
   );
 }
 
@@ -625,6 +764,8 @@ export function FitScreen() {
   const [nutritionPlan, setNutritionPlan] = useState<FitNutritionPlan | null>(null);
   const [block, setBlock] = useState<FitBlock | null>(null);
   const [activeInstance, setActiveInstance] = useState<FitWorkoutInstance | null>(null);
+  const [plannedBlock, setPlannedBlock] = useState<FitPlannedBlock | null>(null);
+  const [beginning, setBeginning] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -634,8 +775,29 @@ export function FitScreen() {
       setBlock(b);
       setLoading(false);
       if (b) setActiveInstance(await getActiveWorkoutInstance(userId, b.id));
+      else setPlannedBlock(await getNextPlannedFitBlock(userId));
     })();
   }, [userId]);
+
+  async function handleEnded() {
+    setBlock(null);
+    setActiveInstance(null);
+    setPlannedBlock(await getNextPlannedFitBlock(userId));
+  }
+
+  async function handleBegin() {
+    if (!plannedBlock) return;
+    setBeginning(true);
+    try {
+      await beginFitBlock(userId, plannedBlock.id);
+      const b = await getActiveFitBlock(userId);
+      setBlock(b);
+      setPlannedBlock(null);
+      if (b) setActiveInstance(await getActiveWorkoutInstance(userId, b.id));
+    } finally {
+      setBeginning(false);
+    }
+  }
 
   if (loading) {
     return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
@@ -666,11 +828,9 @@ export function FitScreen() {
         <WeightCard userId={userId} goalWeightLossLbs={fitProfile?.goalWeightLossLbs ?? null} />
         <StepsCard userId={userId} stepGoal={block?.stepGoal ?? null} />
         {block ? (
-          <BlockCard userId={userId} block={block} />
+          <BlockCard userId={userId} block={block} onEnded={handleEnded} />
         ) : (
-          <div className="mt-3 rounded-lg border border-dashed border-neutral-300 bg-white p-4 text-center">
-            <p className="font-body text-sm text-neutral-500">No active training block yet.</p>
-          </div>
+          <NoActiveBlockCard plannedBlock={plannedBlock} beginning={beginning} onBegin={handleBegin} />
         )}
       </div>
     </div>

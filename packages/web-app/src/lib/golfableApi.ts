@@ -2264,6 +2264,9 @@ export interface FitWorkoutExercise {
   targetCount: number | null;
   unit: string | null;
   actualCount: number | null;
+  tracksWeight: boolean;
+  targetWeightLbs: number | null;
+  actualWeightLbs: number | null;
   completed: boolean;
   setNumber: number;
 }
@@ -2308,7 +2311,7 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
       : Promise.resolve({ data: null as { name: string } | null }),
     supabase
       .from("fit_exercise_logs")
-      .select("id, exercise_id, completed, actual_count, set_number, order_index")
+      .select("id, exercise_id, completed, actual_count, actual_weight_lbs, set_number, order_index")
       .eq("workout_log_id", workoutLogId)
       .order("order_index"),
   ]);
@@ -2318,7 +2321,7 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
     exerciseIds.length > 0
       ? await supabase
           .from("fit_block_exercises")
-          .select("id, section_id, name, target_count, unit, cue")
+          .select("id, section_id, name, target_count, unit, cue, tracks_weight, target_weight_lbs")
           .in("id", exerciseIds)
       : { data: [] };
   const exerciseById = new Map((exerciseRows ?? []).map((e) => [e.id, e]));
@@ -2345,6 +2348,9 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
       targetCount: exercise.target_count,
       unit: exercise.unit,
       actualCount: logRow2.actual_count,
+      tracksWeight: exercise.tracks_weight,
+      targetWeightLbs: exercise.target_weight_lbs,
+      actualWeightLbs: logRow2.actual_weight_lbs,
       completed: logRow2.completed,
       setNumber: logRow2.set_number,
     });
@@ -2375,11 +2381,12 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
 
 export async function updateExerciseLog(
   logId: string,
-  updates: { completed?: boolean; actualCount?: number | null }
+  updates: { completed?: boolean; actualCount?: number | null; actualWeightLbs?: number | null }
 ): Promise<void> {
   const payload: Record<string, unknown> = {};
   if (updates.completed !== undefined) payload.completed = updates.completed;
   if (updates.actualCount !== undefined) payload.actual_count = updates.actualCount;
+  if (updates.actualWeightLbs !== undefined) payload.actual_weight_lbs = updates.actualWeightLbs;
   const { error } = await supabase.from("fit_exercise_logs").update(payload).eq("id", logId);
   if (error) throw error;
 }
@@ -2395,6 +2402,50 @@ export async function finishWorkout(workoutLogId: string): Promise<void> {
 // Backs out of a workout started by mistake -- cascades to its exercise logs.
 export async function abandonWorkout(workoutLogId: string): Promise<void> {
   const { error } = await supabase.from("fit_workout_logs").delete().eq("id", workoutLogId);
+  if (error) throw error;
+}
+
+// Ends a block whether or not it was fully finished -- also abandons
+// whatever workout instance is still in progress under it, so ending the
+// program doesn't leave an orphaned in-progress session with no active
+// block to resume it into.
+export async function endFitBlock(userId: string, blockId: string): Promise<void> {
+  const active = await getActiveWorkoutInstance(userId, blockId);
+  if (active) await abandonWorkout(active.id);
+  const { error } = await supabase
+    .from("fit_blocks")
+    .update({ status: "completed" })
+    .eq("id", blockId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+export interface FitPlannedBlock {
+  id: string;
+  name: string;
+}
+
+// The next block waiting to be started -- seeded ahead of time (by hand
+// for now, auto-generated later) with status "planned" so "Begin New
+// Program" has something to activate once the current block ends.
+export async function getNextPlannedFitBlock(userId: string): Promise<FitPlannedBlock | null> {
+  const { data } = await supabase
+    .from("fit_blocks")
+    .select("id, name")
+    .eq("user_id", userId)
+    .eq("status", "planned")
+    .order("order_index")
+    .limit(1)
+    .maybeSingle();
+  return data ?? null;
+}
+
+export async function beginFitBlock(userId: string, blockId: string): Promise<void> {
+  const { error } = await supabase
+    .from("fit_blocks")
+    .update({ status: "active" })
+    .eq("id", blockId)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 

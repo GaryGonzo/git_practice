@@ -96,7 +96,7 @@ function sectionFlavor(title: string): SectionFlavor {
   const t = title.toLowerCase();
   if (t.includes("warm")) return "warmup";
   if (t.includes("finish")) return "finisher";
-  if (t.includes("roll") || t.includes("recover")) return "recover";
+  if (t.includes("roll") || t.includes("recover") || t.includes("stretch")) return "recover";
   return "circuit";
 }
 
@@ -141,18 +141,20 @@ function CountStepper({
   color,
   min = 0,
   max = 999,
+  step = 1,
 }: {
   value: number;
   onChange: (value: number) => void;
   color: string;
   min?: number;
   max?: number;
+  step?: number;
 }) {
   return (
     <div className="flex items-center gap-1.5">
       <button
         type="button"
-        onClick={() => onChange(Math.max(min, value - 1))}
+        onClick={() => onChange(Math.max(min, value - step))}
         disabled={value <= min}
         className={`font-label flex h-8 w-8 flex-none items-center justify-center rounded-full border text-base font-semibold disabled:opacity-30 ${color}`}
       >
@@ -170,7 +172,7 @@ function CountStepper({
       />
       <button
         type="button"
-        onClick={() => onChange(Math.min(max, value + 1))}
+        onClick={() => onChange(Math.min(max, value + step))}
         disabled={value >= max}
         className={`font-label flex h-8 w-8 flex-none items-center justify-center rounded-full border text-base font-semibold disabled:opacity-30 ${color}`}
       >
@@ -186,14 +188,17 @@ function ExerciseRow({
   readOnly,
   onToggle,
   onChangeCount,
+  onChangeWeight,
 }: {
   exercise: FitWorkoutExercise;
   flavor: SectionFlavor;
   readOnly: boolean;
   onToggle: () => void;
   onChangeCount: (value: number) => void;
+  onChangeWeight: (value: number) => void;
 }) {
   const displayCount = exercise.actualCount ?? exercise.targetCount ?? 0;
+  const displayWeight = exercise.actualWeightLbs ?? exercise.targetWeightLbs ?? 0;
   const stepperColorClass = `${FLAVOR_TEXT[flavor]} border-current`;
 
   return (
@@ -221,18 +226,30 @@ function ExerciseRow({
           <p className="font-body text-sm font-semibold text-neutral-800">{exercise.name}</p>
           {exercise.cue && <p className="font-body mt-0.5 text-xs text-neutral-500">{exercise.cue}</p>}
         </div>
-        {exercise.targetCount !== null && (
-          <div className="flex-none text-right">
-            {readOnly ? (
-              <p className="font-display text-lg">
-                {displayCount} <span className="font-label text-xs font-normal text-neutral-500">{exercise.unit}</span>
-              </p>
-            ) : (
-              <>
-                <CountStepper value={displayCount} onChange={onChangeCount} color={stepperColorClass} />
-                {exercise.unit && <p className="font-label mt-0.5 text-center text-xs text-neutral-500">{exercise.unit}</p>}
-              </>
-            )}
+        {(exercise.targetCount !== null || exercise.tracksWeight) && (
+          <div className="flex-none space-y-1.5 text-right">
+            {exercise.tracksWeight &&
+              (readOnly ? (
+                <p className="font-display text-lg">
+                  {displayWeight || "—"} <span className="font-label text-xs font-normal text-neutral-500">lbs</span>
+                </p>
+              ) : (
+                <div>
+                  <CountStepper value={displayWeight} onChange={onChangeWeight} color={stepperColorClass} step={5} />
+                  <p className="font-label mt-0.5 text-center text-xs text-neutral-500">lbs</p>
+                </div>
+              ))}
+            {exercise.targetCount !== null &&
+              (readOnly ? (
+                <p className="font-display text-lg">
+                  {displayCount} <span className="font-label text-xs font-normal text-neutral-500">{exercise.unit}</span>
+                </p>
+              ) : (
+                <div>
+                  <CountStepper value={displayCount} onChange={onChangeCount} color={stepperColorClass} />
+                  {exercise.unit && <p className="font-label mt-0.5 text-center text-xs text-neutral-500">{exercise.unit}</p>}
+                </div>
+              ))}
           </div>
         )}
       </div>
@@ -247,6 +264,7 @@ function SectionBlock({
   onToggleOpen,
   onToggle,
   onChangeCount,
+  onChangeWeight,
 }: {
   section: FitWorkoutSectionView;
   readOnly: boolean;
@@ -254,6 +272,7 @@ function SectionBlock({
   onToggleOpen: () => void;
   onToggle: (exercise: FitWorkoutExercise) => void;
   onChangeCount: (exercise: FitWorkoutExercise, value: number) => void;
+  onChangeWeight: (exercise: FitWorkoutExercise, value: number) => void;
 }) {
   const flavor = sectionFlavor(section.title);
   const totalExercises = section.sets.reduce((sum, s) => sum + s.exercises.length, 0);
@@ -296,6 +315,7 @@ function SectionBlock({
                     readOnly={readOnly}
                     onToggle={() => onToggle(exercise)}
                     onChangeCount={(value) => onChangeCount(exercise, value)}
+                    onChangeWeight={(value) => onChangeWeight(exercise, value)}
                   />
                 ))}
               </div>
@@ -382,13 +402,22 @@ export function FitWorkoutScreen() {
     // leave a concrete recorded count, not a blank -- default it to the
     // target the moment it's checked off.
     const actualCount = completed && exercise.actualCount === null ? (exercise.targetCount ?? 0) : exercise.actualCount;
-    updateLocalExercise(exercise.logId, { completed, actualCount });
-    await updateExerciseLog(exercise.logId, { completed, actualCount });
+    const actualWeightLbs =
+      completed && exercise.tracksWeight && exercise.actualWeightLbs === null
+        ? (exercise.targetWeightLbs ?? 0)
+        : exercise.actualWeightLbs;
+    updateLocalExercise(exercise.logId, { completed, actualCount, actualWeightLbs });
+    await updateExerciseLog(exercise.logId, { completed, actualCount, actualWeightLbs });
   }
 
   async function handleCountChange(exercise: FitWorkoutExercise, value: number) {
     updateLocalExercise(exercise.logId, { actualCount: value });
     await updateExerciseLog(exercise.logId, { actualCount: value });
+  }
+
+  async function handleWeightChange(exercise: FitWorkoutExercise, value: number) {
+    updateLocalExercise(exercise.logId, { actualWeightLbs: value });
+    await updateExerciseLog(exercise.logId, { actualWeightLbs: value });
   }
 
   async function handleFinish() {
@@ -471,6 +500,7 @@ export function FitWorkoutScreen() {
             onToggleOpen={() => toggleSectionOpen(section.id)}
             onToggle={handleToggle}
             onChangeCount={handleCountChange}
+            onChangeWeight={handleWeightChange}
           />
         ))}
       </div>
