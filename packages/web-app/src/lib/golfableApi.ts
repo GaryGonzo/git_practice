@@ -1010,9 +1010,11 @@ export interface TestNotificationResult {
 
 // Sends a push to the caller's own subscriptions only -- independent of
 // the daily cron send, so it works as both a "did this turn on?" check
-// and a VAPID-key diagnostic.
+// and a VAPID-key diagnostic. Folded into send-daily-notifications.ts
+// server-side (dispatched by auth header) to stay under Vercel Hobby's
+// serverless-function-per-deployment cap, so this still calls that route.
 export async function sendTestNotification(accessToken: string): Promise<TestNotificationResult> {
-  const res = await fetch("/api/send-test-notification", {
+  const res = await fetch("/api/send-daily-notifications", {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}` },
   });
