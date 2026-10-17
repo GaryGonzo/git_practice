@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import webpush from "web-push";
 
 const GOLFABLE_TZ = "America/Los_Angeles";
@@ -33,6 +33,97 @@ function minutesFromTimeString(time: string): number {
   return h * 60 + m;
 }
 
+
+// Times are 12h "3:30 PM" style for the notification title.
+function formatTime12h(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Supabase = SupabaseClient<any, "public", any>;
+
+// Routine reminders: every fit_routine_items row flagged remind=true pushes
+// once a day at its own time (lift, shutdown, dog walk, wind-down). GitHub's
+// scheduled workflow often runs late, so an item counts as due from 20
+// minutes before now through 5 minutes ahead; fit_routine_reminder_runs
+// keeps it to one push per item per day however many runs overlap.
+async function sendRoutineReminders(
+  supabase: Supabase,
+  today: string,
+  nowMinutes: number
+): Promise<{ due: number; sent: number; staleIds: string[] }> {
+  const dow = new Date(`${today}T00:00:00Z`).getUTCDay();
+  const { data: itemRows } = await supabase
+    .from("fit_routine_items")
+    .select("id, user_id, time_of_day, title, detail")
+    .eq("remind", true)
+    .not("time_of_day", "is", null)
+    .contains("days_of_week", [dow]);
+
+  const dueItems = (itemRows ?? []).filter((row) => {
+    const itemMinutes = minutesFromTimeString(row.time_of_day as string);
+    return itemMinutes >= nowMinutes - 20 && itemMinutes <= nowMinutes + 5;
+  });
+  if (dueItems.length === 0) return { due: 0, sent: 0, staleIds: [] };
+
+  const { data: sentRows } = await supabase
+    .from("fit_routine_reminder_runs")
+    .select("item_id")
+    .eq("run_date", today)
+    .in(
+      "item_id",
+      dueItems.map((i) => i.id as string)
+    );
+  const sentIds = new Set((sentRows ?? []).map((r) => r.item_id as string));
+  const pending = dueItems.filter((i) => !sentIds.has(i.id as string));
+  if (pending.length === 0) return { due: dueItems.length, sent: 0, staleIds: [] };
+
+  const userIds = [...new Set(pending.map((i) => i.user_id as string))];
+  const { data: subscriptions } = await supabase
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth_key, user_id")
+    .in("user_id", userIds);
+
+  const staleIds: string[] = [];
+  let sent = 0;
+  await Promise.all(
+    pending.flatMap((item) =>
+      (subscriptions ?? [])
+        .filter((sub) => sub.user_id === item.user_id)
+        .map(async (sub) => {
+          const payload = JSON.stringify({
+            title: `${item.title} · ${formatTime12h(item.time_of_day as string)}`,
+            body: (item.detail as string | null) ?? "Open today's plan.",
+            url: "/app/fit/today",
+          });
+          try {
+            await webpush.sendNotification(
+              { endpoint: sub.endpoint as string, keys: { p256dh: sub.p256dh as string, auth: sub.auth_key as string } },
+              payload
+            );
+            sent += 1;
+          } catch (err) {
+            const statusCode = (err as { statusCode?: number }).statusCode;
+            if (statusCode === 404 || statusCode === 410) staleIds.push(sub.id as string);
+          }
+        })
+    )
+  );
+
+  const { error } = await supabase
+    .from("fit_routine_reminder_runs")
+    .upsert(
+      pending.map((i) => ({ item_id: i.id as string, run_date: today })),
+      { onConflict: "item_id,run_date", ignoreDuplicates: true }
+    );
+  if (error) console.error("send-fit-notifications: failed to record routine runs", error);
+
+  return { due: dueItems.length, sent, staleIds };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     res.status(401).json({ error: "unauthorized" });
@@ -41,6 +132,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { date: today, minutesSinceMidnight: nowMinutes } = pacificNow();
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || "mailto:hello@golfable.co",
+    process.env.VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+
+  // Routine reminders run first and independently -- the once-a-day
+  // reminder below returns early on most runs.
+  const routine = await sendRoutineReminders(supabase, today, nowMinutes);
+  if (routine.staleIds.length > 0) {
+    await supabase.from("push_subscriptions").delete().in("id", routine.staleIds);
+  }
 
   const { data: settingsRows } = await supabase
     .from("fit_notification_settings")
@@ -52,7 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .map((row) => row.user_id as string);
 
   if (dueUserIds.length === 0) {
-    res.status(200).json({ skipped: "no users due", today, nowMinutes });
+    res.status(200).json({ skipped: "no users due", today, nowMinutes, routine });
     return;
   }
 
@@ -65,7 +169,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const pendingUserIds = dueUserIds.filter((id) => !alreadySentIds.has(id));
   if (pendingUserIds.length === 0) {
-    res.status(200).json({ skipped: "already sent today for all due users", today });
+    res.status(200).json({ skipped: "already sent today for all due users", today, routine });
     return;
   }
 
@@ -80,12 +184,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth_key, user_id")
     .in("user_id", pendingUserIds);
-
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || "mailto:hello@golfable.co",
-    process.env.VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
-  );
 
   const WORKOUT_PLANNED_MESSAGE =
     "Don't forget - You've got a Golfable Fit workout today! And go plan your walks now so you get your steps in.";
@@ -126,5 +224,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sent: (subscriptions ?? []).length,
     stale_removed: staleSubscriptionIds.length,
     today,
+    routine,
   });
 }

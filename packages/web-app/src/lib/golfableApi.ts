@@ -1983,6 +1983,7 @@ export interface FitProfile {
   swingFocus: string | null;
   tightAreas: string | null;
   exercisePreferences: string | null;
+  sleepGoalHours: number | null;
   updatedAt: string;
 }
 
@@ -1994,6 +1995,7 @@ function toFitProfile(row: {
   swing_focus: string | null;
   tight_areas: string | null;
   exercise_preferences: string | null;
+  sleep_goal_hours?: number | string | null;
   updated_at: string;
 }): FitProfile {
   return {
@@ -2004,6 +2006,7 @@ function toFitProfile(row: {
     swingFocus: row.swing_focus,
     tightAreas: row.tight_areas,
     exercisePreferences: row.exercise_preferences,
+    sleepGoalHours: row.sleep_goal_hours == null ? null : Number(row.sleep_goal_hours),
     updatedAt: row.updated_at,
   };
 }
@@ -2021,6 +2024,10 @@ export interface FitNutritionPlan {
   produceLevel: string | null;
   mealsPerDay: number | null;
   rules: string[];
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  waterGoalOz: number | null;
 }
 
 function toFitNutritionPlan(row: {
@@ -2031,6 +2038,10 @@ function toFitNutritionPlan(row: {
   produce_level: string | null;
   meals_per_day: number | null;
   rules: string[];
+  protein_g?: number | null;
+  carbs_g?: number | null;
+  fat_g?: number | null;
+  water_goal_oz?: number | null;
 }): FitNutritionPlan {
   return {
     dailyCalories: row.daily_calories,
@@ -2040,6 +2051,10 @@ function toFitNutritionPlan(row: {
     produceLevel: row.produce_level,
     mealsPerDay: row.meals_per_day,
     rules: row.rules,
+    proteinG: row.protein_g ?? null,
+    carbsG: row.carbs_g ?? null,
+    fatG: row.fat_g ?? null,
+    waterGoalOz: row.water_goal_oz ?? null,
   };
 }
 
@@ -2640,5 +2655,316 @@ export async function updateFitNotificationSettings(
   if (updates.enabled !== undefined) payload.enabled = updates.enabled;
   if (updates.notifyTime !== undefined) payload.notify_time = updates.notifyTime;
   const { error } = await supabase.from("fit_notification_settings").upsert(payload, { onConflict: "user_id" });
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// Golfable Fit daily routine -- the repeating weekly schedule the Today
+// screen turns into a checklist, water/sleep logging, and the Sunday
+// check-in. Dates are Pacific calendar dates (YYYY-MM-DD) throughout;
+// date math is done on UTC midnights so it never drifts across DST.
+
+export function addDaysISO(date: string, delta: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+export function dayOfWeekISO(date: string): number {
+  return new Date(`${date}T00:00:00Z`).getUTCDay();
+}
+
+// Monday of the week containing `date` (weeks run Monday-Sunday, so a
+// Sunday check-in reviews the six days before it plus itself).
+export function mondayOfISO(date: string): string {
+  const dow = dayOfWeekISO(date);
+  return addDaysISO(date, dow === 0 ? -6 : 1 - dow);
+}
+
+export type FitRoutineKind =
+  | "wake"
+  | "meal"
+  | "work"
+  | "walk"
+  | "lift"
+  | "golf"
+  | "mobility"
+  | "recovery"
+  | "sleep"
+  | "habit"
+  | "checkin";
+
+export interface FitRoutineItem {
+  id: string;
+  daysOfWeek: number[];
+  timeOfDay: string | null;
+  title: string;
+  detail: string | null;
+  kind: FitRoutineKind;
+  templateIndex: number | null;
+  remind: boolean;
+  orderIndex: number;
+}
+
+// Today's slice of the weekly schedule: "anytime" items (no time) first,
+// then by clock time.
+export async function getFitRoutineForDate(userId: string, date: string): Promise<FitRoutineItem[]> {
+  const dow = dayOfWeekISO(date);
+  const { data } = await supabase
+    .from("fit_routine_items")
+    .select("id, days_of_week, time_of_day, title, detail, kind, template_index, remind, order_index")
+    .eq("user_id", userId)
+    .contains("days_of_week", [dow]);
+  const items = (data ?? []).map((row) => ({
+    id: row.id as string,
+    daysOfWeek: row.days_of_week as number[],
+    timeOfDay: row.time_of_day ? (row.time_of_day as string).slice(0, 5) : null,
+    title: row.title as string,
+    detail: row.detail as string | null,
+    kind: row.kind as FitRoutineKind,
+    templateIndex: row.template_index as number | null,
+    remind: row.remind as boolean,
+    orderIndex: row.order_index as number,
+  }));
+  return items.sort((a, b) => {
+    if (a.timeOfDay === null && b.timeOfDay !== null) return -1;
+    if (b.timeOfDay === null && a.timeOfDay !== null) return 1;
+    if (a.timeOfDay !== b.timeOfDay) return (a.timeOfDay ?? "").localeCompare(b.timeOfDay ?? "");
+    return a.orderIndex - b.orderIndex;
+  });
+}
+
+export async function getFitRoutineChecks(userId: string, date: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from("fit_routine_checks")
+    .select("item_id")
+    .eq("user_id", userId)
+    .eq("check_date", date);
+  return new Set((data ?? []).map((r) => r.item_id as string));
+}
+
+export async function setFitRoutineCheck(userId: string, itemId: string, date: string, done: boolean): Promise<void> {
+  if (done) {
+    const { error } = await supabase
+      .from("fit_routine_checks")
+      .upsert({ user_id: userId, item_id: itemId, check_date: date }, { onConflict: "user_id,item_id,check_date" });
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("fit_routine_checks")
+      .delete()
+      .eq("user_id", userId)
+      .eq("item_id", itemId)
+      .eq("check_date", date);
+    if (error) throw error;
+  }
+}
+
+export interface FitDailyLog {
+  logDate: string;
+  waterOz: number;
+  sleepHours: number | null;
+}
+
+function toFitDailyLog(row: { log_date: string; water_oz: number; sleep_hours: number | string | null }): FitDailyLog {
+  return {
+    logDate: row.log_date,
+    waterOz: row.water_oz,
+    sleepHours: row.sleep_hours === null ? null : Number(row.sleep_hours),
+  };
+}
+
+export async function getFitDailyLogs(userId: string, startDate: string, endDate: string): Promise<FitDailyLog[]> {
+  const { data } = await supabase
+    .from("fit_daily_logs")
+    .select("log_date, water_oz, sleep_hours")
+    .eq("user_id", userId)
+    .gte("log_date", startDate)
+    .lte("log_date", endDate)
+    .order("log_date");
+  return (data ?? []).map(toFitDailyLog);
+}
+
+export async function saveFitDailyLog(
+  userId: string,
+  date: string,
+  updates: { waterOz?: number; sleepHours?: number | null }
+): Promise<void> {
+  const payload: Record<string, unknown> = { user_id: userId, log_date: date, updated_at: new Date().toISOString() };
+  if (updates.waterOz !== undefined) payload.water_oz = Math.max(0, Math.round(updates.waterOz));
+  if (updates.sleepHours !== undefined) payload.sleep_hours = updates.sleepHours;
+  const { error } = await supabase.from("fit_daily_logs").upsert(payload, { onConflict: "user_id,log_date" });
+  if (error) throw error;
+}
+
+// Workout instances started on a given Pacific date -- the Today screen
+// uses this to show a lift as in progress or done.
+export async function getWorkoutInstancesOnDate(userId: string, date: string): Promise<FitWorkoutInstance[]> {
+  const { data } = await supabase
+    .from("fit_workout_logs")
+    .select("id, session_template_id, status, started_at, completed_at")
+    .eq("user_id", userId)
+    .gte("started_at", addDaysISO(date, -1))
+    .lte("started_at", addDaysISO(date, 2))
+    .order("started_at");
+  return (data ?? [])
+    .map(toFitWorkoutInstance)
+    .filter((i) => new Intl.DateTimeFormat("en-CA", { timeZone: GOLFABLE_TZ }).format(new Date(i.startedAt)) === date);
+}
+
+export async function countCompletedWorkoutsBetween(userId: string, startDate: string, endDate: string): Promise<number> {
+  const { data } = await supabase
+    .from("fit_workout_logs")
+    .select("completed_at")
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .gte("completed_at", addDaysISO(startDate, -1))
+    .lte("completed_at", addDaysISO(endDate, 2));
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: GOLFABLE_TZ });
+  return (data ?? []).filter((r) => {
+    if (!r.completed_at) return false;
+    const day = fmt.format(new Date(r.completed_at as string));
+    return day >= startDate && day <= endDate;
+  }).length;
+}
+
+export interface FitRoundSummary {
+  playedOn: string;
+  holeCount: number;
+  holesPlayed: number;
+  score: number;
+  overPar: number;
+  fairways: { hit: number; of: number };
+  greens: { hit: number; of: number };
+  putts: number;
+  penalties: number;
+  doublesOrWorse: number;
+}
+
+// Completed rounds in a date range, summarized for the check-in.
+export async function getFitRoundSummaries(userId: string, startDate: string, endDate: string): Promise<FitRoundSummary[]> {
+  const { data: roundRows } = await supabase
+    .from("rounds")
+    .select("id, hole_count, completed_at")
+    .eq("user_id", userId)
+    .not("completed_at", "is", null)
+    .gte("completed_at", addDaysISO(startDate, -1))
+    .lte("completed_at", addDaysISO(endDate, 2))
+    .order("completed_at");
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: GOLFABLE_TZ });
+  const rounds = (roundRows ?? []).filter((r) => {
+    const day = fmt.format(new Date(r.completed_at as string));
+    return day >= startDate && day <= endDate;
+  });
+  if (rounds.length === 0) return [];
+
+  const { data: holeRows } = await supabase
+    .from("round_holes")
+    .select("round_id, par, score, fairway_hit, green_in_regulation, putts, penalty_strokes")
+    .in(
+      "round_id",
+      rounds.map((r) => r.id)
+    );
+
+  return rounds.map((r) => {
+    const holes = (holeRows ?? []).filter((h) => h.round_id === r.id && h.score !== null);
+    const fairwayHoles = holes.filter((h) => h.par >= 4 && h.fairway_hit !== null);
+    const greenHoles = holes.filter((h) => h.green_in_regulation !== null);
+    const score = holes.reduce((sum, h) => sum + (h.score as number), 0);
+    const par = holes.reduce((sum, h) => sum + (h.par as number), 0);
+    return {
+      playedOn: fmt.format(new Date(r.completed_at as string)),
+      holeCount: r.hole_count as number,
+      holesPlayed: holes.length,
+      score,
+      overPar: score - par,
+      fairways: { hit: fairwayHoles.filter((h) => h.fairway_hit).length, of: fairwayHoles.length },
+      greens: { hit: greenHoles.filter((h) => h.green_in_regulation).length, of: greenHoles.length },
+      putts: holes.reduce((sum, h) => sum + ((h.putts as number | null) ?? 0), 0),
+      penalties: holes.reduce((sum, h) => sum + ((h.penalty_strokes as number | null) ?? 0), 0),
+      doublesOrWorse: holes.filter((h) => (h.score as number) - (h.par as number) >= 2).length,
+    };
+  });
+}
+
+export interface FitWeeklyCheckin {
+  weekStart: string;
+  weightAvg: number | null;
+  weighInCount: number;
+  workoutsDone: number;
+  workoutsGoal: number | null;
+  stepsAvg: number | null;
+  sleepAvg: number | null;
+  waterAvg: number | null;
+  roundScore: number | null;
+  biggestLeak: string | null;
+  stress: number | null;
+  adjustment: string | null;
+  notes: string | null;
+}
+
+export async function getFitWeeklyCheckins(userId: string, limit = 8): Promise<FitWeeklyCheckin[]> {
+  const { data } = await supabase
+    .from("fit_weekly_checkins")
+    .select("*")
+    .eq("user_id", userId)
+    .order("week_start", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map((row) => ({
+    weekStart: row.week_start,
+    weightAvg: row.weight_avg === null ? null : Number(row.weight_avg),
+    weighInCount: row.weigh_in_count,
+    workoutsDone: row.workouts_done,
+    workoutsGoal: row.workouts_goal,
+    stepsAvg: row.steps_avg,
+    sleepAvg: row.sleep_avg === null ? null : Number(row.sleep_avg),
+    waterAvg: row.water_avg,
+    roundScore: row.round_score,
+    biggestLeak: row.biggest_leak,
+    stress: row.stress,
+    adjustment: row.adjustment,
+    notes: row.notes,
+  }));
+}
+
+export async function saveFitWeeklyCheckin(userId: string, checkin: FitWeeklyCheckin): Promise<void> {
+  const { error } = await supabase.from("fit_weekly_checkins").upsert(
+    {
+      user_id: userId,
+      week_start: checkin.weekStart,
+      weight_avg: checkin.weightAvg,
+      weigh_in_count: checkin.weighInCount,
+      workouts_done: checkin.workoutsDone,
+      workouts_goal: checkin.workoutsGoal,
+      steps_avg: checkin.stepsAvg,
+      sleep_avg: checkin.sleepAvg,
+      water_avg: checkin.waterAvg,
+      round_score: checkin.roundScore,
+      biggest_leak: checkin.biggestLeak,
+      stress: checkin.stress,
+      adjustment: checkin.adjustment,
+      notes: checkin.notes,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,week_start" }
+  );
+  if (error) throw error;
+}
+
+// The check-in's one-tap adjustment: moves daily calories by `delta`,
+// taking it from (or adding it to) carbs at 4 cal/g.
+export async function adjustFitCalories(userId: string, delta: number): Promise<void> {
+  const { data } = await supabase
+    .from("fit_nutrition_plans")
+    .select("daily_calories, carbs_g")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data || data.daily_calories === null) throw new Error("No nutrition plan to adjust.");
+  const payload: Record<string, unknown> = {
+    daily_calories: (data.daily_calories as number) + delta,
+    updated_at: new Date().toISOString(),
+  };
+  if (data.carbs_g !== null) payload.carbs_g = Math.max(0, (data.carbs_g as number) + Math.round(delta / 4));
+  const { error } = await supabase.from("fit_nutrition_plans").update(payload).eq("user_id", userId);
   if (error) throw error;
 }

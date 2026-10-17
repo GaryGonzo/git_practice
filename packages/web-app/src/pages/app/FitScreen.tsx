@@ -292,7 +292,10 @@ function NutritionCard({ plan }: { plan: FitNutritionPlan }) {
         plan.dailyCalories !== null && (
           <p className="font-display text-2xl">
             {plan.dailyCalories}
-            <span className="text-sm font-normal text-neutral-500"> cal/day</span>
+            <span className="text-sm font-normal text-neutral-500">
+              {" "}
+              cal/day{plan.proteinG !== null ? ` · ${plan.proteinG}g protein` : ""}
+            </span>
           </p>
         )
       }
@@ -302,6 +305,23 @@ function NutritionCard({ plan }: { plan: FitNutritionPlan }) {
           {plan.dailyCalories}
           <span className="text-base font-normal text-neutral-500"> cal/day</span>
         </p>
+      )}
+      {(plan.proteinG !== null || plan.carbsG !== null || plan.fatG !== null) && (
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {[
+            { label: "Protein", grams: plan.proteinG },
+            { label: "Carbs", grams: plan.carbsG },
+            { label: "Fat", grams: plan.fatG },
+          ].map((m) => (
+            <div key={m.label} className="rounded-lg bg-neutral-50 px-2 py-2 text-center">
+              <p className="font-display text-xl">{m.grams !== null ? `${m.grams}g` : "—"}</p>
+              <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">{m.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {plan.waterGoalOz !== null && (
+        <p className="font-body mt-2 text-sm text-neutral-600">Water: {plan.waterGoalOz} oz a day, done by 8pm.</p>
       )}
       <div className="mt-2 flex flex-wrap gap-1.5">
         {plan.proteinLevel && (
@@ -814,11 +834,27 @@ export function FitScreen() {
       <p className="font-body mt-1 text-sm text-neutral-500">Training built around your body and your swing.</p>
 
       <Link
-        to="/app/fit/plan"
-        className="font-label border-fit-warmup/30 bg-fit-warmup/10 text-fit-warmup mt-3 flex items-center justify-center gap-2 rounded-lg border py-3 text-sm font-semibold"
+        to="/app/fit/today"
+        className="font-label bg-brand mt-3 flex items-center justify-center gap-2 rounded-lg py-3.5 text-base font-semibold text-white"
       >
-        Plan Your Day
+        Today's Plan
       </Link>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Link
+          to="/app/fit/checkin"
+          className="font-label border-brand/30 bg-brand/5 text-brand flex items-center justify-center rounded-lg border py-3 text-sm font-semibold"
+        >
+          {new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "America/Los_Angeles" }) === "Sunday"
+            ? "Sunday Check-in (today)"
+            : "Weekly Check-in"}
+        </Link>
+        <Link
+          to="/app/fit/plan"
+          className="font-label border-fit-warmup/30 bg-fit-warmup/10 text-fit-warmup flex items-center justify-center rounded-lg border py-3 text-sm font-semibold"
+        >
+          Plan Walks
+        </Link>
+      </div>
 
       {activeInstance && <ResumeWorkoutBanner instance={activeInstance} templateName={activeTemplateName} />}
 

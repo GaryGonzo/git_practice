@@ -38,6 +38,8 @@ import { FitScreen } from "./pages/app/FitScreen";
 import { FitWorkoutScreen } from "./pages/app/FitWorkoutScreen";
 import { FitHistoryScreen } from "./pages/app/FitHistoryScreen";
 import { FitPlanScreen } from "./pages/app/FitPlanScreen";
+import { FitTodayScreen } from "./pages/app/FitTodayScreen";
+import { FitCheckinScreen } from "./pages/app/FitCheckinScreen";
 import { StudioAdminScreen } from "./pages/app/StudioAdminScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
@@ -123,6 +125,22 @@ function App() {
           element={
             <RequireFitAccess>
               <FitPlanScreen />
+            </RequireFitAccess>
+          }
+        />
+        <Route
+          path="fit/today"
+          element={
+            <RequireFitAccess>
+              <FitTodayScreen />
+            </RequireFitAccess>
+          }
+        />
+        <Route
+          path="fit/checkin"
+          element={
+            <RequireFitAccess>
+              <FitCheckinScreen />
             </RequireFitAccess>
           }
         />
