@@ -27,6 +27,7 @@ function formatDate(iso: string): string {
 export function ChallengesScreen() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const golfHome = profile?.fit_access ? "/app/golf" : "/app";
 
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +61,7 @@ export function ChallengesScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <Link to="/app" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
+      <Link to={golfHome} className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
         <BackIcon className="h-4 w-4" />
         Back
       </Link>

@@ -24,14 +24,6 @@ import {
   type FitWorkoutInstance,
 } from "../../lib/golfableApi";
 
-function BackIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function ChevronIcon({ className, dir }: { className?: string; dir: "left" | "right" }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
@@ -495,10 +487,6 @@ export function FitTodayScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-4 pb-24">
-      <Link to="/app/fit" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
-        <BackIcon className="h-4 w-4" />
-        Golfable Fit
-      </Link>
 
       <div className="mt-3 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-2">
         <button type="button" onClick={() => setDate((d) => addDaysISO(d, -1))} className="p-2 text-neutral-500" aria-label="Previous day">

@@ -37,7 +37,7 @@ function isSkillCategory(value: string | undefined): value is SkillCategory {
 
 export function GolfableScoreDetailScreen() {
   const { category: categoryParam } = useParams();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const userId = session!.user.id;
   const category = isSkillCategory(categoryParam) ? categoryParam : null;
 
@@ -56,7 +56,7 @@ export function GolfableScoreDetailScreen() {
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
       <Link
-        to={category ? "/app/golfable-score" : "/app"}
+        to={category ? "/app/golfable-score" : profile?.fit_access ? "/app/golf" : "/app"}
         className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500"
       >
         <BackIcon className="h-4 w-4" />

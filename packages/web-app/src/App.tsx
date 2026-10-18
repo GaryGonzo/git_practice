@@ -40,12 +40,22 @@ import { FitHistoryScreen } from "./pages/app/FitHistoryScreen";
 import { FitPlanScreen } from "./pages/app/FitPlanScreen";
 import { FitTodayScreen } from "./pages/app/FitTodayScreen";
 import { FitCheckinScreen } from "./pages/app/FitCheckinScreen";
+import { LauncherScreen } from "./pages/app/LauncherScreen";
+import { useAuth } from "./lib/AuthProvider";
 import { StudioAdminScreen } from "./pages/app/StudioAdminScreen";
 import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
 import { ForgotPasswordScreen } from "./pages/auth/ForgotPasswordScreen";
 import { ResetPasswordScreen } from "./pages/auth/ResetPasswordScreen";
 import { NotFoundScreen } from "./pages/NotFoundScreen";
+
+// Anyone with Golfable Fit opens to a two-door launcher; everyone else
+// opens straight into Golfable as before.
+function AppIndex() {
+  const { profile } = useAuth();
+  if (!profile) return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
+  return profile.fit_access ? <LauncherScreen /> : <HomeScreen />;
+}
 
 function App() {
   return (
@@ -67,7 +77,8 @@ function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<HomeScreen />} />
+        <Route index element={<AppIndex />} />
+        <Route path="golf" element={<HomeScreen />} />
         <Route path="today" element={<TodayScreen />} />
         <Route path="progress" element={<ProgressScreen />} />
         <Route path="golfable-score" element={<GolfableScoreDetailScreen />} />

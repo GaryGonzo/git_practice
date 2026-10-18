@@ -1,19 +1,63 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthProvider";
 import { updateProfile } from "../lib/golfableApi";
 import { JUST_LOGGED_IN_KEY } from "../lib/sessionFlags";
 import { WelcomeWalkthrough } from "./WelcomeWalkthrough";
 import { WelcomeBackModal } from "./WelcomeBackModal";
 
-const NAV_ITEMS = [
-  { to: "/app", label: "Home", end: true, icon: HomeIcon },
-  { to: "/app/progress", label: "Progress", end: false, icon: ProgressIcon },
-  { to: "/app/library", label: "Library", end: false, icon: LibraryIcon },
-  { to: "/app/round", label: "Round", end: false, icon: RoundIcon },
-  { to: "/app/leaderboard", label: "Leaderboard", end: false, icon: LeaderboardIcon },
-  { to: "/app/profile", label: "Profile", end: false, icon: ProfileIcon },
+type NavItem = { to: string; label: string; end: boolean; icon: (props: { className?: string }) => React.ReactElement };
+
+// Golfable and Golfable Fit each get their own bottom bar, so the tabs
+// always match the section you're in. Anyone with Fit also gets a tab that
+// jumps straight to the other section's home.
+function golfNav(hasFit: boolean): NavItem[] {
+  const items: NavItem[] = [
+    { to: hasFit ? "/app/golf" : "/app", label: "Home", end: true, icon: HomeIcon },
+    { to: "/app/library", label: "Library", end: false, icon: LibraryIcon },
+    { to: "/app/round", label: "Round", end: false, icon: RoundIcon },
+    { to: "/app/leaderboard", label: "Leaders", end: false, icon: LeaderboardIcon },
+    { to: "/app/profile", label: "Profile", end: false, icon: ProfileIcon },
+  ];
+  if (hasFit) items.push({ to: "/app/fit/today", label: "Fit", end: false, icon: SwitchIcon });
+  return items;
+}
+
+const FIT_NAV: NavItem[] = [
+  { to: "/app/fit/today", label: "Today", end: true, icon: TodayIcon },
+  { to: "/app/fit", label: "Program", end: true, icon: DumbbellIcon },
+  { to: "/app/fit/checkin", label: "Check-in", end: true, icon: ProgressIcon },
+  { to: "/app/fit/plan", label: "Walks", end: true, icon: WalkIcon },
+  { to: "/app/golf", label: "Golfable", end: false, icon: SwitchIcon },
 ];
+
+export function SwitchIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M5 8h12m-3.5-3.5L17 8l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19 16H7m3.5-3.5L7 16l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function DumbbellIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M3 12h2M19 12h2M8 12h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="5" y="8.5" width="3" height="7" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="16" y="8.5" width="3" height="7" rx="1" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+export function WalkIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="13.5" cy="4.5" r="1.7" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M11 8.5l2 3-1 3 3 5M13 11.5l3-1 2 2M10.5 14.5l-2 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export function HomeIcon({ className }: { className?: string }) {
   return (
@@ -121,7 +165,11 @@ export function ProfileIcon({ className }: { className?: string }) {
 
 export function AppShell() {
   const { profile, refreshProfile } = useAuth();
+  const { pathname } = useLocation();
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const hasFit = profile?.fit_access ?? false;
+  const onLauncher = hasFit && (pathname === "/app" || pathname === "/app/");
+  const navItems = pathname.startsWith("/app/fit") ? FIT_NAV : golfNav(hasFit);
 
   useEffect(() => {
     if (sessionStorage.getItem(JUST_LOGGED_IN_KEY)) {
@@ -137,7 +185,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-16">
+    <div className={`min-h-screen ${onLauncher ? "bg-brand-dark" : "bg-neutral-50 pb-16"}`}>
       {profile && !profile.has_seen_walkthrough ? (
         <WelcomeWalkthrough profile={profile} onDone={dismissWalkthrough} />
       ) : (
@@ -147,9 +195,10 @@ export function AppShell() {
         )
       )}
       <Outlet />
-      <nav className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white">
+      {!onLauncher && (
+      <nav className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-md">
-          {NAV_ITEMS.map(({ to, label, end, icon: Icon }) => (
+          {navItems.map(({ to, label, end, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -166,6 +215,7 @@ export function AppShell() {
           ))}
         </div>
       </nav>
+      )}
     </div>
   );
 }

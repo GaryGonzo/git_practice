@@ -827,34 +827,10 @@ export function FitScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">Golfable</p>
-      <h1 className="font-display text-3xl tracking-wide">
-        Golfable <span className="text-brand">Fit</span>
-      </h1>
+      <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">Golfable Fit</p>
+      <h1 className="font-display text-3xl tracking-wide">Your Program</h1>
       <p className="font-body mt-1 text-sm text-neutral-500">Training built around your body and your swing.</p>
 
-      <Link
-        to="/app/fit/today"
-        className="font-label bg-brand mt-3 flex items-center justify-center gap-2 rounded-lg py-3.5 text-base font-semibold text-white"
-      >
-        Today's Plan
-      </Link>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <Link
-          to="/app/fit/checkin"
-          className="font-label border-brand/30 bg-brand/5 text-brand flex items-center justify-center rounded-lg border py-3 text-sm font-semibold"
-        >
-          {new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "America/Los_Angeles" }) === "Sunday"
-            ? "Sunday Check-in (today)"
-            : "Weekly Check-in"}
-        </Link>
-        <Link
-          to="/app/fit/plan"
-          className="font-label border-fit-warmup/30 bg-fit-warmup/10 text-fit-warmup flex items-center justify-center rounded-lg border py-3 text-sm font-semibold"
-        >
-          Plan Walks
-        </Link>
-      </div>
 
       {activeInstance && <ResumeWorkoutBanner instance={activeInstance} templateName={activeTemplateName} />}
 
