@@ -185,7 +185,7 @@ export function AppShell() {
   }
 
   return (
-    <div className={`min-h-screen ${onLauncher ? "bg-brand-dark" : "bg-neutral-50 pb-16"}`}>
+    <div className={`min-h-screen ${onLauncher ? "bg-brand-dark" : "bg-[#f3f5f2] pb-20"}`}>
       {profile && !profile.has_seen_walkthrough ? (
         <WelcomeWalkthrough profile={profile} onDone={dismissWalkthrough} />
       ) : (
@@ -196,25 +196,33 @@ export function AppShell() {
       )}
       <Outlet />
       {!onLauncher && (
-      <nav className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto flex max-w-md">
-          {navItems.map(({ to, label, end, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `font-label flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs font-semibold ${
-                  isActive ? "text-brand" : "text-neutral-400"
-                }`
-              }
-            >
-              <Icon className="h-5 w-5" />
-              {label}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+          <div className="mx-auto flex max-w-md">
+            {navItems.map(({ to, label, end, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  `font-label relative flex flex-1 flex-col items-center gap-0.5 pt-2.5 pb-2 text-[0.8rem] font-semibold ${
+                    isActive ? "text-brand" : "text-neutral-400"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span
+                      className={`absolute top-0 h-[3px] w-8 rounded-b-full transition-opacity ${isActive ? "bg-brand opacity-100" : "opacity-0"}`}
+                      aria-hidden="true"
+                    />
+                    <Icon className="h-[22px] w-[22px]" />
+                    {label}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
       )}
     </div>
   );

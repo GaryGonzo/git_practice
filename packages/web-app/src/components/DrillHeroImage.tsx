@@ -55,11 +55,11 @@ export function DrillHeroImage({ drill }: DrillHeroImageProps) {
         {badge}
         <div>
           <p
-            className={`font-label text-sm font-semibold tracking-wide uppercase ${CATEGORY_TEXT[drill.category]}`}
+            className={`font-label text-base font-semibold ${CATEGORY_TEXT[drill.category]}`}
           >
             {info.label}
           </p>
-          <h1 className="font-display text-2xl tracking-wide">{drill.name}</h1>
+          <h1 className="font-display text-3xl leading-none tracking-wide">{drill.name}</h1>
         </div>
       </div>
     );
@@ -70,12 +70,12 @@ export function DrillHeroImage({ drill }: DrillHeroImageProps) {
 
   if (drill.videoUrl) {
     return (
-      <div className="relative mb-4 w-full overflow-hidden rounded-lg bg-black">
+      <div className="relative mb-4 w-full overflow-hidden rounded-3xl bg-black">
         <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2.5 bg-gradient-to-b from-black/70 to-transparent px-3 py-3">
           {badge}
           <div>
-            <p className="font-label text-sm font-semibold tracking-wide text-white/85 uppercase">{info.label}</p>
-            <h1 className="font-display text-2xl tracking-wide text-white">{drill.name}</h1>
+            <p className="font-label text-base font-semibold text-white/85">{info.label}</p>
+            <h1 className="font-display text-[2.1rem] leading-none tracking-wide text-white">{drill.name}</h1>
           </div>
         </div>
         <video src={drill.videoUrl} poster={src} controls preload="none" className="aspect-video w-full">
@@ -86,18 +86,18 @@ export function DrillHeroImage({ drill }: DrillHeroImageProps) {
   }
 
   return (
-    <div className="relative mb-4 h-40 w-full overflow-hidden rounded-lg">
+    <div className="relative mb-4 h-52 w-full overflow-hidden rounded-3xl">
       <img
         src={src}
         alt={drill.name}
         onError={() => setStage(stage === "drill" ? "category" : "none")}
         className="h-full w-full object-cover"
       />
-      <div className="absolute inset-x-0 bottom-0 flex items-center gap-2.5 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 py-3">
+      <div className="absolute inset-x-0 bottom-0 flex items-center gap-2.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pt-10 pb-4">
         {badge}
         <div>
-          <p className="font-label text-sm font-semibold tracking-wide text-white/85 uppercase">{info.label}</p>
-          <h1 className="font-display text-2xl tracking-wide text-white">{drill.name}</h1>
+          <p className="font-label text-base font-semibold text-white/85">{info.label}</p>
+          <h1 className="font-display text-[2.1rem] leading-none tracking-wide text-white">{drill.name}</h1>
         </div>
       </div>
     </div>

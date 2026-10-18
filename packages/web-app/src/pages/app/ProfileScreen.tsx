@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   HANDICAP_TIERS,
   TIER_INFO,
@@ -29,6 +29,7 @@ import {
   type Studio,
 } from "../../lib/golfableApi";
 import { HandicapTrendChart } from "../../components/HandicapTrendChart";
+import { FairwayPanel, Section, Panel, Row, IconDot, ChevronRight } from "../../components/ui";
 import { NotificationPrompt } from "../../components/NotificationPrompt";
 import { PUSH_ENABLED_KEY } from "../../lib/push";
 
@@ -56,7 +57,9 @@ function ProfileNotificationBanner({ profile }: { profile: Profile }) {
   if (!visible) return null;
 
   return (
-    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
+    // empty:hidden -- the prompt renders nothing on browsers without push,
+    // and the card shouldn't sit there blank.
+    <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06] empty:hidden">
       <NotificationPrompt profile={profile} onSubscribed={() => setVisible(false)} />
     </div>
   );
@@ -78,7 +81,7 @@ function CameraIcon({ className }: { className?: string }) {
   );
 }
 
-function AvatarUploader({ profile, onUploaded }: { profile: Profile; onUploaded: () => Promise<void> }) {
+function AvatarUploader({ profile, onUploaded, compact = false }: { profile: Profile; onUploaded: () => Promise<void>; compact?: boolean }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,29 +125,47 @@ function AvatarUploader({ profile, onUploaded }: { profile: Profile; onUploaded:
     setUploading(false);
   }
 
+  const size = compact ? "h-20 w-20" : "h-24 w-24";
   return (
-    <div className="mt-4 flex flex-col items-center">
-      <label className="relative block h-24 w-24 cursor-pointer">
-        <div className="border-brand/20 h-24 w-24 overflow-hidden rounded-full border-2 bg-neutral-100">
+    <div className={compact ? "flex-none" : "mt-4 flex flex-col items-center"}>
+      <label className={`relative block cursor-pointer ${size}`}>
+        <div className={`overflow-hidden rounded-full bg-neutral-100 ${size} ${compact ? "ring-gold/60 ring-2" : "border-brand/20 border-2"}`}>
           {avatarUrl ? (
             <img src={avatarUrl} alt="Your profile" className="h-full w-full object-cover" />
           ) : (
-            <div className="font-display flex h-full w-full items-center justify-center text-2xl text-neutral-400">
+            <div className="font-display bg-brand flex h-full w-full items-center justify-center text-3xl text-white/80">
               {profile.first_name.charAt(0)}
               {profile.last_name.charAt(0)}
             </div>
           )}
         </div>
-        <div className="bg-brand absolute right-0 bottom-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-white">
-          <CameraIcon className="h-4 w-4" />
+        <div className="bg-gold text-brand-dark absolute -right-0.5 -bottom-0.5 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white">
+          <CameraIcon className="h-3.5 w-3.5" />
         </div>
-        <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
+        <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} aria-label="Change profile photo" />
       </label>
-      <p className="font-body mt-2 text-xs text-neutral-500">
-        {uploading ? "Uploading…" : "Only you can see this photo"}
-      </p>
-      {error && <p className="font-body mt-1 text-xs text-red-600">{error}</p>}
+      {!compact && <p className="font-body mt-2 text-xs text-neutral-500">{uploading ? "Uploading…" : "Only you can see this photo"}</p>}
+      {compact && uploading && <p className="font-body mt-1 text-center text-xs text-white/70">Uploading…</p>}
+      {error && <p className={`font-body mt-1 text-xs ${compact ? "text-gold" : "text-red-600"}`}>{error}</p>}
     </div>
+  );
+}
+
+function BagIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="7" y="7" width="10" height="14" rx="3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9 7V4.5M12 7V3M15 7V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M7 12h10" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function SparkIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M12 3.5l2 5.5 5.5 2-5.5 2-2 5.5-2-5.5-5.5-2 5.5-2 2-5.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -164,11 +185,6 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
-function formatHandicapValue(entry: HandicapEntry): string {
-  if (entry.handicapIndex !== null) return `${entry.handicapIndex} handicap`;
-  return `${entry.avgScorePar72} avg (par 72)`;
-}
-
 // Both fields represent "how many strokes over/under" in spirit -- lower is
 // always better, whichever one a given entry used.
 function handicapEntryValue(entry: HandicapEntry): number {
@@ -182,8 +198,8 @@ function DeltaBadge({ history }: { history: HandicapEntry[] }) {
   if (rounded === 0) return <span className="font-label text-sm font-semibold text-neutral-500">(no change)</span>;
   const improved = rounded < 0;
   return (
-    <span className={`font-label text-sm font-semibold ${improved ? "text-green-600" : "text-red-600"}`}>
-      {improved ? `(${rounded})` : `(+${rounded})`} {improved ? "↓ improved" : "↑ up"} since your first entry
+    <span className={`font-label text-sm font-semibold ${improved ? "text-brand" : "text-fit-circuit"}`}>
+      {improved ? `Down ${Math.abs(rounded)}` : `Up ${rounded}`} since your first entry
     </span>
   );
 }
@@ -227,12 +243,19 @@ function HandicapSection({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-      <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Handicap</p>
+    <div className="rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+      <p className="font-label text-lg font-semibold text-neutral-900">Handicap</p>
       {latest ? (
-        <div className="flex flex-wrap items-baseline gap-2">
-          <p className="font-display text-xl">{formatHandicapValue(latest)}</p>
-          <DeltaBadge history={history} />
+        <div className="mt-1">
+          <p className="font-display text-5xl leading-none">
+            {latest.handicapIndex !== null ? latest.handicapIndex : latest.avgScorePar72}
+            <span className="font-label ml-1.5 text-base font-semibold text-neutral-400">
+              {latest.handicapIndex !== null ? "index" : "avg score (par 72)"}
+            </span>
+          </p>
+          <div className="mt-1">
+            <DeltaBadge history={history} />
+          </div>
         </div>
       ) : (
         <p className="font-body mt-1 text-sm text-neutral-500">Not set yet.</p>
@@ -296,9 +319,9 @@ function HandicapSection({ profile }: { profile: Profile }) {
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="font-label text-brand mt-3 text-sm font-semibold underline"
+          className="font-label bg-brand/10 text-brand mt-3 rounded-full px-4 py-1.5 text-sm font-bold"
         >
-          {latest ? "Update" : "Add your handicap"}
+          {latest ? "Update handicap" : "Add your handicap"}
         </button>
       )}
     </div>
@@ -329,7 +352,7 @@ function GameRatingRow({
 
   return (
     <div className="flex items-center justify-between gap-3 border-b border-neutral-100 py-3 last:border-0">
-      <p className="font-label text-sm font-semibold text-neutral-700">{CATEGORY_INFO[category].label}</p>
+      <p className="font-label text-[1.05rem] font-semibold text-neutral-800">{CATEGORY_INFO[category].label}</p>
       <div className="flex items-center gap-2">
         {saved && <span className="font-body text-xs text-neutral-400">Saved</span>}
         <input
@@ -341,7 +364,7 @@ function GameRatingRow({
           onChange={(e) => setValue(e.target.value)}
           onBlur={handleBlur}
           placeholder="-/10"
-          className="font-body w-16 rounded-md border border-neutral-300 px-2 py-1.5 text-right text-sm"
+          className="font-display focus:border-brand w-16 rounded-lg border border-neutral-300 px-2 py-1 text-right text-xl outline-none"
         />
       </div>
     </div>
@@ -358,11 +381,10 @@ function GameRatingSection({ profile }: { profile: Profile }) {
   if (!ratings) return null;
 
   return (
-    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-      <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">My Game</p>
+    <div className="rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+      <p className="font-label text-lg font-semibold text-neutral-900">How each club feels</p>
       <p className="font-body mt-1 text-sm text-neutral-500">
-        Rate how each part of your game feels right now -- just your gut, not tracked over time. Feeds
-        "Recommended for You" on Choose Your Own.
+        Your gut read, 1 to 10. The Library uses it to pick drills for you.
       </p>
       <div className="mt-2">
         {SKILL_CATEGORIES.map((category) => (
@@ -426,8 +448,8 @@ function SubscriptionSection({
 
   if (profile.studio_id) {
     return (
-      <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Membership</p>
+      <div className="rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+        <p className="font-label text-lg font-semibold text-neutral-900">Membership</p>
         <p className="font-body mt-1 text-sm text-neutral-700">Your studio covers your access -- no billing needed.</p>
         <label className="font-body mt-3 flex items-start gap-2 text-sm text-neutral-600">
           <input
@@ -457,8 +479,8 @@ function SubscriptionSection({
 
   if (!tier || tier === "free") {
     return (
-      <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Membership</p>
+      <div className="rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+        <p className="font-label text-lg font-semibold text-neutral-900">Membership</p>
         <p className="font-body mt-1 text-sm text-neutral-700">
           {tier === "free" ? "Founding member -- free forever." : "Loading…"}
         </p>
@@ -482,8 +504,8 @@ function SubscriptionSection({
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-      <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Membership</p>
+    <div className="rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+      <p className="font-label text-lg font-semibold text-neutral-900">Membership</p>
       <p className="font-body mt-1 text-sm text-neutral-700">
         {profile.subscription_status === "active"
           ? `Active -- ${TIER_PRICE_LABEL[tier]}`
@@ -594,14 +616,14 @@ export function ProfileScreen() {
 
   if (editing) {
     return (
-      <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-        <h1 className="font-display text-2xl tracking-wide">Edit Profile</h1>
+      <div className="mx-auto max-w-md px-4 pt-5 pb-28">
+        <h1 className="font-display text-[2.4rem] leading-none tracking-wide">Edit profile</h1>
         <AvatarUploader profile={profile} onUploaded={refreshProfile} />
 
         <form onSubmit={handleSave} className="mt-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              <label className="font-label text-base font-semibold text-neutral-700">
                 First name
               </label>
               <input
@@ -613,7 +635,7 @@ export function ProfileScreen() {
               />
             </div>
             <div>
-              <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+              <label className="font-label text-base font-semibold text-neutral-700">
                 Last name
               </label>
               <input
@@ -627,7 +649,7 @@ export function ProfileScreen() {
           </div>
 
           <div>
-            <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+            <label className="font-label text-base font-semibold text-neutral-700">
               Handicap tier
             </label>
             <div className="mt-1 grid grid-cols-2 gap-2">
@@ -647,7 +669,7 @@ export function ProfileScreen() {
           </div>
 
           <div>
-            <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+            <label className="font-label text-base font-semibold text-neutral-700">
               Weekly goal
             </label>
             <div className="mt-1 grid grid-cols-5 gap-2">
@@ -690,162 +712,105 @@ export function ProfileScreen() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <h1 className="font-display text-2xl tracking-wide">Profile</h1>
-      <AvatarUploader profile={profile} onUploaded={refreshProfile} />
+    <div className="mx-auto max-w-md px-4 pb-28">
+      <FairwayPanel className="mt-5">
+        <div className="flex items-center gap-4 p-5">
+          <AvatarUploader profile={profile} onUploaded={refreshProfile} compact />
+          <div className="min-w-0">
+            <h1 className="font-display truncate text-[2.4rem] leading-none tracking-wide">
+              {profile.first_name} {profile.last_name}
+            </h1>
+            <p className="font-label mt-1 text-base font-medium text-white/70">
+              {tierInfo.label} tier, member since {formatMemberSince(profile.created_at)}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 border-t border-white/10">
+          <div className="px-5 py-3">
+            <p className="font-display text-gold text-3xl leading-none">{profile.weekly_goal}</p>
+            <p className="font-label text-sm font-medium text-white/60">Golfables a week</p>
+          </div>
+          <button type="button" onClick={startEditing} className="border-l border-white/10 px-5 py-3 text-left active:bg-white/5">
+            <p className="font-label text-lg leading-tight font-semibold">Edit profile</p>
+            <p className="font-label text-sm font-medium text-white/60">Name, tier, weekly goal</p>
+          </button>
+        </div>
+      </FairwayPanel>
+
       <ProfileNotificationBanner profile={profile} />
-      <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Name
-        </p>
-        <p className="font-display text-xl">
-          {profile.first_name} {profile.last_name}
-        </p>
-      </div>
-      <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Handicap tier
-        </p>
-        <p className="font-display text-xl">{tierInfo.label}</p>
-      </div>
-      <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Weekly goal
-        </p>
-        <p className="font-display text-xl">{profile.weekly_goal} Golfables / week</p>
-      </div>
-      <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Member Since
-        </p>
-        <p className="font-display text-xl">{formatMemberSince(profile.created_at)}</p>
-      </div>
 
-      <HandicapSection profile={profile} />
-      <GameRatingSection profile={profile} />
+      <Section title="Your game">
+        <div className="space-y-3">
+          <HandicapSection profile={profile} />
+          <GameRatingSection profile={profile} />
+          <Panel>
+            <Row
+              to="/app/bag"
+              icon={<IconDot><BagIcon className="h-5 w-5" /></IconDot>}
+              title="My bag"
+              sub={hasBagSet ? "Yardages set for club picks" : "Add yardages for club picks on drills"}
+            />
+          </Panel>
+        </div>
+      </Section>
 
-      <Link
-        to="/app/bag"
-        className="mt-3 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4"
-      >
-        <span>
-          <span className="font-label block text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-            My Bag
-          </span>
-          <span className="font-body text-sm text-neutral-600">
-            {hasBagSet ? "View your bag" : "Set your yardages for club suggestions"}
-          </span>
-        </span>
-        <span className="font-label text-brand text-sm font-semibold">Edit</span>
-      </Link>
+      <Section title="Account">
+        <div className="space-y-3">
+          {session && <SubscriptionSection profile={profile} accessToken={session.access_token} onRefresh={refreshProfile} />}
+          {(ownedStudio || profile.is_admin) && (
+            <Panel>
+              {ownedStudio && <Row to="/app/studio-admin" title={`Manage ${ownedStudio.name}`} sub="Your studio's players and billing" />}
+              {profile.is_admin && <Row to="/app/admin" title="Admin dashboard" sub="Players, drills and signups" />}
+            </Panel>
+          )}
+        </div>
+      </Section>
 
-      {session && (
-        <SubscriptionSection profile={profile} accessToken={session.access_token} onRefresh={refreshProfile} />
-      )}
+      <Section title="Community">
+        <Panel>
+          <a
+            href={`https://www.tiktok.com/@${TIKTOK_HANDLE}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3.5 active:bg-neutral-50"
+          >
+            <IconDot className="bg-neutral-900 text-white"><TikTokIcon className="h-5 w-5" /></IconDot>
+            <span className="min-w-0 flex-1">
+              <span className="font-label block text-[1.05rem] leading-tight font-semibold">Follow @{TIKTOK_HANDLE}</span>
+              <span className="font-body block text-sm text-neutral-500">Drill videos and real attempts on TikTok</span>
+            </span>
+            <ChevronRight className="h-4 w-4 flex-none text-neutral-300" />
+          </a>
+          <a
+            href="https://www.facebook.com/groups/golfable"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3.5 active:bg-neutral-50"
+          >
+            <IconDot className="bg-[#1877F2] text-white"><FacebookIcon className="h-5 w-5" /></IconDot>
+            <span className="min-w-0 flex-1">
+              <span className="font-label block text-[1.05rem] leading-tight font-semibold">Join the Facebook group</span>
+              <span className="font-body block text-sm text-neutral-500">Share scores and swap tips</span>
+            </span>
+            <ChevronRight className="h-4 w-4 flex-none text-neutral-300" />
+          </a>
+          <button type="button" onClick={revealSurprise} className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-neutral-50">
+            <IconDot className="bg-gold/15 text-gold"><SparkIcon className="h-5 w-5" /></IconDot>
+            <span className="min-w-0 flex-1">
+              <span className="font-label block text-[1.05rem] leading-tight font-semibold">{surprise ? "Another one" : "Need a pep talk?"}</span>
+              <span className="font-body block text-sm text-neutral-600">{surprise ?? "Tap for a little golf wisdom"}</span>
+            </span>
+          </button>
+        </Panel>
+      </Section>
 
-      <button
-        type="button"
-        onClick={startEditing}
-        className="font-label bg-brand mt-6 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white"
-      >
-        Edit Profile
-      </button>
       <button
         type="button"
         onClick={handleSignOut}
-        className="font-label mt-3 w-full rounded-md border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-600"
+        className="font-label mt-8 w-full rounded-2xl bg-white py-3.5 text-base font-semibold text-red-600 ring-1 ring-black/[0.06] active:bg-neutral-50"
       >
         Sign out
       </button>
-
-      {ownedStudio && (
-        <Link
-          to="/app/studio-admin"
-          className="font-label mt-3 block w-full rounded-md border border-neutral-300 px-4 py-2.5 text-center text-sm font-semibold text-neutral-600"
-        >
-          Manage {ownedStudio.name}
-        </Link>
-      )}
-
-      {profile.fit_access && (
-        <Link
-          to="/app/fit"
-          className="font-label bg-brand mt-3 block w-full rounded-md px-4 py-2.5 text-center text-sm font-semibold text-white"
-        >
-          Golfable Fit
-        </Link>
-      )}
-
-      {profile.is_admin && (
-        <Link
-          to="/app/admin"
-          className="font-label mt-3 block w-full rounded-md border border-neutral-300 px-4 py-2.5 text-center text-sm font-semibold text-neutral-600"
-        >
-          Admin Dashboard
-        </Link>
-      )}
-
-      <div className="mt-8 rounded-lg border-2 border-dashed border-neutral-300 bg-white p-5 text-center">
-        {surprise ? (
-          <>
-            <p className="font-body text-neutral-700 italic">&ldquo;{surprise}&rdquo;</p>
-            <button
-              type="button"
-              onClick={revealSurprise}
-              className="font-label text-brand mt-3 text-sm font-semibold underline"
-            >
-              Another one
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={revealSurprise}
-            className="font-label bg-gold w-full rounded-md px-4 py-3 text-sm font-semibold text-white"
-          >
-            Click Me For a Surprise
-          </button>
-        )}
-      </div>
-
-      <div className="mt-8 rounded-lg border border-neutral-200 bg-white p-5 text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 text-white">
-          <TikTokIcon className="h-7 w-7" />
-        </div>
-        <h2 className="font-label mt-3 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-          On TikTok
-        </h2>
-        <p className="font-body mx-auto mt-1 mb-4 max-w-xs text-sm text-neutral-600">
-          Follow for updates, videos, real attempts, and more.
-        </p>
-        <a
-          href={`https://www.tiktok.com/@${TIKTOK_HANDLE}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-label inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
-        >
-          Follow @{TIKTOK_HANDLE}
-        </a>
-      </div>
-
-      <div className="mt-8">
-        <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-          Join the Community
-        </h2>
-        <p className="font-body mb-3 text-sm text-neutral-600">
-          Join the Golfable community on Facebook. Share your scores. See what other golfers are up to. Get
-          special tips and insights and more.
-        </p>
-        <a
-          href="https://www.facebook.com/groups/golfable"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-label inline-flex items-center gap-2 rounded-md bg-[#1877F2] px-4 py-2 text-sm font-semibold text-white"
-        >
-          <FacebookIcon className="h-4 w-4" />
-          Join our Facebook Group
-        </a>
-      </div>
     </div>
   );
 }

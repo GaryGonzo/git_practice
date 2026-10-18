@@ -102,20 +102,21 @@ export function LauncherScreen() {
           </Link>
         </div>
 
-        <p className="font-label mt-10 text-sm font-semibold tracking-widest text-white/50 uppercase">{greeting()}</p>
+        <p className="font-label mt-10 text-lg font-medium text-white/55">{greeting()}</p>
         <h1 className="font-display text-5xl leading-none tracking-wide">{profile.first_name}</h1>
 
         <div className="mt-8 flex flex-1 flex-col gap-4">
           <Link
             to="/app/golf"
             className="group bg-brand relative flex min-h-48 flex-1 flex-col justify-between overflow-hidden rounded-3xl p-6 shadow-xl shadow-black/30 transition active:scale-[0.98]"
+            style={{ backgroundImage: "repeating-linear-gradient(115deg, rgba(255,255,255,0.045) 0 34px, rgba(255,255,255,0) 34px 68px)" }}
           >
             <FlagIcon className="absolute -top-4 -right-6 h-44 w-44 text-white/[0.07]" />
             <div className="flex items-center gap-2">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
                 <FlagIcon className="h-5 w-5" />
               </span>
-              <span className="font-label text-xs font-semibold tracking-widest text-white/70 uppercase">Skills</span>
+              <span className="font-label text-base font-semibold text-white/70">Skills</span>
             </div>
             <div>
               <h2 className="font-display text-5xl leading-none tracking-wide">Golfable</h2>
@@ -139,7 +140,7 @@ export function LauncherScreen() {
                 <span className="bg-brand-dark/10 flex h-9 w-9 items-center justify-center rounded-full">
                   <BarbellIcon className="h-5 w-5" />
                 </span>
-                <span className="font-label text-brand-dark/70 text-xs font-semibold tracking-widest uppercase">Body</span>
+                <span className="font-label text-brand-dark/70 text-base font-semibold">Body</span>
               </span>
               {fitProgress && (
                 <span className="font-label bg-brand-dark/10 rounded-full px-2.5 py-1 text-xs font-semibold">

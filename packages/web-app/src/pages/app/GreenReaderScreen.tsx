@@ -48,7 +48,7 @@ export function GreenReaderScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Green Reader</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Green Reader</h1>
       <p className="font-body text-sm text-neutral-500">
         Lay your phone flat on the green -- the dot drifts toward the downhill side.
       </p>

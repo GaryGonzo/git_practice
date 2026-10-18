@@ -101,7 +101,7 @@ export function LeaderboardHubScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <h1 className="font-display text-2xl tracking-wide">{studio ? studio.name : "Golfable"} Leaderboard</h1>
+      <h1 className="font-display text-[2.4rem] leading-none tracking-wide">{studio ? studio.name : "Golfable"} Leaderboard</h1>
 
       <div className="mt-4 grid grid-cols-3 gap-1.5">
         {TABS.map(({ id, label }) => (
@@ -184,7 +184,7 @@ export function LeaderboardHubScreen() {
               <Link
                 key={entry.date}
                 to={`/app/leaderboard/${entry.drill.id}/${entry.date}`}
-                className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5"
+                className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5"
               >
                 <div className="w-10 flex-none">
                   <p className="font-label text-sm font-semibold">{formatDateLabel(entry.date)}</p>

@@ -74,7 +74,7 @@ export function ForumCategoryScreen() {
       </Link>
 
       <div className="mt-3 flex items-center justify-between gap-3">
-        <h1 className="font-display text-2xl tracking-wide">{category.name}</h1>
+        <h1 className="font-display text-[2.4rem] leading-none tracking-wide">{category.name}</h1>
         <Link
           to={`/app/forum/${category.slug}/new`}
           className="font-label bg-brand flex-none rounded-md px-4 py-2 text-sm font-semibold text-white"
@@ -97,7 +97,7 @@ export function ForumCategoryScreen() {
             <Link
               key={thread.id}
               to={`/app/forum/${category.slug}/${thread.id}`}
-              className="block rounded-lg border border-neutral-200 bg-white p-4 active:bg-neutral-50"
+              className="block rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 active:bg-neutral-50"
             >
               <div className="flex items-start gap-2">
                 {thread.pinned && <PinIcon className="text-gold mt-0.5 h-4 w-4 flex-none" />}

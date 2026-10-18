@@ -82,7 +82,7 @@ export function MyBagScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">My Bag</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">My Bag</h1>
       <p className="font-body text-sm text-neutral-500">
         Your typical yardage per club. When a Golfable calls for a distance, we'll suggest the club that fits.
         Clubs you've logged in{" "}
@@ -95,7 +95,7 @@ export function MyBagScreen() {
       {bag === null ? (
         <p className="font-body mt-6 text-sm text-neutral-500">Loading…</p>
       ) : (
-        <div className="mt-4 rounded-lg border border-neutral-200 bg-white px-4">
+        <div className="mt-4 rounded-2xl bg-white ring-1 ring-black/[0.06] px-4">
           {bag.map((entry) => (
             <BagRow key={entry.club} profileId={profile.id} entry={entry} />
           ))}

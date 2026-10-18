@@ -44,7 +44,7 @@ function ChevronIcon({ className, open }: { className?: string; open: boolean })
 function UpcomingRow({ entry }: { entry: GolfableCalendarEntry }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-3.5">
+    <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5">
       <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-3 text-left">
         <div
           className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[entry.drill.category]}`}
@@ -121,12 +121,12 @@ export function ProgressScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <h1 className="font-display text-2xl tracking-wide">Progress</h1>
+      <h1 className="font-display text-[2.4rem] leading-none tracking-wide">Progress</h1>
 
-      <div className="mt-4 flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+      <div className="mt-4 flex items-center gap-4 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
         <WeeklyGoalRing completed={sessionsThisWeek} goal={profile.weekly_goal} size={72} />
         <div>
-          <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+          <p className="font-label text-sm font-semibold text-neutral-500">
             This week
           </p>
           <p className="font-body mt-1 text-sm text-neutral-600">
@@ -137,13 +137,13 @@ export function ProgressScreen() {
         </div>
       </div>
 
-      <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-        My Golfable Scores
+      <h2 className="font-label mt-8 mb-2 text-sm font-semibold text-neutral-500">
+        My Golfable scores
       </h2>
       <GolfableScorePanel history={golfableScoreHistory} />
 
-      <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-        By Category
+      <h2 className="font-label mt-8 mb-2 text-sm font-semibold text-neutral-500">
+        By category
       </h2>
       <div className="space-y-2">
         {SKILL_CATEGORIES.map((category) => {
@@ -152,7 +152,7 @@ export function ProgressScreen() {
           return (
             <div
               key={category}
-              className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5"
+              className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5"
             >
               <div
                 className={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
@@ -172,8 +172,8 @@ export function ProgressScreen() {
         })}
       </div>
 
-      <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-        Recent Scores
+      <h2 className="font-label mt-8 mb-2 text-sm font-semibold text-neutral-500">
+        Recent scores
       </h2>
       {history.length === 0 ? (
         <p className="font-body text-sm text-neutral-500">Log a score on Today's Golfable to get started.</p>
@@ -184,7 +184,7 @@ export function ProgressScreen() {
             return (
               <div
                 key={`${entry.drill.id}-${entry.createdAt}-${i}`}
-                className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5"
+                className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5"
               >
                 <div
                   className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[entry.drill.category]}`}
@@ -219,7 +219,7 @@ export function ProgressScreen() {
         </button>
       )}
 
-      <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+      <h2 className="font-label mt-8 mb-2 text-sm font-semibold text-neutral-500">
         Upcoming Golfables
       </h2>
       {upcoming.length === 0 ? (

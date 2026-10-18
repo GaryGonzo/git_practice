@@ -134,9 +134,9 @@ function StudiosSection({ users, accessToken }: { users: AdminUserOverview[]; ac
         Private studio accounts, like an indoor golf simulator's own leaderboard inside Golfable.
       </p>
 
-      <form onSubmit={handleCreate} className="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-neutral-200 bg-white p-4">
+      <form onSubmit={handleCreate} className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
         <div>
-          <label className="font-label block text-xs font-semibold tracking-wide text-neutral-500 uppercase">Studio name</label>
+          <label className="font-label block text-sm font-semibold text-neutral-500">Studio name</label>
           <input
             type="text"
             value={name}
@@ -146,7 +146,7 @@ function StudiosSection({ users, accessToken }: { users: AdminUserOverview[]; ac
           />
         </div>
         <div>
-          <label className="font-label block text-xs font-semibold tracking-wide text-neutral-500 uppercase">Owner</label>
+          <label className="font-label block text-sm font-semibold text-neutral-500">Owner</label>
           <select
             value={ownerId}
             onChange={(e) => setOwnerId(e.target.value)}
@@ -170,10 +170,10 @@ function StudiosSection({ users, accessToken }: { users: AdminUserOverview[]; ac
       </form>
       {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
 
-      <div className="mt-4 overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+      <div className="mt-4 overflow-x-auto rounded-2xl bg-white ring-1 ring-black/[0.06]">
         <table className="w-full min-w-[900px] text-left text-sm">
           <thead>
-            <tr className="font-label border-b border-neutral-200 text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+            <tr className="font-label border-b border-neutral-200 text-sm font-semibold text-neutral-500">
               <th className="px-4 py-3">Studio</th>
               <th className="px-4 py-3">Owner</th>
               <th className="px-4 py-3">Members</th>
@@ -246,7 +246,7 @@ function StudiosSection({ users, accessToken }: { users: AdminUserOverview[]; ac
                       {!rosterLoading && !rosterError && roster.length > 0 && (
                         <table className="w-full min-w-[500px] text-left text-sm">
                           <thead>
-                            <tr className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                            <tr className="font-label text-sm font-semibold text-neutral-500">
                               <th className="py-1 pr-4">Name</th>
                               <th className="py-1 pr-4">Tier</th>
                               <th className="py-1 pr-4">Joined</th>
@@ -329,14 +329,14 @@ function ForumModerationSection({ accessToken }: { accessToken: string }) {
       {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
 
       {!loading && flags.length === 0 && (
-        <p className="font-body mt-4 rounded-lg border border-neutral-200 bg-white p-6 text-center text-sm text-neutral-500">
+        <p className="font-body mt-4 rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 text-center text-sm text-neutral-500">
           Nothing pending review.
         </p>
       )}
 
       <div className="mt-4 space-y-3">
         {flags.map((flag) => (
-          <div key={flag.id} className="rounded-lg border border-neutral-200 bg-white p-4">
+          <div key={flag.id} className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-label rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-neutral-600">
                 {flag.contentType === "thread" ? "Thread" : "Reply"}
@@ -424,7 +424,7 @@ export function AdminScreen() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-24">
-      <h1 className="font-display text-2xl tracking-wide">Admin Dashboard</h1>
+      <h1 className="font-display text-[2.4rem] leading-none tracking-wide">Admin Dashboard</h1>
       <p className="font-body mt-1 text-sm text-neutral-500">
         {loading ? "Loading…" : `${users.length} member${users.length === 1 ? "" : "s"} total`}
       </p>
@@ -441,10 +441,10 @@ export function AdminScreen() {
             className="font-body mt-4 w-full max-w-sm rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
 
-          <div className="mt-4 overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+          <div className="mt-4 overflow-x-auto rounded-2xl bg-white ring-1 ring-black/[0.06]">
             <table className="w-full min-w-[1000px] text-left text-sm">
               <thead>
-                <tr className="font-label border-b border-neutral-200 text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                <tr className="font-label border-b border-neutral-200 text-sm font-semibold text-neutral-500">
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Tier</th>

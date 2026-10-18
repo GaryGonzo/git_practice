@@ -28,7 +28,7 @@ function HistoryRow({ entry }: { entry: FitWorkoutHistoryEntry }) {
   return (
     <Link
       to={`/app/fit/workout/${entry.id}`}
-      className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5 active:bg-neutral-50"
+      className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5 active:bg-neutral-50"
     >
       <div className="min-w-0 flex-1">
         <p className="font-label text-sm font-semibold">{entry.templateName}</p>
@@ -68,7 +68,7 @@ export function FitHistoryScreen() {
         Golfable Fit
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Workout History</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Workout History</h1>
       <p className="font-body mt-1 text-sm text-neutral-500">
         {loading ? "Loading…" : `${history.length} workout${history.length === 1 ? "" : "s"} completed`}
       </p>

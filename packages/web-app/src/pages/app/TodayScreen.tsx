@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { BagEntry, Drill } from "@golfable/shared";
-import { CATEGORY_INFO, TIER_INFO, RANK_CARD_CUTOFF, isBetterScore, suggestClubForYardage } from "@golfable/shared";
+import { TIER_INFO, RANK_CARD_CUTOFF, isBetterScore, suggestClubForYardage } from "@golfable/shared";
 import { DrillFreshView } from "../../components/DrillFreshView";
 import { DrillRatingPrompt } from "../../components/DrillRatingPrompt";
 import { CelebrationToast, randomScoreMessage } from "../../components/CelebrationToast";
@@ -164,10 +164,10 @@ export function TodayScreen() {
     <div className="mx-auto max-w-md px-4 pt-4">
       <Link
         to="/app/library"
-        className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500"
+        className="font-label inline-flex items-center gap-0.5 text-base font-semibold text-neutral-500"
       >
         <BackIcon className="h-4 w-4" />
-        Back to Library
+        Library
       </Link>
     </div>
   );
@@ -252,14 +252,16 @@ export function TodayScreen() {
         error={submitError}
         eyebrow={
           isChooseYourOwn
-            ? `Choose Your Own · ${CATEGORY_INFO[drill.category].label}`
+            ? "Your pick"
             : isToday
               ? "Today's Golfable"
-              : `${submittedScore === null ? "Catching Up" : "Completed"} · ${formatDate(date)}`
+              : submittedScore === null
+                ? `Catch up: ${formatDate(date)}`
+                : `Played ${formatDate(date)}`
         }
         subtitle={
           isToday
-            ? "Everyone trains this one today"
+            ? "Everyone plays this one today"
             : submittedScore === null
               ? "Play it now and log your score"
               : "Here's what you played"

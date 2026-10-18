@@ -115,12 +115,12 @@ export function AlignmentCheckerScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Alignment Checker</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Alignment Checker</h1>
       <p className="font-body text-sm text-neutral-500">
         Prop your phone on the ground behind the ball, aimed down your target line.
       </p>
 
-      <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
+      <div className="mt-6 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
         <p className="font-body text-sm text-neutral-600">
           The line is your <span className="font-semibold">target line</span> -- line it up through the ball toward
           where you're aiming, then use it to check your feet, hips, and shoulders are aligned the way you want.

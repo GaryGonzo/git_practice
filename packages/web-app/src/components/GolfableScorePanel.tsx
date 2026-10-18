@@ -17,31 +17,27 @@ export function GolfableScorePanel({ history }: { history: ScoreHistoryEntry[] }
   const { categoryScores, categoryAttempts, overallScore } = computeGolfableScores(history);
 
   return (
-    <div>
-      {overallScore !== null ? (
-        <Link to="/app/golfable-score" className="bg-brand block rounded-lg p-4 text-center text-white active:opacity-90">
-          <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
-            Golfable Score
+    <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
+      <Link to="/app/golfable-score" className="flex items-center justify-between gap-3 px-4 py-3.5 active:bg-neutral-50">
+        <div className="min-w-0">
+          <p className="font-label text-[1.05rem] font-semibold text-neutral-900">Golfable Score</p>
+          <p className="font-body text-sm text-neutral-500">
+            {overallScore !== null
+              ? "Across all four clubs"
+              : `Log ${GOLFABLE_SCORE_MIN_ATTEMPTS} in every club to unlock`}
           </p>
-          <p className="font-display text-4xl">
+        </div>
+        {overallScore !== null ? (
+          <p className="font-display text-brand text-4xl leading-none">
             {overallScore}
-            <span className="text-lg font-normal text-white/50">/100</span>
+            <span className="text-base text-neutral-400">/100</span>
           </p>
-        </Link>
-      ) : (
-        <Link
-          to="/app/golfable-score"
-          className="block rounded-lg border border-dashed border-neutral-300 bg-white p-4 text-center active:bg-neutral-50"
-        >
-          <p className="font-label text-sm font-semibold text-neutral-600">Golfable Score not unlocked yet</p>
-          <p className="font-body mt-1 text-xs text-neutral-500">
-            Play {GOLFABLE_SCORE_MIN_ATTEMPTS}+ Golfables in every category below to unlock it.
-          </p>
-        </Link>
-      )}
-
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        {SKILL_CATEGORIES.map((category) => {
+        ) : (
+          <span className="font-label rounded-full bg-neutral-100 px-3 py-1 text-sm font-semibold text-neutral-500">Locked</span>
+        )}
+      </Link>
+      <div className="grid grid-cols-4 border-t border-neutral-100">
+        {SKILL_CATEGORIES.map((category, i) => {
           const info = CATEGORY_INFO[category];
           const score = categoryScores[category];
           const attempts = categoryAttempts[category];
@@ -49,26 +45,21 @@ export function GolfableScorePanel({ history }: { history: ScoreHistoryEntry[] }
             <Link
               key={category}
               to={`/app/golfable-score/${category}`}
-              className="rounded-lg border border-neutral-200 bg-white p-3 text-center active:bg-neutral-50"
+              className={`flex flex-col items-center px-1 py-3 text-center active:bg-neutral-50 ${i > 0 ? "border-l border-neutral-100" : ""}`}
             >
-              <div
-                className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
-              >
+              <span className={`flex h-8 w-8 items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}>
                 <CategoryIcon category={category} className="h-4 w-4" />
-              </div>
-              <p className="font-label mt-1.5 text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-                {info.label}
-              </p>
+              </span>
               {score !== null ? (
-                <p className="font-display text-2xl">
-                  {score}
-                  <span className="text-sm font-normal text-neutral-400">/100</span>
-                </p>
+                <p className="font-display mt-1.5 text-2xl leading-none">{score}</p>
               ) : (
-                <p className="font-body mt-0.5 text-xs text-neutral-400">
-                  {attempts}/{GOLFABLE_SCORE_MIN_ATTEMPTS} logged
-                </p>
+                <div className="mt-2 flex gap-0.5" aria-label={`${attempts} of ${GOLFABLE_SCORE_MIN_ATTEMPTS} logged`}>
+                  {Array.from({ length: GOLFABLE_SCORE_MIN_ATTEMPTS }, (_, n) => (
+                    <span key={n} className={`h-1.5 w-3 rounded-full ${n < attempts ? CATEGORY_BG[category] : "bg-neutral-200"}`} />
+                  ))}
+                </div>
               )}
+              <p className="font-label mt-1 text-xs font-semibold text-neutral-500">{info.label.split(" ")[0]}</p>
             </Link>
           );
         })}

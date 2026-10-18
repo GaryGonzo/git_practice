@@ -19,20 +19,7 @@ import {
   type FitRoundSummary,
   type FitWeeklyCheckin,
 } from "../../lib/golfableApi";
-
-function ChevronIcon({ className, dir }: { className?: string; dir: "left" | "right" }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d={dir === "left" ? "M12.5 4.5L7 10l5.5 5.5" : "M7.5 4.5L13 10l-5.5 5.5"}
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import { PageHeader, FairwayPanel, ChevronLeft, ChevronRight } from "../../components/ui";
 
 const PACIFIC_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" });
 
@@ -98,12 +85,12 @@ function suggestAdjustment(thisAvg: number | null, lastAvg: number | null, prevA
 
 function Stat({ label, value, sub, good }: { label: string; value: string; sub?: string; good?: boolean | null }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-3">
-      <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">{label}</p>
-      <p className={`font-display mt-1 text-2xl ${good === true ? "text-brand" : good === false ? "text-fit-circuit" : ""}`}>
+    <div className="bg-white p-3.5">
+      <p className="font-label text-sm font-semibold text-neutral-500">{label}</p>
+      <p className={`font-display mt-0.5 text-3xl leading-none ${good === true ? "text-brand" : good === false ? "text-fit-circuit" : ""}`}>
         {value}
       </p>
-      {sub && <p className="font-body text-xs text-neutral-500">{sub}</p>}
+      {sub && <p className="font-body mt-1 text-xs text-neutral-500">{sub}</p>}
     </div>
   );
 }
@@ -250,28 +237,32 @@ export function FitCheckinScreen() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 pt-4 pb-24">
-      <h1 className="font-display mt-2 text-2xl tracking-wide">Sunday Check-in</h1>
-      <p className="font-body text-sm text-neutral-500">Look at the numbers, change one thing.</p>
+    <div className="mx-auto max-w-md px-4 pb-28">
+      <PageHeader kicker="Golfable Fit" title="Sunday check-in" sub="Look at the numbers, change one thing." />
 
-      <div className="mt-3 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-2">
-        <button type="button" onClick={() => setWeekStart((w) => addDaysISO(w, -7))} className="p-2 text-neutral-500" aria-label="Previous week">
-          <ChevronIcon dir="left" className="h-5 w-5" />
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setWeekStart((w) => addDaysISO(w, -7))}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-600 ring-1 ring-black/[0.06]"
+          aria-label="Previous week"
+        >
+          <ChevronLeft className="h-5 w-5" />
         </button>
         <div className="text-center">
-          <p className="font-label text-sm font-semibold">
+          <p className="font-label text-lg leading-tight font-semibold">
             {formatShort(weekStart)} – {formatShort(weekEnd)}
           </p>
-          {isCurrentWeek && <p className="font-label text-brand text-xs font-semibold uppercase">This week</p>}
+          <p className="font-label text-sm font-medium text-neutral-500">{isCurrentWeek ? "This week" : "Past week"}</p>
         </div>
         <button
           type="button"
           onClick={() => setWeekStart((w) => addDaysISO(w, 7))}
           disabled={isCurrentWeek}
-          className="p-2 text-neutral-500 disabled:opacity-30"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-600 ring-1 ring-black/[0.06] disabled:opacity-30"
           aria-label="Next week"
         >
-          <ChevronIcon dir="right" className="h-5 w-5" />
+          <ChevronRight className="h-5 w-5" />
         </button>
       </div>
 
@@ -279,7 +270,31 @@ export function FitCheckinScreen() {
         <div className="p-6 text-center font-body text-neutral-500">Loading…</div>
       ) : (
         <>
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <FairwayPanel className="mt-5">
+          <div className="p-5">
+            <p className="font-label text-base font-medium text-white/60">This week's one change</p>
+            <p className="font-label mt-1 text-[1.6rem] leading-tight font-semibold">{suggestion.text}</p>
+            {applied ? (
+              <p className="font-label text-gold mt-3 text-base font-semibold">Applied: {applied}</p>
+            ) : (
+              suggestion.calorieDelta !== 0 &&
+              calories !== null && (
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  disabled={applying}
+                  className="font-label bg-gold text-brand-dark mt-4 w-full rounded-full px-4 py-3 text-base font-bold disabled:opacity-60"
+                >
+                  {applying
+                    ? "Updating…"
+                    : `${suggestion.calorieDelta > 0 ? "Add" : "Cut"} 150 calories (to ${(calories + suggestion.calorieDelta).toLocaleString()}/day)`}
+                </button>
+              )
+            )}
+          </div>
+          </FairwayPanel>
+
+          <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-black/[0.06]">
             <Stat
               label="Weight avg"
               value={weightAvg !== null ? `${weightAvg.toFixed(1)}` : "—"}
@@ -316,8 +331,8 @@ export function FitCheckinScreen() {
             <Stat label="Calories" value={calories !== null ? calories.toLocaleString() : "—"} sub="Daily target" />
           </div>
 
-          <div className="border-l-gold mt-4 rounded-lg border border-l-4 border-neutral-200 bg-white p-4">
-            <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">Saturday's round</p>
+          <div className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+            <p className="font-label text-lg font-semibold text-neutral-900">Saturday's round</p>
             {round ? (
               <>
                 <p className="font-display mt-1 text-3xl">
@@ -352,30 +367,8 @@ export function FitCheckinScreen() {
             )}
           </div>
 
-          <div className="border-l-brand mt-3 rounded-lg border border-l-4 border-neutral-200 bg-white p-4">
-            <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">Adjustment</p>
-            <p className="font-body mt-1 text-sm text-neutral-800">{suggestion.text}</p>
-            {applied ? (
-              <p className="font-label text-brand mt-2 text-sm font-semibold">Applied: {applied}</p>
-            ) : (
-              suggestion.calorieDelta !== 0 &&
-              calories !== null && (
-                <button
-                  type="button"
-                  onClick={handleApply}
-                  disabled={applying}
-                  className="font-label bg-brand mt-3 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {applying
-                    ? "Updating…"
-                    : `${suggestion.calorieDelta > 0 ? "Add" : "Cut"} 150 calories (to ${(calories + suggestion.calorieDelta).toLocaleString()}/day)`}
-                </button>
-              )
-            )}
-          </div>
-
-          <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-            <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">Biggest leak</p>
+          <div className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+            <p className="font-label text-lg font-semibold text-neutral-900">Biggest leak</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {LEAKS.map((l) => (
                 <button
@@ -397,8 +390,8 @@ export function FitCheckinScreen() {
             )}
           </div>
 
-          <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-4">
-            <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">Stress this week</p>
+          <div className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+            <p className="font-label text-lg font-semibold text-neutral-900">Stress this week</p>
             <div className="mt-2 grid grid-cols-10 gap-1">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <button
@@ -423,7 +416,7 @@ export function FitCheckinScreen() {
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Anything else? Knee or wrist sore, schedule changes…"
               rows={3}
-              className="font-body mt-3 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              className="font-body focus:border-brand mt-3 w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none"
             />
           </div>
 
@@ -432,14 +425,14 @@ export function FitCheckinScreen() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="font-label bg-brand mt-4 w-full rounded-md px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            className="font-label bg-brand mt-5 w-full rounded-full px-4 py-3.5 text-base font-bold text-white disabled:opacity-60"
           >
             {saving ? "Saving…" : saved ? "Saved" : "Save check-in"}
           </button>
 
           {history.filter((h) => h.weekStart !== weekStart).length > 0 && (
             <div className="mt-6">
-              <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Past check-ins</p>
+              <p className="font-label px-1 text-xl font-semibold text-neutral-900">Past check-ins</p>
               <div className="mt-2 space-y-2">
                 {history
                   .filter((h) => h.weekStart !== weekStart)
@@ -449,7 +442,7 @@ export function FitCheckinScreen() {
                       key={h.weekStart}
                       type="button"
                       onClick={() => setWeekStart(h.weekStart)}
-                      className="flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white p-3 text-left"
+                      className="flex w-full items-center justify-between rounded-2xl bg-white p-3.5 text-left ring-1 ring-black/[0.06]"
                     >
                       <span className="font-label text-sm font-semibold">Week of {formatShort(h.weekStart)}</span>
                       <span className="font-body text-sm text-neutral-600">

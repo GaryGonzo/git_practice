@@ -47,7 +47,7 @@ export function SwingTempoScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Swing Tempo</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Swing Tempo</h1>
       <p className="font-body text-sm text-neutral-500">
         Hold your phone in your swinging hand -- no club needed -- and make a smooth practice swing to measure your
         backswing-to-downswing ratio.
@@ -84,7 +84,7 @@ export function SwingTempoScreen() {
             {ratio !== null ? (
               <div className="text-center">
                 <span className="font-display text-4xl leading-none">{ratio.toFixed(1)}</span>
-                <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">: 1</p>
+                <p className="font-label text-sm font-semibold text-neutral-500">: 1</p>
               </div>
             ) : (
               <div

@@ -302,7 +302,7 @@ function SectionBlock({
           {section.sets.map((set) => (
             <div key={set.setNumber}>
               {section.setCount !== null && section.setCount > 1 && (
-                <p className={`font-label mb-1.5 text-xs font-semibold tracking-wide uppercase ${FLAVOR_TEXT[flavor]}`}>
+                <p className={`font-label mb-1.5 text-xs font-semibold  ${FLAVOR_TEXT[flavor]}`}>
                   Set {set.setNumber} of {section.setCount}
                 </p>
               )}
@@ -474,7 +474,7 @@ export function FitWorkoutScreen() {
 
       <div className="mt-3 flex items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl tracking-wide">{session.templateName}</h1>
+          <h1 className="font-display text-[2.4rem] leading-none tracking-wide">{session.templateName}</h1>
           <p className="font-body text-sm text-neutral-500">
             {readOnly ? `Completed ${session.completedAt ? formatDateTime(session.completedAt) : ""}` : `Started ${formatDateTime(session.startedAt)}`}
           </p>

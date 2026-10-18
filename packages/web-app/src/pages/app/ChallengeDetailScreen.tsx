@@ -175,26 +175,26 @@ export function ChallengeDetailScreen() {
           <CategoryIcon category={drill.category} className="h-5 w-5" />
         </div>
         <div>
-          <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+          <p className="font-label text-xs font-semibold text-neutral-500 ">
             {CATEGORY_INFO[drill.category].label}
           </p>
-          <h1 className="font-display text-2xl tracking-wide">{drill.name}</h1>
+          <h1 className="font-display text-[2.4rem] leading-none tracking-wide">{drill.name}</h1>
         </div>
       </div>
 
       {(challenge.wager || challenge.note) && (
         <div className="mt-4 space-y-2">
           {challenge.wager && (
-            <div className="rounded-lg border border-neutral-200 bg-white p-3">
-              <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+            <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-3">
+              <p className="font-label text-sm font-semibold text-neutral-500">
                 Wager <span className="font-body normal-case text-neutral-400">(for fun -- no real money)</span>
               </p>
               <p className="font-body mt-0.5 text-sm text-neutral-700">{challenge.wager}</p>
             </div>
           )}
           {challenge.note && (
-            <div className="rounded-lg border border-neutral-200 bg-white p-3">
-              <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Note</p>
+            <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-3">
+              <p className="font-label text-sm font-semibold text-neutral-500">Note</p>
               <p className="font-body mt-0.5 text-sm text-neutral-700">{challenge.note}</p>
             </div>
           )}
@@ -204,9 +204,9 @@ export function ChallengeDetailScreen() {
       <button
         type="button"
         onClick={() => handleCopy("code")}
-        className="font-label mt-4 flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3"
+        className="font-label mt-4 flex w-full items-center justify-between rounded-2xl bg-white ring-1 ring-black/[0.06] px-4 py-3"
       >
-        <span className="text-xs font-semibold tracking-widest text-neutral-500 uppercase">Invite Code</span>
+        <span className="text-sm font-semibold text-neutral-500">Invite code</span>
         <span className="flex items-center gap-2">
           <span className="font-display text-xl tracking-widest">{challenge.code}</span>
           <CopyIcon className="h-4 w-4 text-neutral-400" />
@@ -217,7 +217,7 @@ export function ChallengeDetailScreen() {
       <button
         type="button"
         onClick={() => handleCopy("link")}
-        className="font-label mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-600"
+        className="font-label mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-white ring-1 ring-black/[0.06] px-4 py-2.5 text-sm font-semibold text-neutral-600"
       >
         <CopyIcon className="h-4 w-4 text-neutral-400" />
         Copy Invite Link
@@ -239,8 +239,8 @@ export function ChallengeDetailScreen() {
       )}
 
       <div className="mt-6">
-        <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-          Live Standings
+        <h2 className="font-label mb-2 text-sm font-semibold text-neutral-500">
+          Live standings
         </h2>
         <div className="space-y-2">
           {participants.map((p, i) => {
@@ -271,17 +271,17 @@ export function ChallengeDetailScreen() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Setup</p>
+      <div className="mt-6 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+        <p className="font-label text-sm font-semibold text-neutral-500">Setup</p>
         <p className="font-body mt-1 text-sm text-neutral-600">{drill.setup.description}</p>
-        <p className="font-label mt-3 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+        <p className="font-label mt-3 text-xs font-semibold text-neutral-500 ">
           Your Target · {TIER_INFO[profile.tier].label}
         </p>
         <p className="font-display text-brand text-2xl">{drill.targets[profile.tier]}</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+      <form onSubmit={handleSubmit} className="mt-4 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+        <p className="font-label text-xs font-semibold text-neutral-500 ">
           {me?.score !== null && me?.score !== undefined ? "Update Your Score" : "Log Your Score"}
         </p>
         <div className="mt-2 flex gap-2">

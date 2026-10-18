@@ -133,7 +133,7 @@ function formatTime12h(time: string): string {
 
 function WalkRow({ walk, onDelete }: { walk: FitWalk; onDelete: () => void }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3">
+    <div className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-3">
       <div className="bg-fit-warmup/10 text-fit-warmup flex h-9 w-9 flex-none items-center justify-center rounded-full">
         <WalkIcon className="h-4.5 w-4.5" />
       </div>
@@ -164,10 +164,10 @@ function AddWalkForm({ onAdd, onCancel }: { onAdd: (time: string, duration: numb
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-neutral-200 bg-white p-3.5">
+    <form onSubmit={handleSubmit} className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Time</label>
+          <label className="font-label text-sm font-semibold text-neutral-500">Time</label>
           <input
             type="time"
             value={time}
@@ -176,7 +176,7 @@ function AddWalkForm({ onAdd, onCancel }: { onAdd: (time: string, duration: numb
           />
         </div>
         <div>
-          <label className="font-label block text-xs font-semibold tracking-wide text-neutral-500 uppercase">Duration</label>
+          <label className="font-label block text-sm font-semibold text-neutral-500">Duration</label>
           <div className="mt-1">
             <DurationStepper value={duration} onChange={setDuration} />
           </div>
@@ -222,14 +222,14 @@ function NotificationCard({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="border-l-fit-finisher mt-3 rounded-lg border border-l-4 border-neutral-200 bg-white p-4">
+    <div className="mt-6 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
       <div className="flex items-center gap-3">
         <div className="bg-fit-finisher/10 text-fit-finisher flex h-9 w-9 flex-none items-center justify-center rounded-full">
           <BellIcon className="h-4.5 w-4.5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-            Daily Reminder
+          <p className="font-label text-sm font-semibold text-neutral-500">
+            Daily reminder
           </p>
           <p className="font-body text-sm text-neutral-600">
             {settings.enabled
@@ -297,16 +297,16 @@ export function FitPlanScreen() {
   return (
     <div className="mx-auto max-w-md px-4 pt-4 pb-24">
 
-      <h1 className="font-display mt-2 text-2xl tracking-wide">Walks</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Walks</h1>
       <p className="font-body text-sm text-neutral-500">Plan extra walks for any day to hit your step goal.</p>
 
-      <div className="mt-3 flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-2">
+      <div className="mt-4 flex items-center justify-between rounded-2xl bg-white p-2 ring-1 ring-black/[0.06]">
         <button type="button" onClick={() => setDate((d) => addDays(d, -1))} className="p-2 text-neutral-500">
           <ChevronLeftIcon className="h-5 w-5" />
         </button>
         <div className="text-center">
           <p className="font-label text-sm font-semibold">{formatDateLong(date)}</p>
-          {isToday && <p className="font-label text-brand text-xs font-semibold uppercase">Today</p>}
+          {isToday && <p className="font-label text-brand text-sm font-semibold">Today</p>}
         </div>
         <button type="button" onClick={() => setDate((d) => addDays(d, 1))} className="p-2 text-neutral-500">
           <ChevronRightIcon className="h-5 w-5" />
@@ -315,10 +315,10 @@ export function FitPlanScreen() {
 
       {!loading && (
         <>
-          <div className="border-l-fit-circuit mt-3 flex items-center justify-between rounded-lg border border-l-4 border-neutral-200 bg-white p-4">
+          <div className="mt-3 flex items-center justify-between rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
             <div>
-              <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-                Workout Day
+              <p className="font-label text-sm font-semibold text-neutral-500">
+                Workout day
               </p>
               <p className="font-body text-sm text-neutral-600">
                 {workoutPlanned ? "Planned -- no set time, just today" : "Not planned"}
@@ -328,10 +328,10 @@ export function FitPlanScreen() {
           </div>
 
           <div className="mt-4 flex items-center justify-between">
-            <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Walks</p>
+            <p className="font-label text-sm font-semibold text-neutral-500">Walks</p>
             {!showAddWalk && (
               <button type="button" onClick={() => setShowAddWalk(true)} className="font-label text-brand text-sm font-semibold underline">
-                + Add a Walk
+                Add a walk
               </button>
             )}
           </div>
@@ -339,7 +339,7 @@ export function FitPlanScreen() {
           <div className="mt-2 space-y-2">
             {showAddWalk && <AddWalkForm onAdd={handleAddWalk} onCancel={() => setShowAddWalk(false)} />}
             {walks.length === 0 && !showAddWalk && (
-              <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-4 text-center">
+              <div className="rounded-2xl border border-dashed border-neutral-300 bg-white/60 p-4 text-center">
                 <p className="font-body text-sm text-neutral-500">No walks scheduled for this day.</p>
               </div>
             )}

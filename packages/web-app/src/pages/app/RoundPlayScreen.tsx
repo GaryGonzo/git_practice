@@ -350,56 +350,56 @@ export function RoundPlayScreen() {
           </button>
         </div>
 
-        <h1 className="font-display mt-3 text-2xl tracking-wide">
+        <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">
           {round.holeCount}-Hole Round
         </h1>
         <p className="font-body text-sm text-neutral-500">{formatDate(round.completedAt)}</p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center">
+          <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 text-center">
             <p className="font-display text-3xl">{stats.totalScore}</p>
-            <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+            <p className="font-label text-xs font-semibold text-neutral-500 ">
               Score ({scoreToParLabel(stats.scoreToPar)})
             </p>
           </div>
-          <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center">
+          <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 text-center">
             <p className="font-display text-3xl">{stats.totalPutts}</p>
-            <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Total Putts</p>
+            <p className="font-label text-sm font-semibold text-neutral-500">Total putts</p>
           </div>
-          <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center">
+          <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 text-center">
             <p className="font-display text-3xl">
               {stats.girOpportunities > 0 ? `${stats.girHit}/${stats.girOpportunities}` : "--"}
             </p>
-            <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-              Greens in Regulation
+            <p className="font-label text-sm font-semibold text-neutral-500">
+              Greens in regulation
             </p>
           </div>
-          <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center">
+          <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 text-center">
             <p className="font-display text-3xl">
               {stats.firOpportunities > 0 ? `${stats.firHit}/${stats.firOpportunities}` : "--"}
             </p>
-            <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-              Fairways Hit
+            <p className="font-label text-sm font-semibold text-neutral-500">
+              Fairways hit
             </p>
           </div>
-          <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center">
+          <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 text-center">
             <p className="font-display text-3xl">
               {stats.upAndDownOpportunities > 0 ? `${stats.upAndDownHit}/${stats.upAndDownOpportunities}` : "--"}
             </p>
-            <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Up &amp; Down</p>
+            <p className="font-label text-sm font-semibold text-neutral-500">Up &amp; Down</p>
           </div>
-          <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center">
+          <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 text-center">
             <p className="font-display text-3xl">{stats.totalPenalties}</p>
-            <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-              Penalty Strokes
+            <p className="font-label text-sm font-semibold text-neutral-500">
+              Penalty strokes
             </p>
           </div>
         </div>
 
-        <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+        <h2 className="font-label mt-8 mb-2 text-sm font-semibold text-neutral-500">
           Scorecard
         </h2>
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-black/[0.06]">
           <table className="font-body w-full text-center text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-neutral-500">
@@ -479,7 +479,7 @@ export function RoundPlayScreen() {
 
       <div className="mt-4 flex items-center justify-between rounded-lg bg-brand px-4 py-3 text-white">
         <div>
-          <p className="font-label text-xs font-semibold tracking-widest text-white/70 uppercase">
+          <p className="font-label text-xs font-semibold text-white/70 ">
             Thru {holes.filter((h) => h.score !== null).length} of {round.holeCount}
           </p>
           <p className="font-display text-lg">
@@ -498,7 +498,7 @@ export function RoundPlayScreen() {
         >
           <ChevronLeftIcon className="h-5 w-5" />
         </button>
-        <h1 className="font-display text-3xl tracking-wide">Hole {hole.holeNumber}</h1>
+        <h1 className="font-display text-[2.4rem] leading-none tracking-wide">Hole {hole.holeNumber}</h1>
         <button
           type="button"
           onClick={() => setHoleIndex((i) => Math.min(holes.length - 1, i + 1))}
@@ -511,7 +511,7 @@ export function RoundPlayScreen() {
 
       <div className="mt-6 space-y-5">
         <div>
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Par</label>
+          <label className="font-label text-sm font-semibold text-neutral-500">Par</label>
           <div className="mt-1 grid grid-cols-4 gap-2">
             {[3, 4, 5, 6].map((par) => (
               <button
@@ -528,14 +528,14 @@ export function RoundPlayScreen() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Score</label>
+        <div className="flex items-center justify-between rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+          <label className="font-label text-sm font-semibold text-neutral-500">Score</label>
           <Stepper value={hole.score ?? hole.par} min={1} onChange={(value) => patchHole(hole.id, { score: value })} />
         </div>
 
         {hole.par !== 3 && (
           <div>
-            <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+            <label className="font-label text-sm font-semibold text-neutral-500">
               Fairway
             </label>
             <div className="mt-1">
@@ -550,7 +550,7 @@ export function RoundPlayScreen() {
         )}
 
         <div>
-          <label className="font-label block text-center text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+          <label className="font-label block text-center text-sm font-semibold text-neutral-500">
             Green
           </label>
           <div className="mt-1">
@@ -563,14 +563,14 @@ export function RoundPlayScreen() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Putts</label>
+        <div className="flex items-center justify-between rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+          <label className="font-label text-sm font-semibold text-neutral-500">Putts</label>
           <Stepper value={hole.putts ?? 2} onChange={(value) => patchHole(hole.id, { putts: value })} />
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-4">
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
-            Penalty Strokes
+        <div className="flex items-center justify-between rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+          <label className="font-label text-sm font-semibold text-neutral-500">
+            Penalty strokes
           </label>
           <Stepper value={hole.penaltyStrokes} onChange={(value) => patchHole(hole.id, { penaltyStrokes: value })} />
         </div>

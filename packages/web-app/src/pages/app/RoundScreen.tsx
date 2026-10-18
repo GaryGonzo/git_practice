@@ -40,7 +40,7 @@ function HistoryRow({ round }: { round: Round }) {
   return (
     <Link
       to={`/app/round/${round.id}`}
-      className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-4 active:bg-neutral-50"
+      className="flex items-center justify-between gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 active:bg-neutral-50"
     >
       <div className="min-w-0">
         <p className="font-label text-sm font-semibold">
@@ -79,7 +79,7 @@ export function RoundScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <h1 className="font-display text-2xl tracking-wide">Round Tracker</h1>
+      <h1 className="font-display text-[2.4rem] leading-none tracking-wide">Round Tracker</h1>
       <p className="font-body text-sm text-neutral-500">
         Track score, fairways, greens, putts, and penalties hole by hole -- no course setup needed.
       </p>
@@ -103,23 +103,23 @@ export function RoundScreen() {
             type="button"
             onClick={() => handleStart(18)}
             disabled={starting}
-            className="font-label bg-brand rounded-md px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            className="font-label bg-brand rounded-full px-4 py-3.5 text-base font-bold text-white disabled:opacity-60"
           >
-            Start 18 Holes
+            Start 18 holes
           </button>
           <button
             type="button"
             onClick={() => handleStart(9)}
             disabled={starting}
-            className="font-label rounded-md border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-600 disabled:opacity-60"
+            className="font-label rounded-full bg-white px-4 py-3.5 text-base font-bold text-neutral-700 ring-1 ring-black/[0.08] disabled:opacity-60"
           >
-            Start 9 Holes
+            Start 9 holes
           </button>
         </div>
       )}
 
-      <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-        Past Rounds
+      <h2 className="font-label mt-8 mb-2 text-sm font-semibold text-neutral-500">
+        Past rounds
       </h2>
       {history === null ? (
         <p className="font-body text-sm text-neutral-500">Loading…</p>

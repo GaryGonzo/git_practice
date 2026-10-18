@@ -68,7 +68,7 @@ export function NewChallengeScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">New Challenge</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">New Challenge</h1>
       <p className="font-body text-sm text-neutral-500">Pick a drill to compete on.</p>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -125,9 +125,9 @@ export function NewChallengeScreen() {
       </div>
 
       {selectedDrillId && (
-        <div className="mt-6 space-y-3 rounded-lg border border-neutral-200 bg-white p-4">
+        <div className="mt-6 space-y-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
           <div>
-            <label className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+            <label className="font-label text-sm font-semibold text-neutral-500">
               Wager <span className="font-body normal-case text-neutral-400">(optional, just for fun -- no real money)</span>
             </label>
             <input
@@ -139,7 +139,7 @@ export function NewChallengeScreen() {
             />
           </div>
           <div>
-            <label className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+            <label className="font-label text-sm font-semibold text-neutral-500">
               Note <span className="font-body normal-case text-neutral-400">(optional)</span>
             </label>
             <input

@@ -66,7 +66,7 @@ export function ChallengesScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Challenges</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Challenges</h1>
       <p className="font-body text-sm text-neutral-500">Invite friends on the range to compete on a drill.</p>
 
       <Link
@@ -76,9 +76,9 @@ export function ChallengesScreen() {
         Create a Challenge
       </Link>
 
-      <form onSubmit={handleJoin} className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Join with a Code
+      <form onSubmit={handleJoin} className="mt-4 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+        <p className="font-label text-sm font-semibold text-neutral-500">
+          Join with a code
         </p>
         <div className="mt-2 flex gap-2">
           <input
@@ -86,7 +86,7 @@ export function ChallengesScreen() {
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="ABCDE"
-            className="font-display flex-1 rounded-md border border-neutral-300 px-3 py-2 text-center text-lg tracking-widest uppercase"
+            className="font-display flex-1 rounded-md border border-neutral-300 px-3 py-2 text-center text-lg "
             maxLength={5}
           />
           <button
@@ -101,8 +101,8 @@ export function ChallengesScreen() {
       </form>
 
       <div className="mt-6">
-        <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-          Your Challenges
+        <h2 className="font-label mb-2 text-sm font-semibold text-neutral-500">
+          Your challenges
         </h2>
         {loading ? (
           <p className="font-body text-sm text-neutral-500">Loading…</p>
@@ -114,7 +114,7 @@ export function ChallengesScreen() {
               <Link
                 key={c.id}
                 to={`/app/challenges/${c.id}`}
-                className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5 active:bg-neutral-50"
+                className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5 active:bg-neutral-50"
               >
                 <div
                   className={`flex h-8 w-8 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[c.category]}`}

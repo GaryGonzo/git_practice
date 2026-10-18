@@ -34,12 +34,12 @@ export function DrillRatingPrompt({ userId, drillId }: { userId: string; drillId
   }
 
   return (
-    <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4 text-center">
+    <div className="mt-4 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 text-center">
       {rating !== null ? (
         <p className="font-label text-sm font-semibold text-neutral-700">Thanks for rating it!</p>
       ) : (
         <>
-          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+          <p className="font-label text-sm font-semibold text-neutral-500">
             First time playing this one
           </p>
           <p className="font-body mt-1 text-sm text-neutral-600">How'd you like it?</p>

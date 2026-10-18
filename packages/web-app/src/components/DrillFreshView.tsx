@@ -123,115 +123,146 @@ export function DrillFreshView({
     ? generatePuttingHoleDistances(date)
     : null;
 
+  const pinnedForm = interactive && !result;
+
+  const scoreForm = (
+    <form onSubmit={interactive ? onSubmit : (event) => event.preventDefault()} className="flex items-center gap-2">
+      <label htmlFor="score-input" className="sr-only">
+        Your score
+      </label>
+      <div className="min-w-0 flex-1">
+        <input
+          id="score-input"
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={maxScore}
+          required={interactive}
+          readOnly={!interactive}
+          value={scoreInput}
+          onChange={(event) => onScoreInputChange?.(event.target.value)}
+          placeholder={`Score 0–${maxScore}`}
+          className="font-display focus:border-brand focus:ring-brand/20 w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-2xl tracking-wide outline-none placeholder:font-label placeholder:text-base placeholder:tracking-normal placeholder:text-neutral-400 focus:ring-4"
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={!interactive || submitting}
+        className="font-label bg-brand flex-none rounded-xl px-5 py-3.5 text-base font-bold text-white disabled:opacity-60"
+      >
+        {submitting ? "Saving…" : "Log score"}
+      </button>
+    </form>
+  );
+
   return (
-    <div className="mx-auto max-w-md px-4 pt-6 pb-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-            {eyebrow}
-          </p>
+    <div className={`mx-auto max-w-md px-4 pt-5 ${pinnedForm ? "pb-36" : "pb-6"}`}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-label text-lg font-semibold text-neutral-900">{eyebrow}</p>
           <p className="font-body text-sm text-neutral-500">{subtitle}</p>
         </div>
-        <WeeklyGoalRing completed={sessionsThisWeek} goal={weeklyGoal} size={64} />
+        <WeeklyGoalRing completed={sessionsThisWeek} goal={weeklyGoal} size={56} />
       </div>
 
       <DrillHeroImage drill={drill} />
 
-      <div className="mb-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label mb-1 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-          Setup
-        </p>
-        <p className="font-body mb-2 text-sm text-neutral-700">{drill.setup.description}</p>
-        <ul className="font-body list-inside list-disc text-sm text-neutral-600">
-          {drill.setup.equipment.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-        {puttingDistances && (
-          <div className="mt-2 border-t border-neutral-100 pt-2">
-            <p className="font-label mb-1 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-              Today's 18 Holes
-            </p>
-            <div className="grid grid-cols-3 gap-x-3 gap-y-1">
-              {puttingDistances.map((distance, i) => (
-                <p key={i} className="font-body text-sm text-neutral-700">
-                  Hole {i + 1}: <span className="font-semibold">{distance} ft</span>
-                </p>
+      <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
+        <section className="p-4">
+          <h3 className="font-label text-lg font-semibold text-neutral-900">Setup</h3>
+          <p className="font-body mt-1 text-[0.95rem] leading-relaxed text-neutral-700">{drill.setup.description}</p>
+          {drill.setup.equipment.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {drill.setup.equipment.map((item) => (
+                <span key={item} className="font-label rounded-full bg-neutral-100 px-3 py-1 text-sm font-semibold text-neutral-700">
+                  {item}
+                </span>
               ))}
             </div>
-          </div>
-        )}
-        {drill.targetYardage !== undefined && (
-          <div className="mt-2 border-t border-neutral-100 pt-2">
-            <p className="font-body text-sm text-neutral-700">Distance: {drill.targetYardage} yds</p>
-            {suggestedClub ? (
-              <p className="font-label text-brand text-sm font-semibold">Suggested club: {suggestedClub}</p>
-            ) : (
-              <Link to="/app/bag" className="font-label text-sm font-semibold text-neutral-500 underline">
-                Set your bag for a club suggestion
-              </Link>
+          )}
+          {puttingDistances && (
+            <div className="mt-4">
+              <p className="font-label text-base font-semibold text-neutral-900">Today's 18 holes</p>
+              <div className="mt-1.5 grid grid-cols-6 gap-1 text-center">
+                {puttingDistances.map((distance, i) => (
+                  <div key={i} className="rounded-lg bg-neutral-50 py-1.5 ring-1 ring-black/[0.04]">
+                    <p className="font-label text-[0.7rem] font-semibold text-neutral-400">{i + 1}</p>
+                    <p className="font-display text-lg leading-none">{distance}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="font-body mt-1 text-xs text-neutral-500">Distances in feet.</p>
+            </div>
+          )}
+          {drill.targetYardage !== undefined && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-neutral-50 px-3 py-2.5">
+              <p className="font-body text-sm text-neutral-700">
+                <span className="font-display text-xl">{drill.targetYardage}</span> yds
+              </p>
+              {suggestedClub ? (
+                <p className="font-label text-brand text-sm font-semibold">Hit your {suggestedClub}</p>
+              ) : (
+                <Link to="/app/bag" className="font-label text-sm font-semibold text-neutral-500 underline">
+                  Set your bag for a club pick
+                </Link>
+              )}
+            </div>
+          )}
+        </section>
+
+        <section className="p-4">
+          <h3 className="font-label text-lg font-semibold text-neutral-900">How to score</h3>
+          <p className="font-body mt-1 text-[0.95rem] leading-relaxed text-neutral-700">{drill.rules.description}</p>
+          <ul className="font-body mt-2 space-y-1.5 text-[0.95rem] text-neutral-700">
+            {drill.rules.scoring.map((item) => (
+              <li key={item} className="flex gap-2">
+                <span className="bg-brand mt-2 h-1.5 w-1.5 flex-none rounded-full" aria-hidden="true" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className={`flex items-center justify-between gap-3 border-l-4 p-4 ${TIER_BORDER[tier]}`}>
+          <div>
+            <h3 className="font-label text-lg font-semibold text-neutral-900">Your target</h3>
+            <p className="font-body text-sm text-neutral-500">{tierInfo.label} tier</p>
+            {roundBest && (
+              <p className="font-body mt-1 text-sm text-neutral-600">
+                Best round: <span className="text-brand font-semibold">{formatScore(roundBest.score, roundBest.maxScore, drill.scoreDirection)}</span>{" "}
+                on {formatRoundBestDate(roundBest.completedAt)}
+              </p>
             )}
           </div>
-        )}
-      </div>
-
-      <div className="mb-3 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label mb-1 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-          Rules &amp; Scoring
-        </p>
-        <p className="font-body mb-2 text-sm text-neutral-700">{drill.rules.description}</p>
-        <ul className="font-body list-inside list-disc text-sm text-neutral-600">
-          {drill.rules.scoring.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className={`mb-6 rounded-lg border-2 bg-white p-4 ${TIER_BORDER[tier]}`}>
-        <p className="font-label mb-1 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-          Your Target &middot; {tierInfo.label}
-        </p>
-        <p className={`font-display text-4xl ${TIER_TEXT[tier]}`}>{tierTarget}</p>
-        {roundBest && (
-          <p className="font-body mt-2 border-t border-neutral-100 pt-2 text-sm text-neutral-600">
-            Your best round:{" "}
-            <span className="font-label text-brand font-semibold">
-              {formatScore(roundBest.score, roundBest.maxScore, drill.scoreDirection)}
-            </span>{" "}
-            on {formatRoundBestDate(roundBest.completedAt)} ({roundBest.holesUsed} holes)
-          </p>
-        )}
+          <p className={`font-display text-5xl leading-none ${TIER_TEXT[tier]}`}>{tierTarget}</p>
+        </section>
       </div>
 
       {result ? (
-        <div className="space-y-3">
-          <div className="bg-brand rounded-lg p-5 text-center text-white">
-            <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
-              You scored
-            </p>
-            <p className="font-display text-5xl">{formatScore(result.score, maxScore, drill.scoreDirection)}</p>
-            <p className="font-body mt-1 text-sm text-white/80">
+        <div className="mt-4 space-y-3">
+          <div className="bg-brand-dark relative overflow-hidden rounded-3xl p-6 text-center text-white">
+            <p className="font-label text-base font-medium text-white/70">You scored</p>
+            <p className="font-display text-7xl leading-none">{formatScore(result.score, maxScore, drill.scoreDirection)}</p>
+            <p className="font-body mt-2 text-sm text-white/80">
               {isTargetHit(result.score, tierTarget, drill.scoreDirection)
-                ? `Target hit — ${tierInfo.label} target was ${tierTarget}`
-                : `Target was ${tierTarget} — keep after it`}
+                ? `Target hit. Your ${tierInfo.label} target was ${tierTarget}.`
+                : `Target was ${tierTarget}. Keep after it.`}
               {result.lastAttempt !== null && (
                 <>
-                  {" · "}
+                  {" "}
                   {result.score === result.lastAttempt
-                    ? `same as last time`
+                    ? "Same as last time."
                     : isBetterScore(result.score, result.lastAttempt, drill.scoreDirection)
-                      ? `better than last time`
-                      : `worse than last time`}
+                      ? "Better than last time."
+                      : "Below last time."}
                 </>
               )}
             </p>
             {result.personalBest !== null && (
-              <p
-                className={`font-label mt-2 text-sm font-semibold ${result.isNewPersonalBest ? "text-gold" : "text-white/70"}`}
-              >
+              <p className={`font-label mt-3 inline-block rounded-full px-3 py-1 text-sm font-semibold ${result.isNewPersonalBest ? "bg-gold text-brand-dark" : "bg-white/10 text-white/80"}`}>
                 {result.isNewPersonalBest
-                  ? "🎉 New Personal Best!"
-                  : `Personal Best: ${formatScore(result.personalBest, maxScore, drill.scoreDirection)}`}
+                  ? "New personal best"
+                  : `Personal best: ${formatScore(result.personalBest, maxScore, drill.scoreDirection)}`}
               </p>
             )}
           </div>
@@ -240,59 +271,44 @@ export function DrillFreshView({
             (result.leaderboardHref ? (
               <Link
                 to={result.leaderboardHref}
-                className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4 active:bg-neutral-50"
+                className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06] active:bg-neutral-50"
               >
-                <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-full">
+                <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-xl">
                   <TrophyIcon className="text-gold h-6 w-6" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-display text-lg tracking-wide">{result.rankLabel}</p>
+                  <p className="font-label text-lg leading-tight font-semibold">{result.rankLabel}</p>
                   <p className="font-body text-sm text-neutral-500">{result.rankSublabel}</p>
                 </div>
-                <ChevronRightIcon className="h-5 w-5 flex-none text-neutral-400" />
+                <ChevronRightIcon className="h-5 w-5 flex-none text-neutral-300" />
               </Link>
             ) : (
-              <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4">
-                <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-full">
+              <div className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+                <div className="bg-gold/15 flex h-11 w-11 flex-none items-center justify-center rounded-xl">
                   <TrophyIcon className="text-gold h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-display text-lg tracking-wide">{result.rankLabel}</p>
+                  <p className="font-label text-lg leading-tight font-semibold">{result.rankLabel}</p>
                   <p className="font-body text-sm text-neutral-500">{result.rankSublabel}</p>
                 </div>
               </div>
             ))}
         </div>
-      ) : (
-        <form
-          onSubmit={interactive ? onSubmit : (event) => event.preventDefault()}
-          className="rounded-lg border border-neutral-200 bg-white p-4"
-        >
-          <label className="font-label mb-2 block text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-            Log your score
-          </label>
-          {error && <p className="font-body mb-2 text-sm text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min={0}
-              max={maxScore}
-              required={interactive}
-              readOnly={!interactive}
-              value={scoreInput}
-              onChange={(event) => onScoreInputChange?.(event.target.value)}
-              placeholder={`0-${maxScore}`}
-              className="font-body flex-1 rounded-md border border-neutral-300 px-3 py-2"
-            />
-            <button
-              type="submit"
-              disabled={!interactive || submitting}
-              className="font-label bg-brand rounded-md px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {submitting ? "Saving…" : "Submit"}
-            </button>
+      ) : pinnedForm ? (
+        // Pinned just above the tab bar so logging a score never needs a
+        // scroll -- you're on the range with a club in one hand.
+        <div className="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-20 border-t border-black/[0.06] bg-white/95 backdrop-blur">
+          <div className="mx-auto max-w-md px-4 py-3">
+            {error && <p className="font-body mb-2 text-sm text-red-600">{error}</p>}
+            {scoreForm}
           </div>
-        </form>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+          <p className="font-label mb-2 text-lg font-semibold">Log your score</p>
+          {error && <p className="font-body mb-2 text-sm text-red-600">{error}</p>}
+          {scoreForm}
+        </div>
       )}
     </div>
   );

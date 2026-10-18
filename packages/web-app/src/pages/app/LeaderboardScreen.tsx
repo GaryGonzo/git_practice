@@ -52,7 +52,7 @@ export function LeaderboardScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">{studio ? studio.name : "Golfable"} Leaderboard</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">{studio ? studio.name : "Golfable"} Leaderboard</h1>
       <p className="font-body text-sm text-neutral-500">
         {drill ? `${drill.name} · ${CATEGORY_INFO[drill.category].label}` : " "} &middot; {formatDate(date)}
       </p>

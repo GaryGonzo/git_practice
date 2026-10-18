@@ -13,7 +13,7 @@ export function WeeklyGoalBar({ completed, goal }: WeeklyGoalBarProps) {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Weekly Goal</p>
+        <p className="font-label text-sm font-semibold text-neutral-500">Weekly goal</p>
         <p className="font-label text-xs font-semibold text-neutral-600">
           {completed}/{goal} Golfables
           {overflow > 0 && <span className="text-gold"> +{overflow}</span>}

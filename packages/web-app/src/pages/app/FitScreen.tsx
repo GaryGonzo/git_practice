@@ -25,6 +25,7 @@ import {
   type FitPlannedBlock,
 } from "../../lib/golfableApi";
 import { HandicapTrendChart } from "../../components/HandicapTrendChart";
+import { PageHeader } from "../../components/ui";
 
 function ChevronDownIcon({ className, open }: { className?: string; open: boolean }) {
   return (
@@ -203,14 +204,6 @@ function EndProgramModal({
 
 type CardAccent = "warmup" | "circuit" | "recover" | "finisher" | "steps";
 
-const ACCENT_BORDER: Record<CardAccent, string> = {
-  warmup: "border-l-fit-warmup",
-  circuit: "border-l-fit-circuit",
-  recover: "border-l-fit-recover",
-  finisher: "border-l-fit-finisher",
-  steps: "border-l-gold",
-};
-
 const ACCENT_ICON_BG: Record<CardAccent, string> = {
   warmup: "bg-fit-warmup/10 text-fit-warmup",
   circuit: "bg-fit-circuit/10 text-fit-circuit",
@@ -240,11 +233,11 @@ function CollapsibleCard({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className={`mt-3 rounded-lg border border-l-4 border-neutral-200 bg-white ${ACCENT_BORDER[accent]}`}>
+    <div className="mt-3 rounded-2xl bg-white ring-1 ring-black/[0.06]">
       <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-3 p-4 text-left">
-        <div className={`flex h-9 w-9 flex-none items-center justify-center rounded-full ${ACCENT_ICON_BG[accent]}`}>{icon}</div>
+        <div className={`flex h-10 w-10 flex-none items-center justify-center rounded-xl ${ACCENT_ICON_BG[accent]}`}>{icon}</div>
         <div className="min-w-0 flex-1">
-          <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">{title}</p>
+          <p className="font-label text-lg leading-tight font-semibold text-neutral-900">{title}</p>
           {!open && summary && <div className="mt-1">{summary}</div>}
         </div>
         <ChevronDownIcon open={open} className="h-5 w-5 flex-none text-neutral-400" />
@@ -258,7 +251,7 @@ function InfoRow({ label, value }: { label: string; value: string | null }) {
   if (!value) return null;
   return (
     <div className="border-t border-neutral-100 py-2.5 first:border-t-0 first:pt-0">
-      <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">{label}</p>
+      <p className="font-label text-sm font-semibold text-neutral-500">{label}</p>
       <p className="font-body mt-0.5 text-sm text-neutral-800">{value}</p>
     </div>
   );
@@ -267,7 +260,7 @@ function InfoRow({ label, value }: { label: string; value: string | null }) {
 function ConsultationCard({ profile }: { profile: FitProfile }) {
   return (
     <CollapsibleCard
-      title="Your Consultation"
+      title="About you"
       icon={<ClipboardIcon className="h-4.5 w-4.5" />}
       accent="warmup"
       summary={<p className="font-body text-sm text-neutral-600">{profile.goals}</p>}
@@ -315,7 +308,7 @@ function NutritionCard({ plan }: { plan: FitNutritionPlan }) {
           ].map((m) => (
             <div key={m.label} className="rounded-lg bg-neutral-50 px-2 py-2 text-center">
               <p className="font-display text-xl">{m.grams !== null ? `${m.grams}g` : "—"}</p>
-              <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">{m.label}</p>
+              <p className="font-label text-sm font-semibold text-neutral-500">{m.label}</p>
             </div>
           ))}
         </div>
@@ -395,7 +388,7 @@ function WeightCard({ userId, goalWeightLossLbs }: { userId: string; goalWeightL
 
   return (
     <CollapsibleCard
-      title="Body Weight"
+      title="Body weight"
       icon={<ScaleIcon className="h-4.5 w-4.5" />}
       accent="recover"
       summary={latest && <p className="font-display text-2xl">{latest.weightLbs} lbs</p>}
@@ -594,29 +587,43 @@ function WorkoutSlot({
   onOpen: (instanceId: string) => void;
 }) {
   const status = instance?.status ?? "not_started";
-  const statusLabel = status === "completed" ? "Completed" : status === "in_progress" ? "In Progress" : "Not Started";
+  const statusLabel = status === "completed" ? "Done" : status === "in_progress" ? "In progress" : "Start";
   const statusClass =
     status === "completed"
       ? "bg-brand/10 text-brand"
       : status === "in_progress"
         ? "bg-gold/15 text-gold"
-        : "bg-neutral-100 text-neutral-500";
+        : "bg-brand text-white";
 
   return (
     <button
       type="button"
       disabled={starting}
       onClick={() => (instance ? onOpen(instance.id) : onStart())}
-      className="flex w-full items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-3.5 text-left active:bg-neutral-50 disabled:opacity-60"
+      className="flex w-full items-center justify-between gap-3 rounded-xl bg-neutral-50 p-3.5 text-left ring-1 ring-black/[0.04] active:bg-neutral-100 disabled:opacity-60"
     >
       <div className="min-w-0">
-        <p className="font-label text-base font-semibold">Workout {slotNumber}</p>
-        <p className="font-body text-sm text-neutral-500">{templateName}</p>
+        <p className="font-label text-[1.05rem] leading-tight font-semibold">{templateName}</p>
+        <p className="font-body text-sm text-neutral-500">Session {slotNumber}</p>
       </div>
-      <span className={`font-label flex-none rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass}`}>
+      <span className={`font-label flex-none rounded-full px-3 py-1 text-sm font-bold ${statusClass}`}>
         {starting ? "Starting…" : statusLabel}
       </span>
     </button>
+  );
+}
+
+// Long coaching notes start clamped to three lines -- the key rule is in the
+// first sentence; the rest is there when you want it.
+function CareNotes({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <p className={`font-body mt-1 text-sm leading-relaxed text-neutral-700 ${open ? "" : "line-clamp-3"}`}>{text}</p>
+      <button type="button" onClick={() => setOpen((o) => !o)} className="font-label text-brand mt-1 text-sm font-semibold">
+        {open ? "Show less" : "Read all"}
+      </button>
+    </div>
   );
 }
 
@@ -662,7 +669,8 @@ function BlockCard({ userId, block, onEnded }: { userId: string; block: FitBlock
 
   return (
     <CollapsibleCard
-      title="Current Block"
+      defaultOpen
+      title="This week's training"
       icon={<DumbbellIcon className="h-4.5 w-4.5" />}
       accent="finisher"
       summary={
@@ -681,21 +689,21 @@ function BlockCard({ userId, block, onEnded }: { userId: string; block: FitBlock
         {block.stepGoal !== null && (
           <div className="flex-none rounded-lg bg-neutral-50 px-3 py-2 text-center">
             <p className="font-display text-lg">{block.stepGoal.toLocaleString()}</p>
-            <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Steps/day</p>
+            <p className="font-label text-sm font-semibold text-neutral-500">Steps a day</p>
           </div>
         )}
       </div>
 
       {block.careNotes && (
         <div className="border-gold/40 bg-gold/5 mt-3 rounded-lg border p-3">
-          <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Care Notes</p>
-          <p className="font-body mt-1 text-sm text-neutral-700">{block.careNotes}</p>
+          <p className="font-label text-sm font-semibold text-neutral-500">Care notes</p>
+          <CareNotes text={block.careNotes} />
         </div>
       )}
 
       <div className="mt-4">
         <div className="flex items-center justify-between">
-          <p className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">This Week</p>
+          <p className="font-label text-sm font-semibold text-neutral-500">This week</p>
           <p className={`font-label text-sm font-semibold ${atGoal ? "text-brand" : "text-neutral-500"}`}>
             {completedCount}/{block.sessionsPerWeek}
           </p>
@@ -826,24 +834,25 @@ export function FitScreen() {
   const activeTemplateName = block?.templates.find((t) => t.id === activeInstance?.sessionTemplateId)?.name ?? "Workout";
 
   return (
-    <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <p className="font-label text-sm font-semibold tracking-widest text-neutral-500 uppercase">Golfable Fit</p>
-      <h1 className="font-display text-3xl tracking-wide">Your Program</h1>
-      <p className="font-body mt-1 text-sm text-neutral-500">Training built around your body and your swing.</p>
-
+    <div className="mx-auto max-w-md px-4 pb-28">
+      <PageHeader
+        kicker="Golfable Fit"
+        title="Your program"
+        sub={fitProfile?.goals ? `Goal: ${fitProfile.goals.replace(/\.$/, "")}.` : "Training built around your body and your swing."}
+      />
 
       {activeInstance && <ResumeWorkoutBanner instance={activeInstance} templateName={activeTemplateName} />}
 
       <div className="mt-4">
-        {fitProfile && <ConsultationCard profile={fitProfile} />}
-        {nutritionPlan && <NutritionCard plan={nutritionPlan} />}
-        <WeightCard userId={userId} goalWeightLossLbs={fitProfile?.goalWeightLossLbs ?? null} />
-        <StepsCard userId={userId} stepGoal={block?.stepGoal ?? null} />
         {block ? (
           <BlockCard userId={userId} block={block} onEnded={handleEnded} />
         ) : (
           <NoActiveBlockCard plannedBlock={plannedBlock} beginning={beginning} onBegin={handleBegin} />
         )}
+        {nutritionPlan && <NutritionCard plan={nutritionPlan} />}
+        <WeightCard userId={userId} goalWeightLossLbs={fitProfile?.goalWeightLossLbs ?? null} />
+        <StepsCard userId={userId} stepGoal={block?.stepGoal ?? null} />
+        {fitProfile && <ConsultationCard profile={fitProfile} />}
       </div>
     </div>
   );

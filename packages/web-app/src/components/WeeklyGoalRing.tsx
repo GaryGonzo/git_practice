@@ -2,9 +2,12 @@ interface WeeklyGoalRingProps {
   completed: number;
   goal: number;
   size?: number;
+  /** "dark" draws for a dark background (white type, translucent track). */
+  tone?: "light" | "dark";
 }
 
-export function WeeklyGoalRing({ completed, goal, size = 96 }: WeeklyGoalRingProps) {
+export function WeeklyGoalRing({ completed, goal, size = 96, tone = "light" }: WeeklyGoalRingProps) {
+  const dark = tone === "dark";
   const strokeWidth = 8;
   const radius = size / 2 - strokeWidth / 2 - 2;
   const circumference = 2 * Math.PI * radius;
@@ -19,7 +22,7 @@ export function WeeklyGoalRing({ completed, goal, size = 96 }: WeeklyGoalRingPro
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#E5E5E5"
+          stroke={dark ? "rgba(255,255,255,0.15)" : "#E5E5E5"}
           strokeWidth={strokeWidth}
         />
         <circle
@@ -27,7 +30,7 @@ export function WeeklyGoalRing({ completed, goal, size = 96 }: WeeklyGoalRingPro
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#1F4D36"
+          stroke={dark ? "#C6A64B" : "#1F4D36"}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -35,12 +38,12 @@ export function WeeklyGoalRing({ completed, goal, size = 96 }: WeeklyGoalRingPro
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display text-2xl leading-none">
+        <span className={`font-display leading-none ${size < 64 ? "text-xl" : "text-2xl"} ${dark ? "text-white" : ""}`}>
           {completed}/{goal}
         </span>
-        <span className="font-label text-[10px] tracking-wide text-neutral-500 uppercase">
-          this week
-        </span>
+        {size >= 64 && (
+          <span className={`font-label text-[11px] font-medium ${dark ? "text-white/60" : "text-neutral-500"}`}>this week</span>
+        )}
       </div>
       {overflow > 0 && (
         <div className="bg-gold font-label absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white">

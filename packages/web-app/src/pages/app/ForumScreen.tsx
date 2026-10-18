@@ -22,7 +22,7 @@ export function ForumScreen() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <h1 className="font-display text-2xl tracking-wide">Forum</h1>
+      <h1 className="font-display text-[2.4rem] leading-none tracking-wide">Forum</h1>
       <p className="font-body text-sm text-neutral-500">Chat with the community, ask questions, share feedback.</p>
 
       {categories === null ? (
@@ -33,7 +33,7 @@ export function ForumScreen() {
             <Link
               key={category.id}
               to={`/app/forum/${category.slug}`}
-              className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-4 active:bg-neutral-50"
+              className="flex items-center justify-between gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 active:bg-neutral-50"
             >
               <div className="min-w-0">
                 <p className="font-label text-base font-semibold">{category.name}</p>

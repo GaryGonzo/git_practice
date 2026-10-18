@@ -76,7 +76,7 @@ export function MetronomeScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Metronome</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Metronome</h1>
       <p className="font-body text-sm text-neutral-500">Dial in a consistent swing tempo.</p>
       <p className="font-body mt-1 text-xs text-neutral-400">
         Don't hear anything? Check that Silent/Ring mode is off -- phones mute web app sound the same as any other
@@ -118,7 +118,7 @@ export function MetronomeScreen() {
           </button>
           <div className="text-center">
             <span className="font-display text-6xl leading-none tabular-nums">{bpm}</span>
-            <p className="font-label mt-1 text-xs font-semibold tracking-widest text-neutral-500 uppercase">BPM</p>
+            <p className="font-label mt-1 text-sm font-semibold text-neutral-500">BPM</p>
           </div>
           <button
             type="button"

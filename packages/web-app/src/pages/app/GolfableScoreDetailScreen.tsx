@@ -81,18 +81,18 @@ function OverallScoreDetail({
 }) {
   return (
     <div>
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Golfable Score</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Golfable Score</h1>
 
       <div className="bg-brand mt-4 rounded-lg p-5 text-center text-white">
-        <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">Your Score</p>
+        <p className="font-label text-sm font-semibold text-white/70">Your score</p>
         <p className="font-display text-5xl">
           {overallScore ?? "--"}
           {overallScore !== null && <span className="text-xl font-normal text-white/50">/100</span>}
         </p>
       </div>
 
-      <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">How it's calculated</p>
+      <div className="mt-4 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+        <p className="font-label text-sm font-semibold text-neutral-500">How it's calculated</p>
         <p className="font-body mt-2 text-sm text-neutral-700">
           Your Golfable Score is the average of your four category scores below. Each category score is its own
           average -- see a category for the breakdown of what makes it up. You need a score in all 4 categories
@@ -100,8 +100,8 @@ function OverallScoreDetail({
         </p>
       </div>
 
-      <h2 className="font-label mt-6 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-        Category Scores
+      <h2 className="font-label mt-6 mb-2 text-sm font-semibold text-neutral-500">
+        Category scores
       </h2>
       <div className="space-y-2">
         {SKILL_CATEGORIES.map((category) => {
@@ -111,7 +111,7 @@ function OverallScoreDetail({
             <Link
               key={category}
               to={`/app/golfable-score/${category}`}
-              className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5 active:bg-neutral-50"
+              className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5 active:bg-neutral-50"
             >
               <div
                 className={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-white ${CATEGORY_BG[category]}`}
@@ -151,11 +151,11 @@ function CategoryScoreDetail({
         >
           <CategoryIcon category={category} className="h-5 w-5" />
         </div>
-        <h1 className="font-display text-2xl tracking-wide">{info.label} Score</h1>
+        <h1 className="font-display text-[2.4rem] leading-none tracking-wide">{info.label} Score</h1>
       </div>
 
       <div className="bg-brand mt-4 rounded-lg p-5 text-center text-white">
-        <p className="font-label text-sm font-semibold tracking-widest text-white/70 uppercase">
+        <p className="font-label text-sm font-semibold text-white/70 ">
           {info.label} Score
         </p>
         <p className="font-display text-5xl">
@@ -164,8 +164,8 @@ function CategoryScoreDetail({
         </p>
       </div>
 
-      <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">How it's calculated</p>
+      <div className="mt-4 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+        <p className="font-label text-sm font-semibold text-neutral-500">How it's calculated</p>
         <p className="font-body mt-2 text-sm text-neutral-700">
           {score === null ? (
             <>
@@ -183,8 +183,8 @@ function CategoryScoreDetail({
         </p>
       </div>
 
-      <h2 className="font-label mt-6 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-        Attempts Counted
+      <h2 className="font-label mt-6 mb-2 text-sm font-semibold text-neutral-500">
+        Attempts counted
       </h2>
       {attempts.length === 0 ? (
         <p className="font-body text-sm text-neutral-500">Play a {info.label} Golfable to get started.</p>
@@ -193,7 +193,7 @@ function CategoryScoreDetail({
           {attempts.map((entry, i) => (
             <div
               key={`${entry.drill.id}-${entry.createdAt}-${i}`}
-              className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3.5"
+              className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5"
             >
               <div className="min-w-0 flex-1">
                 <p className="font-label truncate text-sm font-semibold">{entry.drill.name}</p>

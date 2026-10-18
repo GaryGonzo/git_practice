@@ -106,7 +106,7 @@ const TOOLS: Tool[] = [
 export function ToolsScreen() {
   return (
     <div className="mx-auto max-w-md px-4 pt-6 pb-24">
-      <h1 className="font-display text-2xl tracking-wide">Training Tools</h1>
+      <h1 className="font-display text-[2.4rem] leading-none tracking-wide">Training Tools</h1>
       <p className="font-body mt-1 text-sm text-neutral-500">Extra practice aids to sharpen your game.</p>
 
       <div className="mt-4 space-y-2">
@@ -114,7 +114,7 @@ export function ToolsScreen() {
           <Link
             key={tool.to}
             to={tool.to}
-            className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-4 active:bg-neutral-50"
+            className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 active:bg-neutral-50"
           >
             <div className="bg-brand/10 flex h-10 w-10 flex-none items-center justify-center rounded-full">
               <tool.icon className="text-brand h-5 w-5" />

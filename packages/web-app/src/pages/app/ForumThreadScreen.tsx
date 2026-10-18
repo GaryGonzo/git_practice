@@ -174,7 +174,7 @@ export function ForumThreadScreen() {
       {editingThread ? (
         <form onSubmit={handleSaveThread} className="mt-4 space-y-3">
           <div>
-            <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Title</label>
+            <label className="font-label text-sm font-semibold text-neutral-500">Title</label>
             <input
               type="text"
               required
@@ -185,7 +185,7 @@ export function ForumThreadScreen() {
             />
           </div>
           <div>
-            <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Post</label>
+            <label className="font-label text-sm font-semibold text-neutral-500">Post</label>
             <textarea
               required
               maxLength={REPLY_MAX}
@@ -217,7 +217,7 @@ export function ForumThreadScreen() {
       ) : (
         <>
           <div className="mt-3 flex items-start justify-between gap-3">
-            <h1 className="font-display text-2xl tracking-wide">{thread.title}</h1>
+            <h1 className="font-display text-[2.4rem] leading-none tracking-wide">{thread.title}</h1>
             {canEditThread && (
               <button
                 type="button"
@@ -236,7 +236,7 @@ export function ForumThreadScreen() {
         </>
       )}
 
-      <h2 className="font-label mt-8 mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
+      <h2 className="font-label mt-8 mb-2 text-sm font-semibold text-neutral-500 ">
         {visibleReplies.length} {visibleReplies.length === 1 ? "Reply" : "Replies"}
       </h2>
 
@@ -250,7 +250,7 @@ export function ForumThreadScreen() {
           const canEditReply = reply.authorId === profile?.id && reply.status !== "removed";
           const isEditingThisReply = editingReplyId === reply.id;
           return (
-            <div key={reply.id} className="rounded-lg border border-neutral-200 bg-white p-3.5">
+            <div key={reply.id} className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-3.5">
               {isEditingThisReply ? (
                 <form onSubmit={handleSaveReply} className="space-y-2">
                   <textarea
@@ -315,7 +315,7 @@ export function ForumThreadScreen() {
 
       {thread.status === "visible" && (
         <form onSubmit={handleReply} className="mt-6">
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+          <label className="font-label text-sm font-semibold text-neutral-500">
             Add a reply
           </label>
           <textarea

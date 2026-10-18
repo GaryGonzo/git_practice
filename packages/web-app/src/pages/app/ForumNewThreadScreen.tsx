@@ -68,14 +68,14 @@ export function ForumNewThreadScreen() {
         Back to {category.name}
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">New Thread</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">New Thread</h1>
       <p className="font-body text-sm text-neutral-500">
         Posted to {category.name}. New threads are checked before they go live -- most post right away.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Title</label>
+          <label className="font-label text-sm font-semibold text-neutral-500">Title</label>
           <input
             type="text"
             required
@@ -87,7 +87,7 @@ export function ForumNewThreadScreen() {
           />
         </div>
         <div>
-          <label className="font-label text-xs font-semibold tracking-wide text-neutral-500 uppercase">Post</label>
+          <label className="font-label text-sm font-semibold text-neutral-500">Post</label>
           <textarea
             required
             maxLength={BODY_MAX}

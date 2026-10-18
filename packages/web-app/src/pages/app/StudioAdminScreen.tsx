@@ -115,14 +115,14 @@ export function StudioAdminScreen() {
         Back to Profile
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Manage {studio.name}</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Manage {studio.name}</h1>
       <p className="font-body mt-1 text-sm text-neutral-500">
         {roster.length} member{roster.length === 1 ? "" : "s"} total
       </p>
 
       {studio.canceledAt && (
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="font-label text-xs font-semibold tracking-widest text-red-600 uppercase">Canceled</p>
+          <p className="font-label text-sm font-semibold text-red-600">Canceled</p>
           <p className="font-body mt-1 text-sm text-red-700">
             This studio was canceled on {formatDate(studio.canceledAt)}. Members no longer get free access through
             it.
@@ -131,9 +131,9 @@ export function StudioAdminScreen() {
       )}
 
       {!studio.canceledAt && (
-        <div className="mt-4 rounded-lg border border-neutral-200 bg-white p-4">
+        <div className="mt-4 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Join link</p>
+            <p className="font-label text-sm font-semibold text-neutral-500">Join link</p>
             <button
               type="button"
               onClick={handleShare}
@@ -163,10 +163,10 @@ export function StudioAdminScreen() {
             className="font-body mt-4 w-full max-w-sm rounded-md border border-neutral-300 px-3 py-2 text-sm"
           />
 
-          <div className="mt-4 overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+          <div className="mt-4 overflow-x-auto rounded-2xl bg-white ring-1 ring-black/[0.06]">
             <table className="w-full min-w-[700px] text-left text-sm">
               <thead>
-                <tr className="font-label border-b border-neutral-200 text-xs font-semibold tracking-wide text-neutral-500 uppercase">
+                <tr className="font-label border-b border-neutral-200 text-sm font-semibold text-neutral-500">
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Tier</th>
                   <th className="px-4 py-3">Joined</th>

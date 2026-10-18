@@ -108,9 +108,9 @@ function SwingWizard({ club, onCancel, onDone }: SwingWizardProps) {
     averageSoFar.length > 0 ? Math.round(averageSoFar.reduce((s, d) => s + d, 0) / averageSoFar.length) : null;
 
   return (
-    <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
+    <div className="mt-6 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
       <div className="flex items-center justify-between">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">
+        <p className="font-label text-xs font-semibold text-neutral-500 ">
           {club} -- Swing {step + 1} of {SWINGS_PER_SESSION}
         </p>
         <button type="button" onClick={onCancel} className="font-label text-xs font-semibold text-neutral-400">
@@ -193,7 +193,7 @@ export function GappingScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Club Gapping</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Club Gapping</h1>
       <p className="font-body text-sm text-neutral-500">
         Hit {SWINGS_PER_SESSION} balls with a club and log each distance -- we'll track your average, fold in every
         session you run, and use it as that club's yardage in My Bag.
@@ -202,8 +202,8 @@ export function GappingScreen() {
       {inWizard ? (
         <SwingWizard club={club} onCancel={() => setInWizard(false)} onDone={handleWizardDone} />
       ) : (
-        <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
-          <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Club</p>
+        <div className="mt-6 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+          <p className="font-label text-sm font-semibold text-neutral-500">Club</p>
           <select
             value={club}
             onChange={(e) => setClub(e.target.value as BagClub)}
@@ -226,8 +226,8 @@ export function GappingScreen() {
       )}
 
       <div className="mt-6">
-        <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-          Your Gapping
+        <h2 className="font-label mb-2 text-sm font-semibold text-neutral-500">
+          Your gapping
         </h2>
         {loading ? (
           <p className="font-body text-sm text-neutral-500">Loading…</p>
@@ -255,14 +255,14 @@ export function GappingScreen() {
 
       {entries.length > 0 && (
         <div className="mt-6">
-          <h2 className="font-label mb-2 text-sm font-semibold tracking-widest text-neutral-500 uppercase">
-            Recent Logs
+          <h2 className="font-label mb-2 text-sm font-semibold text-neutral-500">
+            Recent logs
           </h2>
           <div className="space-y-1.5">
             {entries.slice(0, RECENT_LOG_LIMIT).map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2"
+                className="flex items-center gap-3 rounded-2xl bg-white ring-1 ring-black/[0.06] px-3 py-2"
               >
                 <span className="font-label flex-1 text-sm font-semibold">{entry.club}</span>
                 <span className="font-body text-sm text-neutral-500">{entry.distanceYards} yd</span>

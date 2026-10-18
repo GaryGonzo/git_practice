@@ -144,8 +144,8 @@ export function FairwayFinderScreen() {
         </button>
 
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pt-10 pb-6">
-          <p className="font-label text-center text-xs font-semibold tracking-widest text-white/70 uppercase">
-            Fairway Width
+          <p className="font-label text-center text-sm font-semibold text-white/70">
+            Fairway width
           </p>
           <div className="mt-2 flex justify-center gap-2">
             {WIDTH_PRESETS.map((w) => (
@@ -162,7 +162,7 @@ export function FairwayFinderScreen() {
             ))}
           </div>
 
-          <p className="font-label mt-4 text-center text-xs font-semibold tracking-widest text-white/70 uppercase">
+          <p className="font-label mt-4 text-center text-sm font-semibold text-white/70">
             Distance (yards)
           </p>
           <div className="mt-2 flex items-center justify-center gap-4">
@@ -194,13 +194,13 @@ export function FairwayFinderScreen() {
         Back
       </Link>
 
-      <h1 className="font-display mt-3 text-2xl tracking-wide">Fairway Finder</h1>
+      <h1 className="font-display mt-2 text-[2.4rem] leading-none tracking-wide">Fairway Finder</h1>
       <p className="font-body text-sm text-neutral-500">
         Point your camera downrange and see exactly where a fairway of your chosen width would be.
       </p>
 
-      <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4">
-        <p className="font-label text-xs font-semibold tracking-widest text-neutral-500 uppercase">Fairway Width</p>
+      <div className="mt-6 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
+        <p className="font-label text-sm font-semibold text-neutral-500">Fairway width</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {WIDTH_PRESETS.map((w) => (
             <button
@@ -216,8 +216,8 @@ export function FairwayFinderScreen() {
           ))}
         </div>
 
-        <p className="font-label mt-4 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
-          Distance Downrange
+        <p className="font-label mt-4 text-sm font-semibold text-neutral-500">
+          Distance downrange
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {DISTANCE_PRESETS.map((d) => (
@@ -247,7 +247,7 @@ export function FairwayFinderScreen() {
         {showCalibrate ? "Hide calibration" : "Lines look off? Calibrate for your phone"}
       </button>
       {showCalibrate && (
-        <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-4">
+        <div className="mt-2 rounded-2xl bg-white ring-1 ring-black/[0.06] p-4">
           <p className="font-body text-sm text-neutral-600">
             Every phone's camera has a different field of view, and there's no way for a browser to read it directly
             -- so this estimate defaults to a typical value. Stand a known distance from two objects a known width
