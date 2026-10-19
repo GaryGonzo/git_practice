@@ -11,6 +11,7 @@ import {
   getFitProfile,
   getActiveFitBlock,
   getWorkoutInstancesOnDate,
+  getWorkoutSession,
   startWorkout,
   getFitStepLogHistory,
   logFitSteps,
@@ -310,6 +311,91 @@ function PlanRow({
   );
 }
 
+// The day as plain text for pasting into Miyagi (Gary's Grok coach). Kept
+// short and in a fixed order so the coach can read it the same way daily.
+async function buildMiyagiSummary(args: {
+  date: string;
+  items: FitRoutineItem[];
+  isDone: (item: FitRoutineItem) => boolean;
+  instances: FitWorkoutInstance[];
+  steps: number | null;
+  stepGoal: number | null;
+  waterOz: number;
+  waterGoal: number | null;
+  sleepHours: number | null;
+  weight: { lbs: number; on: string } | null;
+  /** HH:MM now (Pacific) when summarizing today; null for another day. */
+  now: string | null;
+}): Promise<string> {
+  const lines: string[] = [`Golfable Fit check-in, ${formatDateLong(args.date)}`];
+
+  for (const instance of args.instances) {
+    const session = await getWorkoutSession(instance.id);
+    if (!session) continue;
+    const all = session.sections.flatMap((s) => s.sets.flatMap((set) => set.exercises));
+    const done = all.filter((e) => e.completed).length;
+    lines.push(`Lift: ${session.templateName}, ${instance.status === "completed" ? "done" : "in progress"} (${done}/${all.length} logged)`);
+    const main = session.sections.find((s) => s.title.toLowerCase().includes("main"));
+    if (main) {
+      const sets = main.sets.flatMap((set) => set.exercises).filter((e) => e.completed);
+      if (sets.length > 0) {
+        const name = sets[0].name;
+        const detail = sets
+          .map((e) => (e.tracksWeight ? `${e.actualWeightLbs ?? 0}x${e.actualCount ?? e.targetCount ?? 0}` : `${e.actualCount ?? e.targetCount ?? 0}`))
+          .join(", ");
+        lines.push(`  ${name}: ${detail}`);
+      }
+    }
+  }
+  if (args.instances.length === 0 && args.items.some((i) => i.kind === "lift")) lines.push("Lift: not started");
+
+  lines.push(`Steps: ${args.steps !== null ? args.steps.toLocaleString() : "not logged"}${args.stepGoal ? ` / ${args.stepGoal.toLocaleString()}` : ""}`);
+  lines.push(`Water: ${args.waterOz}${args.waterGoal ? ` / ${args.waterGoal}` : ""} oz`);
+  lines.push(`Sleep last night: ${args.sleepHours !== null ? `${args.sleepHours} hrs` : "not logged"}`);
+  lines.push(`Weight: ${args.weight && args.weight.on === args.date ? `${args.weight.lbs} lbs` : "no weigh-in today"}`);
+
+  const done = args.items.filter(args.isDone);
+  // Only what's already due counts as missed -- dinner isn't missed at noon.
+  const missed = args.items.filter(
+    (i) => !args.isDone(i) && (args.now === null || i.timeOfDay === null || i.timeOfDay <= args.now)
+  );
+  lines.push(`Plan: ${done.length}/${args.items.length} checked off`);
+  if (missed.length > 0) lines.push(`Missed so far: ${missed.map((i) => i.title).join("; ")}`);
+  return lines.join("\n");
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Older browsers / denied permission: fall back to a hidden textarea.
+    try {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.setAttribute("readonly", "");
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(el);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function ClipboardIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="6" y="4.5" width="12" height="16" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9 4.5V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v.5M9 11h6M9 15h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function FitTodayScreen() {
   const { session } = useAuth();
   const userId = session!.user.id;
@@ -328,6 +414,8 @@ export function FitTodayScreen() {
   const [stepGoal, setStepGoal] = useState<number | null>(null);
   const [lastWeight, setLastWeight] = useState<{ lbs: number; on: string } | null>(null);
   const [starting, setStarting] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "working" | "copied" | "failed">("idle");
+  const [copyFallback, setCopyFallback] = useState<string | null>(null);
   const [now, setNow] = useState(pacificNowHHMM());
 
   useEffect(() => {
@@ -485,6 +573,33 @@ export function FitTodayScreen() {
     return null;
   }
 
+  async function handleCopyForMiyagi() {
+    setCopyState("working");
+    setCopyFallback(null);
+    const text = await buildMiyagiSummary({
+      date,
+      items,
+      isDone,
+      instances,
+      steps,
+      stepGoal,
+      waterOz,
+      waterGoal,
+      sleepHours,
+      weight: lastWeight,
+      now: isToday ? now.slice(0, 5) : null,
+    });
+    const ok = await copyText(text);
+    if (ok) {
+      setCopyState("copied");
+      setTimeout(() => setCopyState("idle"), 2500);
+    } else {
+      // Show the text so it can be copied by hand.
+      setCopyState("failed");
+      setCopyFallback(text);
+    }
+  }
+
   const weighedToday = lastWeight?.on === date;
   const upNextTime = upNext?.timeOfDay ? formatTime12h(upNext.timeOfDay) : null;
   const allDone = items.length > 0 && doneCount === items.length;
@@ -614,6 +729,29 @@ export function FitTodayScreen() {
             />
           </div>
 
+          <button
+            type="button"
+            onClick={handleCopyForMiyagi}
+            disabled={copyState === "working"}
+            className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left ring-1 ring-black/[0.06] active:bg-neutral-50 disabled:opacity-60"
+          >
+            <span className="bg-brand-dark text-gold flex h-10 w-10 flex-none items-center justify-center rounded-xl">
+              <ClipboardIcon className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="font-label block text-[1.05rem] leading-tight font-semibold">
+                {copyState === "copied" ? "Copied. Paste it to Miyagi" : copyState === "working" ? "Building summary…" : "Copy today for Miyagi"}
+              </span>
+              <span className="font-body block text-sm text-neutral-500">Lift, steps, water, sleep, weight and what's left</span>
+            </span>
+          </button>
+          {copyFallback && (
+            <div className="mt-2 rounded-2xl bg-white p-3 ring-1 ring-black/[0.06]">
+              <p className="font-label mb-1 text-sm font-semibold text-neutral-600">Couldn't copy automatically. Press and hold to copy:</p>
+              <textarea readOnly value={copyFallback} rows={8} className="font-body w-full rounded-lg bg-neutral-50 p-2 text-sm" />
+            </div>
+          )}
+
           {items.length === 0 ? (
             <div className="mt-6 rounded-2xl bg-white p-5 text-center ring-1 ring-black/[0.06]">
               <p className="font-label text-lg font-semibold">Nothing scheduled</p>
@@ -649,6 +787,9 @@ export function FitTodayScreen() {
               );
             })
           )}
+          <Link to="/app/fit/schedule" className="font-label text-brand mt-6 block text-center text-base font-semibold">
+            Edit your schedule
+          </Link>
         </>
       )}
     </div>

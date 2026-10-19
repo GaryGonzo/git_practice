@@ -3030,3 +3030,58 @@ export async function getPreviousExerciseResults(
   }
   return result;
 }
+
+// Every routine item, for the schedule editor -- including ones with no
+// days left on them, so they can be found and deleted.
+export async function getAllFitRoutineItems(userId: string): Promise<FitRoutineItem[]> {
+  const { data } = await supabase
+    .from("fit_routine_items")
+    .select("id, days_of_week, time_of_day, title, detail, kind, template_index, remind, order_index")
+    .eq("user_id", userId);
+  return (data ?? [])
+    .map((row) => ({
+      id: row.id as string,
+      daysOfWeek: row.days_of_week as number[],
+      timeOfDay: row.time_of_day ? (row.time_of_day as string).slice(0, 5) : null,
+      title: row.title as string,
+      detail: row.detail as string | null,
+      kind: row.kind as FitRoutineKind,
+      templateIndex: row.template_index as number | null,
+      remind: row.remind as boolean,
+      orderIndex: row.order_index as number,
+    }))
+    .sort((a, b) => (a.timeOfDay ?? "").localeCompare(b.timeOfDay ?? "") || a.orderIndex - b.orderIndex);
+}
+
+export interface FitRoutineItemInput {
+  daysOfWeek: number[];
+  timeOfDay: string | null;
+  title: string;
+  detail: string | null;
+  kind: FitRoutineKind;
+  templateIndex: number | null;
+  remind: boolean;
+}
+
+export async function saveFitRoutineItem(userId: string, input: FitRoutineItemInput, id?: string): Promise<void> {
+  const payload = {
+    user_id: userId,
+    days_of_week: [...new Set(input.daysOfWeek)].sort((a, b) => a - b),
+    time_of_day: input.timeOfDay,
+    title: input.title.trim(),
+    detail: input.detail?.trim() || null,
+    kind: input.kind,
+    template_index: input.kind === "lift" ? input.templateIndex : null,
+    // A reminder needs a time to fire at.
+    remind: input.timeOfDay ? input.remind : false,
+  };
+  const { error } = id
+    ? await supabase.from("fit_routine_items").update(payload).eq("id", id).eq("user_id", userId)
+    : await supabase.from("fit_routine_items").insert({ ...payload, order_index: 50 });
+  if (error) throw error;
+}
+
+export async function deleteFitRoutineItem(userId: string, id: string): Promise<void> {
+  const { error } = await supabase.from("fit_routine_items").delete().eq("id", id).eq("user_id", userId);
+  if (error) throw error;
+}

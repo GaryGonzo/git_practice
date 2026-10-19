@@ -1,53 +1,59 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { MarketingHome } from "./pages/MarketingHome";
-import { StudiosScreen } from "./pages/StudiosScreen";
-import { JoinChallengeScreen } from "./pages/JoinChallengeScreen";
-import { StudioInviteScreen } from "./pages/StudioInviteScreen";
-import { TermsScreen } from "./pages/TermsScreen";
 import { AppShell } from "./components/AppNav";
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireAdmin } from "./components/RequireAdmin";
 import { RequireFitAccess } from "./components/RequireFitAccess";
 import { HomeScreen } from "./pages/app/HomeScreen";
-import { TodayScreen } from "./pages/app/TodayScreen";
-import { ProgressScreen } from "./pages/app/ProgressScreen";
-import { GolfableScoreDetailScreen } from "./pages/app/GolfableScoreDetailScreen";
-import { LibraryScreen } from "./pages/app/LibraryScreen";
-import { RoundScreen } from "./pages/app/RoundScreen";
-import { RoundPlayScreen } from "./pages/app/RoundPlayScreen";
-import { ProfileScreen } from "./pages/app/ProfileScreen";
-import { MyBagScreen } from "./pages/app/MyBagScreen";
-import { LeaderboardScreen } from "./pages/app/LeaderboardScreen";
-import { LeaderboardHubScreen } from "./pages/app/LeaderboardHubScreen";
-import { ToolsScreen } from "./pages/app/ToolsScreen";
-import { MetronomeScreen } from "./pages/app/MetronomeScreen";
-import { FairwayFinderScreen } from "./pages/app/FairwayFinderScreen";
-import { GreenReaderScreen } from "./pages/app/GreenReaderScreen";
-import { SwingTempoScreen } from "./pages/app/SwingTempoScreen";
-import { AlignmentCheckerScreen } from "./pages/app/AlignmentCheckerScreen";
-import { GappingScreen } from "./pages/app/GappingScreen";
-import { ForumScreen } from "./pages/app/ForumScreen";
-import { ForumCategoryScreen } from "./pages/app/ForumCategoryScreen";
-import { ForumNewThreadScreen } from "./pages/app/ForumNewThreadScreen";
-import { ForumThreadScreen } from "./pages/app/ForumThreadScreen";
-import { ChallengesScreen } from "./pages/app/ChallengesScreen";
-import { NewChallengeScreen } from "./pages/app/NewChallengeScreen";
-import { ChallengeDetailScreen } from "./pages/app/ChallengeDetailScreen";
-import { AdminScreen } from "./pages/app/AdminScreen";
-import { FitScreen } from "./pages/app/FitScreen";
-import { FitWorkoutScreen } from "./pages/app/FitWorkoutScreen";
-import { FitHistoryScreen } from "./pages/app/FitHistoryScreen";
-import { FitPlanScreen } from "./pages/app/FitPlanScreen";
-import { FitTodayScreen } from "./pages/app/FitTodayScreen";
-import { FitCheckinScreen } from "./pages/app/FitCheckinScreen";
 import { LauncherScreen } from "./pages/app/LauncherScreen";
 import { useAuth } from "./lib/AuthProvider";
-import { StudioAdminScreen } from "./pages/app/StudioAdminScreen";
-import { SignupScreen } from "./pages/auth/SignupScreen";
 import { LoginScreen } from "./pages/auth/LoginScreen";
-import { ForgotPasswordScreen } from "./pages/auth/ForgotPasswordScreen";
-import { ResetPasswordScreen } from "./pages/auth/ResetPasswordScreen";
 import { NotFoundScreen } from "./pages/NotFoundScreen";
+
+// Screens load on demand so the phone downloads only what it opens. The
+// launcher, Golfable home, marketing page and login stay in the main bundle
+// so the first screen never waits on a second download.
+const StudiosScreen = lazy(() => import("./pages/StudiosScreen").then((m) => ({ default: m.StudiosScreen })));
+const JoinChallengeScreen = lazy(() => import("./pages/JoinChallengeScreen").then((m) => ({ default: m.JoinChallengeScreen })));
+const StudioInviteScreen = lazy(() => import("./pages/StudioInviteScreen").then((m) => ({ default: m.StudioInviteScreen })));
+const TermsScreen = lazy(() => import("./pages/TermsScreen").then((m) => ({ default: m.TermsScreen })));
+const TodayScreen = lazy(() => import("./pages/app/TodayScreen").then((m) => ({ default: m.TodayScreen })));
+const ProgressScreen = lazy(() => import("./pages/app/ProgressScreen").then((m) => ({ default: m.ProgressScreen })));
+const GolfableScoreDetailScreen = lazy(() => import("./pages/app/GolfableScoreDetailScreen").then((m) => ({ default: m.GolfableScoreDetailScreen })));
+const LibraryScreen = lazy(() => import("./pages/app/LibraryScreen").then((m) => ({ default: m.LibraryScreen })));
+const RoundScreen = lazy(() => import("./pages/app/RoundScreen").then((m) => ({ default: m.RoundScreen })));
+const RoundPlayScreen = lazy(() => import("./pages/app/RoundPlayScreen").then((m) => ({ default: m.RoundPlayScreen })));
+const ProfileScreen = lazy(() => import("./pages/app/ProfileScreen").then((m) => ({ default: m.ProfileScreen })));
+const MyBagScreen = lazy(() => import("./pages/app/MyBagScreen").then((m) => ({ default: m.MyBagScreen })));
+const LeaderboardScreen = lazy(() => import("./pages/app/LeaderboardScreen").then((m) => ({ default: m.LeaderboardScreen })));
+const LeaderboardHubScreen = lazy(() => import("./pages/app/LeaderboardHubScreen").then((m) => ({ default: m.LeaderboardHubScreen })));
+const ToolsScreen = lazy(() => import("./pages/app/ToolsScreen").then((m) => ({ default: m.ToolsScreen })));
+const MetronomeScreen = lazy(() => import("./pages/app/MetronomeScreen").then((m) => ({ default: m.MetronomeScreen })));
+const FairwayFinderScreen = lazy(() => import("./pages/app/FairwayFinderScreen").then((m) => ({ default: m.FairwayFinderScreen })));
+const GreenReaderScreen = lazy(() => import("./pages/app/GreenReaderScreen").then((m) => ({ default: m.GreenReaderScreen })));
+const SwingTempoScreen = lazy(() => import("./pages/app/SwingTempoScreen").then((m) => ({ default: m.SwingTempoScreen })));
+const AlignmentCheckerScreen = lazy(() => import("./pages/app/AlignmentCheckerScreen").then((m) => ({ default: m.AlignmentCheckerScreen })));
+const GappingScreen = lazy(() => import("./pages/app/GappingScreen").then((m) => ({ default: m.GappingScreen })));
+const ForumScreen = lazy(() => import("./pages/app/ForumScreen").then((m) => ({ default: m.ForumScreen })));
+const ForumCategoryScreen = lazy(() => import("./pages/app/ForumCategoryScreen").then((m) => ({ default: m.ForumCategoryScreen })));
+const ForumNewThreadScreen = lazy(() => import("./pages/app/ForumNewThreadScreen").then((m) => ({ default: m.ForumNewThreadScreen })));
+const ForumThreadScreen = lazy(() => import("./pages/app/ForumThreadScreen").then((m) => ({ default: m.ForumThreadScreen })));
+const ChallengesScreen = lazy(() => import("./pages/app/ChallengesScreen").then((m) => ({ default: m.ChallengesScreen })));
+const NewChallengeScreen = lazy(() => import("./pages/app/NewChallengeScreen").then((m) => ({ default: m.NewChallengeScreen })));
+const ChallengeDetailScreen = lazy(() => import("./pages/app/ChallengeDetailScreen").then((m) => ({ default: m.ChallengeDetailScreen })));
+const AdminScreen = lazy(() => import("./pages/app/AdminScreen").then((m) => ({ default: m.AdminScreen })));
+const FitScreen = lazy(() => import("./pages/app/FitScreen").then((m) => ({ default: m.FitScreen })));
+const FitWorkoutScreen = lazy(() => import("./pages/app/FitWorkoutScreen").then((m) => ({ default: m.FitWorkoutScreen })));
+const FitHistoryScreen = lazy(() => import("./pages/app/FitHistoryScreen").then((m) => ({ default: m.FitHistoryScreen })));
+const FitPlanScreen = lazy(() => import("./pages/app/FitPlanScreen").then((m) => ({ default: m.FitPlanScreen })));
+const FitTodayScreen = lazy(() => import("./pages/app/FitTodayScreen").then((m) => ({ default: m.FitTodayScreen })));
+const FitCheckinScreen = lazy(() => import("./pages/app/FitCheckinScreen").then((m) => ({ default: m.FitCheckinScreen })));
+const FitScheduleScreen = lazy(() => import("./pages/app/FitScheduleScreen").then((m) => ({ default: m.FitScheduleScreen })));
+const StudioAdminScreen = lazy(() => import("./pages/app/StudioAdminScreen").then((m) => ({ default: m.StudioAdminScreen })));
+const SignupScreen = lazy(() => import("./pages/auth/SignupScreen").then((m) => ({ default: m.SignupScreen })));
+const ForgotPasswordScreen = lazy(() => import("./pages/auth/ForgotPasswordScreen").then((m) => ({ default: m.ForgotPasswordScreen })));
+const ResetPasswordScreen = lazy(() => import("./pages/auth/ResetPasswordScreen").then((m) => ({ default: m.ResetPasswordScreen })));
 
 // Anyone with Golfable Fit opens to a two-door launcher; everyone else
 // opens straight into Golfable as before.
@@ -59,6 +65,7 @@ function AppIndex() {
 
 function App() {
   return (
+    <Suspense fallback={<div className="font-body p-6 text-center text-neutral-400">Loading…</div>}>
     <Routes>
       <Route path="/" element={<MarketingHome />} />
       <Route path="/studios" element={<StudiosScreen />} />
@@ -148,6 +155,14 @@ function App() {
           }
         />
         <Route
+          path="fit/schedule"
+          element={
+            <RequireFitAccess>
+              <FitScheduleScreen />
+            </RequireFitAccess>
+          }
+        />
+        <Route
           path="fit/checkin"
           element={
             <RequireFitAccess>
@@ -166,6 +181,7 @@ function App() {
       </Route>
       <Route path="*" element={<NotFoundScreen />} />
     </Routes>
+    </Suspense>
   );
 }
 

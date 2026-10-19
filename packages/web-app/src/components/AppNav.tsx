@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthProvider";
 import { updateProfile } from "../lib/golfableApi";
@@ -194,7 +194,10 @@ export function AppShell() {
           <WelcomeBackModal firstName={profile.first_name} onDismiss={() => setShowWelcomeBack(false)} />
         )
       )}
-      <Outlet />
+      {/* Inside the shell so the tab bar stays put while a screen loads. */}
+      <Suspense fallback={<div className="font-body p-6 text-center text-neutral-400">Loading…</div>}>
+        <Outlet />
+      </Suspense>
       {!onLauncher && (
         <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
           <div className="mx-auto flex max-w-md">

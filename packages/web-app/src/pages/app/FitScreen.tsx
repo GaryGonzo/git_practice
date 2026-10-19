@@ -25,7 +25,7 @@ import {
   type FitPlannedBlock,
 } from "../../lib/golfableApi";
 import { HandicapTrendChart } from "../../components/HandicapTrendChart";
-import { PageHeader } from "../../components/ui";
+import { PageHeader, ChevronRight } from "../../components/ui";
 
 function ChevronDownIcon({ className, open }: { className?: string; open: boolean }) {
   return (
@@ -842,6 +842,20 @@ export function FitScreen() {
       />
 
       {activeInstance && <ResumeWorkoutBanner instance={activeInstance} templateName={activeTemplateName} />}
+
+      <Link
+        to="/app/fit/schedule"
+        className="mt-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 ring-1 ring-black/[0.06] active:bg-neutral-50"
+      >
+        <span className="bg-brand/10 text-brand flex h-10 w-10 flex-none items-center justify-center rounded-xl">
+          <ClipboardIcon className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="font-label block text-[1.05rem] leading-tight font-semibold">Your schedule</span>
+          <span className="font-body block text-sm text-neutral-500">Change times, days and reminders</span>
+        </span>
+        <ChevronRight className="h-4 w-4 flex-none text-neutral-300" />
+      </Link>
 
       <div className="mt-4">
         {block ? (
