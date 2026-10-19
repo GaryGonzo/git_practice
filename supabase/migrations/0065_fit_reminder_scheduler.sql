@@ -8,6 +8,10 @@
 --
 -- The bearer secret lives in Vault as 'fit_cron_secret' (created out of
 -- band, never committed) and matches FIT_CRON_SECRET in Vercel.
+--
+-- The URL must be www: golfable.co 308-redirects to www.golfable.co, and a
+-- redirect to another host drops the Authorization header (pg_net) or is
+-- silently treated as success without following it (curl without -L).
 
 -- Every call the endpoint receives, with its result or error. Service role
 -- only (no policies); the endpoint prunes rows older than three days.
@@ -30,7 +34,7 @@ select cron.schedule(
   '*/5 * * * *',
   $job$
   select net.http_post(
-    url := 'https://golfable.co/api/send-fit-notifications',
+    url := 'https://www.golfable.co/api/send-fit-notifications',
     headers := jsonb_build_object(
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'fit_cron_secret'),
       'Content-Type', 'application/json'

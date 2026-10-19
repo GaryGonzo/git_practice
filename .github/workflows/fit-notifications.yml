@@ -5,6 +5,11 @@ name: Golfable Fit notifications
 # minutes instead -- outside Vercel's cron limits -- and just pings the
 # endpoint, which only actually sends to a user once their own chosen time
 # falls inside the current window (see api/send-fit-notifications.ts).
+#
+# Backup only: GitHub throttles this to roughly every two hours. The main
+# caller is a Supabase pg_cron job every 5 minutes (migration 0065).
+# Must hit www -- golfable.co 308-redirects there, and curl without -L
+# treats the redirect as success without ever reaching the endpoint.
 on:
   schedule:
     - cron: "*/15 * * * *"
@@ -16,5 +21,5 @@ jobs:
     steps:
       - name: Call send-fit-notifications
         run: |
-          curl -sS -f -X POST "https://golfable.co/api/send-fit-notifications" \
+          curl -sS -f -X POST "https://www.golfable.co/api/send-fit-notifications" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
