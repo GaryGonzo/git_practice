@@ -46,15 +46,16 @@ function formatTime12h(time: string): string {
 type Supabase = SupabaseClient<any, "public", any>;
 
 // Routine reminders: every fit_routine_items row flagged remind=true pushes
-// once a day at its own time (lift, shutdown, dog walk, wind-down). GitHub's
-// scheduled workflow often runs late, so an item counts as due from 20
-// minutes before now through 5 minutes ahead; fit_routine_reminder_runs
-// keeps it to one push per item per day however many runs overlap.
+// once a day at its own time (lift, shutdown, dog walk, wind-down). A
+// Supabase pg_cron job calls this every 5 minutes, so an item counts as due
+// from 2 minutes ahead of its time until 15 minutes after (covering a late
+// or skipped run); fit_routine_reminder_runs keeps it to one push per item
+// per day however many runs overlap.
 async function sendRoutineReminders(
   supabase: Supabase,
   today: string,
   nowMinutes: number
-): Promise<{ due: number; sent: number; staleIds: string[] }> {
+): Promise<{ due: number; sent: number; staleIds: string[]; errors: string[] }> {
   const dow = new Date(`${today}T00:00:00Z`).getUTCDay();
   const { data: itemRows } = await supabase
     .from("fit_routine_items")
@@ -65,9 +66,9 @@ async function sendRoutineReminders(
 
   const dueItems = (itemRows ?? []).filter((row) => {
     const itemMinutes = minutesFromTimeString(row.time_of_day as string);
-    return itemMinutes >= nowMinutes - 20 && itemMinutes <= nowMinutes + 5;
+    return itemMinutes >= nowMinutes - 15 && itemMinutes <= nowMinutes + 2;
   });
-  if (dueItems.length === 0) return { due: 0, sent: 0, staleIds: [] };
+  if (dueItems.length === 0) return { due: 0, sent: 0, staleIds: [], errors: [] };
 
   const { data: sentRows } = await supabase
     .from("fit_routine_reminder_runs")
@@ -79,7 +80,7 @@ async function sendRoutineReminders(
     );
   const sentIds = new Set((sentRows ?? []).map((r) => r.item_id as string));
   const pending = dueItems.filter((i) => !sentIds.has(i.id as string));
-  if (pending.length === 0) return { due: dueItems.length, sent: 0, staleIds: [] };
+  if (pending.length === 0) return { due: dueItems.length, sent: 0, staleIds: [], errors: [] };
 
   const userIds = [...new Set(pending.map((i) => i.user_id as string))];
   const { data: subscriptions } = await supabase
@@ -88,6 +89,7 @@ async function sendRoutineReminders(
     .in("user_id", userIds);
 
   const staleIds: string[] = [];
+  const errors: string[] = [];
   let sent = 0;
   await Promise.all(
     pending.flatMap((item) =>
@@ -108,6 +110,7 @@ async function sendRoutineReminders(
           } catch (err) {
             const statusCode = (err as { statusCode?: number }).statusCode;
             if (statusCode === 404 || statusCode === 410) staleIds.push(sub.id as string);
+            errors.push(`${item.title}: ${statusCode ?? ""} ${err instanceof Error ? err.message : String(err)}`.slice(0, 300));
           }
         })
     )
@@ -119,19 +122,44 @@ async function sendRoutineReminders(
       pending.map((i) => ({ item_id: i.id as string, run_date: today })),
       { onConflict: "item_id,run_date", ignoreDuplicates: true }
     );
-  if (error) console.error("send-fit-notifications: failed to record routine runs", error);
+  if (error) errors.push(`record runs: ${error.message}`);
 
-  return { due: dueItems.length, sent, staleIds };
+  return { due: dueItems.length, sent, staleIds, errors };
 }
 
+// Called every 5 minutes by a Supabase pg_cron job (Bearer FIT_CRON_SECRET)
+// and, as a backup, by the GitHub Actions workflow (Bearer CRON_SECRET).
+// Every call is written to fit_cron_log -- result or error -- so whether a
+// reminder fired is always answerable from the database.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+  const auth = req.headers.authorization;
+  const accepted = [process.env.CRON_SECRET, process.env.FIT_CRON_SECRET].filter(Boolean).map((s) => `Bearer ${s}`);
+  if (!auth || !accepted.includes(auth)) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }
 
-  const { date: today, minutesSinceMidnight: nowMinutes } = pacificNow();
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const source = process.env.FIT_CRON_SECRET && auth === `Bearer ${process.env.FIT_CRON_SECRET}` ? "supabase" : "github";
+  let result: Record<string, unknown>;
+  let failed = false;
+  try {
+    result = await run(supabase);
+  } catch (err) {
+    failed = true;
+    result = { error: err instanceof Error ? `${err.message}\n${err.stack ?? ""}`.slice(0, 2000) : String(err) };
+  }
+
+  const { error: logError } = await supabase.from("fit_cron_log").insert({ source, ok: !failed, result });
+  if (logError) console.error("send-fit-notifications: failed to write fit_cron_log", logError);
+  // Keep three days of history.
+  await supabase.from("fit_cron_log").delete().lt("ran_at", new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString());
+
+  res.status(failed ? 500 : 200).json(result);
+}
+
+async function run(supabase: Supabase): Promise<Record<string, unknown>> {
+  const { date: today, minutesSinceMidnight: nowMinutes } = pacificNow();
 
   webpush.setVapidDetails(
     process.env.VAPID_SUBJECT || "mailto:hello@golfable.co",
@@ -156,8 +184,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .map((row) => row.user_id as string);
 
   if (dueUserIds.length === 0) {
-    res.status(200).json({ skipped: "no users due", today, nowMinutes, routine });
-    return;
+    return { daily: "no users due", today, nowMinutes, routine };
   }
 
   const { data: alreadySent } = await supabase
@@ -169,8 +196,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const pendingUserIds = dueUserIds.filter((id) => !alreadySentIds.has(id));
   if (pendingUserIds.length === 0) {
-    res.status(200).json({ skipped: "already sent today for all due users", today, routine });
-    return;
+    return { daily: "already sent today", today, nowMinutes, routine };
   }
 
   const { data: plannedRows } = await supabase
@@ -219,11 +245,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { error: insertError } = await supabase.from("fit_notification_runs").insert(runs);
   if (insertError) console.error("send-fit-notifications: failed to record runs", insertError);
 
-  res.status(200).json({
-    dueUsers: pendingUserIds.length,
-    sent: (subscriptions ?? []).length,
-    stale_removed: staleSubscriptionIds.length,
+  return {
+    daily: { dueUsers: pendingUserIds.length, sent: (subscriptions ?? []).length, staleRemoved: staleSubscriptionIds.length },
     today,
+    nowMinutes,
     routine,
-  });
+  };
 }
