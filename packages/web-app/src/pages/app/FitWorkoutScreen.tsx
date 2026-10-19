@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthProvider";
 import {
@@ -8,29 +8,19 @@ import {
   abandonWorkout,
   getDrillForDate,
   getMyScoreForDate,
+  getPreviousExerciseResults,
   todayISO,
   type FitWorkoutSession,
   type FitWorkoutSectionView,
   type FitWorkoutExercise,
+  type FitPreviousResults,
 } from "../../lib/golfableApi";
-
-function BackIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+import { ChevronLeft, Meter } from "../../components/ui";
 
 function ChevronDownIcon({ className, open }: { className?: string; open: boolean }) {
   return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      className={`${className} transition-transform ${open ? "rotate-180" : ""}`}
-      aria-hidden="true"
-    >
-      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 20 20" fill="none" className={`${className} transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true">
+      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -38,7 +28,7 @@ function ChevronDownIcon({ className, open }: { className?: string; open: boolea
 function CheckIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path d="M4 10.5l3.5 3.5L16 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 10.5l3.5 3.5L16 5.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -46,145 +36,169 @@ function CheckIcon({ className }: { className?: string }) {
 function LeafIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
+      <path d="M5 19c8 0 14-6 14-14-8 0-14 6-14 14Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
       <path d="M5 19c3-6 6-9 11-11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
 
-// Offered once a workout is finished -- a low-key nudge toward the day's
-// practice, not a hard gate, so declining just moves on to Fit as usual.
-function CooldownPrompt({ onConfirm, onDismiss }: { onConfirm: () => void; onDismiss: () => void }) {
+function Modal({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 px-6">
-      <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl">
-        <div className="bg-brand/10 text-brand mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-          <LeafIcon className="h-8 w-8" />
-        </div>
-        <h2 className="font-display mt-4 text-2xl tracking-wide">Nice work!</h2>
-        <p className="font-body mt-2 text-sm text-neutral-600">Complete today's Golfable as a cooldown?</p>
-        <button
-          type="button"
-          onClick={onConfirm}
-          className="font-label bg-brand mt-6 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white"
-        >
-          Yes
-        </button>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="font-label mt-2 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-neutral-500"
-        >
-          No Thanks
-        </button>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-900/60 px-4 pb-6 sm:items-center">
+      <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-xl">{children}</div>
     </div>
   );
 }
 
-// Section flavor by keyword in its title -- deliberately loose matching so
-// section titles a future block invents still land somewhere sensible
-// (default to the "circuit" color) instead of falling back to plain gray.
-type SectionFlavor = "recover" | "warmup" | "circuit" | "finisher";
+// Offered once a workout is finished -- a nudge toward the day's practice,
+// not a gate.
+function CooldownPrompt({ onConfirm, onDismiss }: { onConfirm: () => void; onDismiss: () => void }) {
+  return (
+    <Modal>
+      <div className="bg-brand/10 text-brand mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+        <LeafIcon className="h-8 w-8" />
+      </div>
+      <h2 className="font-display mt-4 text-3xl tracking-wide">Workout logged</h2>
+      <p className="font-body mt-1 text-sm text-neutral-600">Play today's Golfable as your cooldown?</p>
+      <button type="button" onClick={onConfirm} className="font-label bg-brand mt-6 w-full rounded-full px-4 py-3.5 text-base font-bold text-white">
+        Play today's Golfable
+      </button>
+      <button type="button" onClick={onDismiss} className="font-label mt-2 w-full rounded-full px-4 py-3 text-base font-semibold text-neutral-500">
+        Not today
+      </button>
+    </Modal>
+  );
+}
+
+function DiscardPrompt({ busy, onConfirm, onCancel }: { busy: boolean; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <Modal>
+      <h2 className="font-display text-3xl tracking-wide">Discard this workout?</h2>
+      <p className="font-body mt-1 text-sm text-neutral-600">Everything you've logged in this session is deleted. This can't be undone.</p>
+      <button
+        type="button"
+        onClick={onConfirm}
+        disabled={busy}
+        className="font-label mt-6 w-full rounded-full bg-red-600 px-4 py-3.5 text-base font-bold text-white disabled:opacity-60"
+      >
+        {busy ? "Discarding…" : "Discard workout"}
+      </button>
+      <button type="button" onClick={onCancel} disabled={busy} className="font-label mt-2 w-full rounded-full px-4 py-3 text-base font-semibold text-neutral-600">
+        Keep going
+      </button>
+    </Modal>
+  );
+}
+
+// Section flavor by keyword in its title -- loose on purpose so titles a
+// future block invents still land somewhere sensible.
+type SectionFlavor = "recover" | "warmup" | "circuit" | "main";
 
 function sectionFlavor(title: string): SectionFlavor {
   const t = title.toLowerCase();
-  if (t.includes("warm")) return "warmup";
-  if (t.includes("finish")) return "finisher";
+  if (t.includes("main")) return "main";
+  if (t.includes("warm") || t.includes("activation")) return "warmup";
   if (t.includes("roll") || t.includes("recover") || t.includes("stretch")) return "recover";
   return "circuit";
 }
 
-const FLAVOR_BORDER: Record<SectionFlavor, string> = {
-  recover: "border-fit-recover",
-  warmup: "border-fit-warmup",
-  circuit: "border-fit-circuit",
-  finisher: "border-fit-finisher",
-};
-
-const FLAVOR_BG: Record<SectionFlavor, string> = {
+const FLAVOR_BAR: Record<SectionFlavor, string> = {
   recover: "bg-fit-recover",
   warmup: "bg-fit-warmup",
   circuit: "bg-fit-circuit",
-  finisher: "bg-fit-finisher",
+  main: "bg-brand",
 };
 
 const FLAVOR_TEXT: Record<SectionFlavor, string> = {
   recover: "text-fit-recover",
   warmup: "text-fit-warmup",
   circuit: "text-fit-circuit",
-  finisher: "text-fit-finisher",
+  main: "text-brand",
 };
 
-const FLAVOR_SOFT_BG: Record<SectionFlavor, string> = {
-  recover: "bg-fit-recover/10",
-  warmup: "bg-fit-warmup/10",
-  circuit: "bg-fit-circuit/10",
-  finisher: "bg-fit-finisher/10",
-};
+// Rest between sets, by section. Warm-ups and stretches flow straight on.
+const REST_SECONDS: Partial<Record<SectionFlavor, number>> = { main: 120, circuit: 60 };
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+function formatClock(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-// A real +/- stepper with an editable number box in the middle, not just a
-// static display -- tapping the box lets you type a number directly, same
-// as nudging it with the buttons.
-function CountStepper({
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function formatDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+// A big, thumb-sized stepper: − / value / +. The value is a real input so
+// it can also be typed.
+function BigStepper({
   value,
+  placeholder,
   onChange,
-  color,
-  min = 0,
-  max = 999,
-  step = 1,
+  step,
+  unit,
+  label,
 }: {
-  value: number;
+  value: number | null;
+  placeholder: string;
   onChange: (value: number) => void;
-  color: string;
-  min?: number;
-  max?: number;
-  step?: number;
+  step: number;
+  unit: string;
+  label: string;
 }) {
+  const current = value ?? 0;
+  // While typing, keep the raw text so the box can be cleared and retyped.
+  const [draft, setDraft] = useState<string | null>(null);
   return (
-    <div className="flex items-center gap-1.5">
-      <button
-        type="button"
-        onClick={() => onChange(Math.max(min, value - step))}
-        disabled={value <= min}
-        className={`font-label flex h-8 w-8 flex-none items-center justify-center rounded-full border text-base font-semibold disabled:opacity-30 ${color}`}
-      >
-        −
-      </button>
-      <input
-        type="number"
-        inputMode="numeric"
-        value={value}
-        onChange={(e) => {
-          const n = Number(e.target.value);
-          if (Number.isFinite(n)) onChange(Math.max(min, Math.min(max, Math.round(n))));
-        }}
-        className="font-display w-12 rounded-md border border-neutral-300 py-1 text-center text-lg"
-      />
-      <button
-        type="button"
-        onClick={() => onChange(Math.min(max, value + step))}
-        disabled={value >= max}
-        className={`font-label flex h-8 w-8 flex-none items-center justify-center rounded-full border text-base font-semibold disabled:opacity-30 ${color}`}
-      >
-        +
-      </button>
+    <div className="min-w-0 flex-1">
+      <div className="flex items-stretch overflow-hidden rounded-xl bg-neutral-100">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(0, current - step))}
+          disabled={current <= 0}
+          aria-label={`Less ${label}`}
+          className="font-label w-11 flex-none text-2xl font-bold text-neutral-600 active:bg-neutral-200 disabled:opacity-30"
+        >
+          −
+        </button>
+        <input
+          type="number"
+          inputMode="decimal"
+          value={draft ?? (value ?? "")}
+          placeholder={placeholder}
+          aria-label={label}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            const n = Number(e.target.value);
+            if (e.target.value !== "" && Number.isFinite(n)) onChange(Math.max(0, n));
+          }}
+          onBlur={() => setDraft(null)}
+          className="font-display w-full min-w-0 bg-transparent py-2 text-center text-[1.7rem] leading-none outline-none placeholder:text-neutral-300"
+        />
+        <button
+          type="button"
+          onClick={() => onChange(current + step)}
+          aria-label={`More ${label}`}
+          className="font-label w-11 flex-none text-2xl font-bold text-neutral-600 active:bg-neutral-200"
+        >
+          +
+        </button>
+      </div>
+      <p className="font-label mt-1 text-center text-xs font-semibold text-neutral-400">{unit}</p>
     </div>
   );
 }
 
-function ExerciseRow({
+function SetRow({
   exercise,
   flavor,
+  previous,
+  showName,
+  multiSet,
   readOnly,
   onToggle,
   onChangeCount,
@@ -192,73 +206,113 @@ function ExerciseRow({
 }: {
   exercise: FitWorkoutExercise;
   flavor: SectionFlavor;
+  previous: { weightLbs: number | null; count: number | null } | undefined;
+  showName: boolean;
+  multiSet: boolean;
   readOnly: boolean;
   onToggle: () => void;
   onChangeCount: (value: number) => void;
   onChangeWeight: (value: number) => void;
 }) {
-  const displayCount = exercise.actualCount ?? exercise.targetCount ?? 0;
-  const displayWeight = exercise.actualWeightLbs ?? exercise.targetWeightLbs ?? 0;
-  const stepperColorClass = `${FLAVOR_TEXT[flavor]} border-current`;
+  const [showCue, setShowCue] = useState(false);
+  const hasCount = exercise.targetCount !== null;
+  const prevText = previous
+    ? [previous.weightLbs ? `${previous.weightLbs} lbs` : null, previous.count !== null ? `${previous.count}` : null].filter(Boolean).join(" × ")
+    : null;
+  const target = [exercise.targetWeightLbs ? `${exercise.targetWeightLbs} lbs` : null, hasCount ? `${exercise.targetCount} ${exercise.unit ?? ""}`.trim() : null]
+    .filter(Boolean)
+    .join(" × ");
 
   return (
-    <div
-      className={`rounded-lg border p-3 ${exercise.completed ? `${FLAVOR_BORDER[flavor]} ${FLAVOR_SOFT_BG[flavor]}` : "border-neutral-200 bg-white"}`}
-    >
-      <div className="flex items-center gap-3">
-        {!readOnly && (
+    <div className={`px-4 py-3 ${exercise.completed ? "bg-neutral-50" : ""}`}>
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          {showName && (
+            <button type="button" onClick={() => setShowCue((s) => !s)} className="block text-left">
+              <span className={`font-label block text-[1.1rem] leading-tight font-semibold ${exercise.completed ? "text-neutral-400" : "text-neutral-900"}`}>
+                {exercise.name}
+              </span>
+            </button>
+          )}
+          {(target || prevText || (!showName && multiSet)) && (
+            <p className="font-label text-sm font-semibold text-neutral-500">
+              {!showName && multiSet && <span className={FLAVOR_TEXT[flavor]}>Set {exercise.setNumber}{target || prevText ? " · " : ""}</span>}
+              {target && `Target ${target}`}
+              {prevText && <span className="text-neutral-400">{target ? " · " : ""}Last {prevText}</span>}
+            </p>
+          )}
+          {!showName && !multiSet && !target && !prevText && (
+            <p className="font-label text-base font-semibold text-neutral-600">{exercise.completed ? "Done" : "Tap the circle when you're done"}</p>
+          )}
+          {showName && showCue && exercise.cue && <p className="font-body mt-1 text-sm leading-relaxed text-neutral-600">{exercise.cue}</p>}
+        </div>
+        {readOnly ? (
+          exercise.completed && (
+            <span className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-white ${FLAVOR_BAR[flavor]}`}>
+              <CheckIcon className="h-5 w-5" />
+            </span>
+          )
+        ) : (
           <button
             type="button"
             onClick={onToggle}
-            className={`flex h-7 w-7 flex-none items-center justify-center rounded-full border-2 ${
-              exercise.completed ? `${FLAVOR_BG[flavor]} border-transparent text-white` : "border-neutral-300 text-transparent"
+            aria-label={exercise.completed ? `Mark ${exercise.name} set ${exercise.setNumber} not done` : `Mark ${exercise.name} set ${exercise.setNumber} done`}
+            className={`flex h-11 w-11 flex-none items-center justify-center rounded-full border-2 transition-colors ${
+              exercise.completed ? `${FLAVOR_BAR[flavor]} border-transparent text-white` : "border-neutral-300 text-neutral-300"
             }`}
           >
-            <CheckIcon className="h-4 w-4" />
+            <CheckIcon className="h-5 w-5" />
           </button>
         )}
-        {readOnly && exercise.completed && (
-          <div className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-white ${FLAVOR_BG[flavor]}`}>
-            <CheckIcon className="h-4 w-4" />
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="font-body text-sm font-semibold text-neutral-800">{exercise.name}</p>
-          {exercise.cue && <p className="font-body mt-0.5 text-xs text-neutral-500">{exercise.cue}</p>}
-        </div>
-        {(exercise.targetCount !== null || exercise.tracksWeight) && (
-          <div className="flex-none space-y-1.5 text-right">
-            {exercise.tracksWeight &&
-              (readOnly ? (
-                <p className="font-display text-lg">
-                  {displayWeight || "—"} <span className="font-label text-xs font-normal text-neutral-500">lbs</span>
-                </p>
-              ) : (
-                <div>
-                  <CountStepper value={displayWeight} onChange={onChangeWeight} color={stepperColorClass} step={5} />
-                  <p className="font-label mt-0.5 text-center text-xs text-neutral-500">lbs</p>
-                </div>
-              ))}
-            {exercise.targetCount !== null &&
-              (readOnly ? (
-                <p className="font-display text-lg">
-                  {displayCount} <span className="font-label text-xs font-normal text-neutral-500">{exercise.unit}</span>
-                </p>
-              ) : (
-                <div>
-                  <CountStepper value={displayCount} onChange={onChangeCount} color={stepperColorClass} />
-                  {exercise.unit && <p className="font-label mt-0.5 text-center text-xs text-neutral-500">{exercise.unit}</p>}
-                </div>
-              ))}
-          </div>
-        )}
       </div>
+
+      {(exercise.tracksWeight || hasCount) &&
+        (readOnly ? (
+          <p className="font-display mt-1 text-2xl leading-none text-neutral-800">
+            {exercise.tracksWeight && <>{exercise.actualWeightLbs ?? "—"} <span className="font-label text-sm text-neutral-400">lbs</span></>}
+            {exercise.tracksWeight && hasCount && <span className="text-neutral-300"> × </span>}
+            {hasCount && <>{exercise.actualCount ?? "—"} <span className="font-label text-sm text-neutral-400">{exercise.unit}</span></>}
+          </p>
+        ) : (
+          !exercise.completed && (
+            <div className="mt-2.5 flex gap-2.5">
+              {exercise.tracksWeight && (
+                <BigStepper
+                  label="weight"
+                  value={exercise.actualWeightLbs}
+                  placeholder={previous?.weightLbs ? String(previous.weightLbs) : "lbs"}
+                  onChange={onChangeWeight}
+                  step={5}
+                  unit="lbs"
+                />
+              )}
+              {hasCount && (
+                <BigStepper
+                  label={exercise.unit ?? "reps"}
+                  value={exercise.actualCount ?? exercise.targetCount}
+                  placeholder={String(exercise.targetCount)}
+                  onChange={onChangeCount}
+                  step={exercise.unit?.startsWith("sec") ? 5 : 1}
+                  unit={exercise.unit ?? "reps"}
+                />
+              )}
+            </div>
+          )
+        ))}
+      {!readOnly && exercise.completed && (exercise.tracksWeight || hasCount) && (
+        <p className="font-label mt-0.5 text-sm font-semibold text-neutral-400">
+          Logged {exercise.tracksWeight ? `${exercise.actualWeightLbs ?? 0} lbs` : ""}
+          {exercise.tracksWeight && hasCount ? " × " : ""}
+          {hasCount ? `${exercise.actualCount ?? exercise.targetCount} ${exercise.unit ?? ""}` : ""}
+        </p>
+      )}
     </div>
   );
 }
 
 function SectionBlock({
   section,
+  previous,
   readOnly,
   open,
   onToggleOpen,
@@ -267,53 +321,68 @@ function SectionBlock({
   onChangeWeight,
 }: {
   section: FitWorkoutSectionView;
+  previous: FitPreviousResults;
   readOnly: boolean;
   open: boolean;
   onToggleOpen: () => void;
-  onToggle: (exercise: FitWorkoutExercise) => void;
+  onToggle: (exercise: FitWorkoutExercise, flavor: SectionFlavor) => void;
   onChangeCount: (exercise: FitWorkoutExercise, value: number) => void;
   onChangeWeight: (exercise: FitWorkoutExercise, value: number) => void;
 }) {
   const flavor = sectionFlavor(section.title);
-  const totalExercises = section.sets.reduce((sum, s) => sum + s.exercises.length, 0);
-  const completedExercises = section.sets.reduce((sum, s) => sum + s.exercises.filter((e) => e.completed).length, 0);
-  const allDone = totalExercises > 0 && completedExercises === totalExercises;
+  const all = section.sets.flatMap((s) => s.exercises);
+  const done = all.filter((e) => e.completed).length;
+  const allDone = all.length > 0 && done === all.length;
+  // The main lift is one exercise over several sets: name it once, then
+  // list the sets. Everything else is a circuit: each round lists its moves.
+  const singleExercise = new Set(all.map((e) => e.exerciseId)).size === 1;
+  const firstExercise = all[0];
 
   return (
-    <div className={`rounded-xl border-l-4 bg-white shadow-sm ${FLAVOR_BORDER[flavor]}`}>
-      <button type="button" onClick={onToggleOpen} className="flex w-full items-center justify-between gap-2 p-3.5 text-left">
-        <div className="flex items-center gap-2">
-          <p className="font-label text-base font-semibold">{section.title}</p>
-          {allDone && !open && (
-            <span className={`flex h-5 w-5 flex-none items-center justify-center rounded-full text-white ${FLAVOR_BG[flavor]}`}>
-              <CheckIcon className="h-3 w-3" />
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`font-label rounded-full px-2 py-0.5 text-xs font-semibold ${FLAVOR_SOFT_BG[flavor]} ${FLAVOR_TEXT[flavor]}`}>
-            {completedExercises}/{totalExercises}
+    <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
+      <button type="button" onClick={onToggleOpen} aria-expanded={open} className="flex w-full items-center gap-3 px-4 py-3.5 text-left">
+        <span className={`h-9 w-1.5 flex-none rounded-full ${allDone ? "bg-neutral-200" : FLAVOR_BAR[flavor]}`} aria-hidden="true" />
+        <span className="min-w-0 flex-1">
+          <span className={`font-label block text-xl leading-tight font-semibold ${allDone ? "text-neutral-400" : "text-neutral-900"}`}>
+            {section.title}
+            {singleExercise && firstExercise && flavor === "main" && <span className="text-neutral-500">: {firstExercise.name}</span>}
           </span>
-          <ChevronDownIcon open={open} className="h-4 w-4 flex-none text-neutral-400" />
-        </div>
+          <span className="font-label text-sm font-semibold text-neutral-400">
+            {section.setCount && section.setCount > 1 ? `${section.setCount} ${singleExercise ? "sets" : "rounds"} · ` : ""}
+            {done}/{all.length} done
+          </span>
+        </span>
+        {allDone ? (
+          <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-white ${FLAVOR_BAR[flavor]}`}>
+            <CheckIcon className="h-4 w-4" />
+          </span>
+        ) : (
+          <ChevronDownIcon open={open} className="h-5 w-5 flex-none text-neutral-400" />
+        )}
       </button>
       {open && (
-        <div className="space-y-4 px-3.5 pb-3.5">
+        <div className="border-t border-neutral-100">
+          {singleExercise && firstExercise?.cue && (
+            <p className="font-body border-b border-neutral-100 bg-neutral-50 px-4 py-2.5 text-sm leading-relaxed text-neutral-600">{firstExercise.cue}</p>
+          )}
           {section.sets.map((set) => (
             <div key={set.setNumber}>
-              {section.setCount !== null && section.setCount > 1 && (
-                <p className={`font-label mb-1.5 text-xs font-semibold  ${FLAVOR_TEXT[flavor]}`}>
-                  Set {set.setNumber} of {section.setCount}
+              {!singleExercise && section.setCount !== null && section.setCount > 1 && (
+                <p className={`font-label border-b border-neutral-100 bg-neutral-50 px-4 py-1.5 text-sm font-semibold ${FLAVOR_TEXT[flavor]}`}>
+                  Round {set.setNumber} of {section.setCount}
                 </p>
               )}
-              <div className="space-y-1.5">
+              <div className="divide-y divide-neutral-100">
                 {set.exercises.map((exercise) => (
-                  <ExerciseRow
+                  <SetRow
                     key={exercise.logId}
                     exercise={exercise}
                     flavor={flavor}
+                    previous={previous.bySet.get(`${exercise.exerciseId}:${exercise.setNumber}`)}
+                    showName={!singleExercise}
+                    multiSet={section.sets.length > 1}
                     readOnly={readOnly}
-                    onToggle={() => onToggle(exercise)}
+                    onToggle={() => onToggle(exercise, flavor)}
                     onChangeCount={(value) => onChangeCount(exercise, value)}
                     onChangeWeight={(value) => onChangeWeight(exercise, value)}
                   />
@@ -333,21 +402,84 @@ export function FitWorkoutScreen() {
   const { session: authSession } = useAuth();
   const userId = authSession!.user.id;
   const [session, setSession] = useState<FitWorkoutSession | null | undefined>(undefined);
+  const [previous, setPrevious] = useState<FitPreviousResults>({ bySet: new Map(), lastDone: new Map() });
   const [finishing, setFinishing] = useState(false);
-  const [canceling, setCanceling] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [cooldownHref, setCooldownHref] = useState<string | null>(null);
-  // Only the first circuit starts open -- seeded once when the workout
-  // loads, not re-derived on every local edit, so checking off an exercise
-  // doesn't snap other sections open or shut.
   const [openSectionIds, setOpenSectionIds] = useState<Set<string>>(new Set());
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const vibrated = useRef(false);
 
   useEffect(() => {
     if (!workoutLogId) return;
     getWorkoutSession(workoutLogId).then((result) => {
       setSession(result);
-      if (result) setOpenSectionIds(new Set(result.sections.length > 0 ? [result.sections[0].id] : []));
+      if (!result) return;
+      // Open the first section that still has work in it.
+      const firstOpen = result.sections.find((s) => s.sets.some((set) => set.exercises.some((e) => !e.completed))) ?? result.sections[0];
+      setOpenSectionIds(new Set(firstOpen ? [firstOpen.id] : []));
+      const ids = [...new Set(result.sections.flatMap((s) => s.sets.flatMap((set) => set.exercises.map((e) => e.exerciseId))))];
+      getPreviousExerciseResults(userId, ids, result.id).then(setPrevious);
     });
-  }, [workoutLogId]);
+  }, [workoutLogId, userId]);
+
+  // One clock for the elapsed time and the rest timer.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const restLeft = restEndsAt ? Math.ceil((restEndsAt - now) / 1000) : null;
+  useEffect(() => {
+    if (restLeft !== null && restLeft <= 0 && !vibrated.current) {
+      vibrated.current = true;
+      try {
+        navigator.vibrate?.([200, 100, 200]);
+      } catch {
+        // vibration isn't available everywhere; the bar still turns green
+      }
+    }
+  }, [restLeft]);
+
+  const totals = useMemo(() => {
+    if (!session) return { total: 0, done: 0 };
+    const all = session.sections.flatMap((s) => s.sets.flatMap((set) => set.exercises));
+    return { total: all.length, done: all.filter((e) => e.completed).length };
+  }, [session]);
+
+  if (session === undefined) {
+    return <div className="font-body p-6 text-center text-neutral-500">Loading workout…</div>;
+  }
+  if (session === null) {
+    return (
+      <div className="mx-auto max-w-md px-4 pt-6 pb-24 text-center">
+        <p className="font-body text-neutral-600">Couldn't find that workout.</p>
+        <Link to="/app/fit" className="font-label text-brand mt-2 inline-block text-base font-semibold">
+          Back to your program
+        </Link>
+      </div>
+    );
+  }
+
+  const readOnly = session.status === "completed";
+  const elapsedMin = Math.max(0, Math.floor((now - new Date(session.startedAt).getTime()) / 60000));
+
+  function updateLocal(logIds: string[], patch: Partial<FitWorkoutExercise>) {
+    const ids = new Set(logIds);
+    setSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            sections: prev.sections.map((s) => ({
+              ...s,
+              sets: s.sets.map((set) => ({ ...set, exercises: set.exercises.map((e) => (ids.has(e.logId) ? { ...e, ...patch } : e)) })),
+            })),
+          }
+        : prev
+    );
+  }
 
   function toggleSectionOpen(sectionId: string) {
     setOpenSectionIds((prev) => {
@@ -358,66 +490,58 @@ export function FitWorkoutScreen() {
     });
   }
 
-  if (session === undefined) {
-    return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
-  }
-  if (session === null) {
-    return (
-      <div className="mx-auto max-w-md px-4 pt-6 pb-24 text-center">
-        <p className="font-body text-neutral-600">Couldn't find that workout.</p>
-        <Link to="/app/fit" className="font-label text-brand mt-2 inline-block text-sm font-semibold underline">
-          Back to Golfable Fit
-        </Link>
-      </div>
-    );
-  }
-
-  const readOnly = session.status === "completed";
-  const totalExercises = session.sections.reduce((sum, s) => sum + s.sets.reduce((n, set) => n + set.exercises.length, 0), 0);
-  const completedExercises = session.sections.reduce(
-    (sum, s) => sum + s.sets.reduce((n, set) => n + set.exercises.filter((e) => e.completed).length, 0),
-    0
-  );
-
-  function updateLocalExercise(logId: string, patch: Partial<FitWorkoutExercise>) {
-    setSession((prev) =>
-      prev
-        ? {
-            ...prev,
-            sections: prev.sections.map((s) => ({
-              ...s,
-              sets: s.sets.map((set) => ({
-                ...set,
-                exercises: set.exercises.map((e) => (e.logId === logId ? { ...e, ...patch } : e)),
-              })),
-            })),
-          }
-        : prev
-    );
-  }
-
-  async function handleToggle(exercise: FitWorkoutExercise) {
+  async function handleToggle(exercise: FitWorkoutExercise, flavor: SectionFlavor) {
+    if (!session) return;
     const completed = !exercise.completed;
-    // Marking a set complete without ever touching the stepper should still
-    // leave a concrete recorded count, not a blank -- default it to the
-    // target the moment it's checked off.
-    const actualCount = completed && exercise.actualCount === null ? (exercise.targetCount ?? 0) : exercise.actualCount;
+    // Checking a set off records concrete numbers: what's in the boxes, else
+    // the target, else what was done last time.
+    const prev = previous.bySet.get(`${exercise.exerciseId}:${exercise.setNumber}`);
+    const actualCount = completed && exercise.actualCount == null ? (exercise.targetCount ?? prev?.count ?? 0) : exercise.actualCount;
     const actualWeightLbs =
-      completed && exercise.tracksWeight && exercise.actualWeightLbs === null
-        ? (exercise.targetWeightLbs ?? 0)
+      completed && exercise.tracksWeight && exercise.actualWeightLbs == null
+        ? (exercise.targetWeightLbs ?? prev?.weightLbs ?? 0)
         : exercise.actualWeightLbs;
-    updateLocalExercise(exercise.logId, { completed, actualCount, actualWeightLbs });
+    updateLocal([exercise.logId], { completed, actualCount, actualWeightLbs });
+
+    if (completed) {
+      const rest = REST_SECONDS[flavor];
+      if (rest) {
+        vibrated.current = false;
+        setRestEndsAt(Date.now() + rest * 1000);
+      }
+      // When this finishes a section, fold it and open the next one with work left.
+      const sectionIndex = session.sections.findIndex((s) => s.sets.some((set) => set.exercises.some((e) => e.logId === exercise.logId)));
+      const section = session.sections[sectionIndex];
+      const remaining = section.sets.flatMap((set) => set.exercises).filter((e) => !e.completed && e.logId !== exercise.logId);
+      if (remaining.length === 0) {
+        const next = session.sections
+          .slice(sectionIndex + 1)
+          .find((s) => s.sets.some((set) => set.exercises.some((e) => !e.completed)));
+        setOpenSectionIds((prevOpen) => {
+          const n = new Set(prevOpen);
+          n.delete(section.id);
+          if (next) n.add(next.id);
+          return n;
+        });
+      }
+    }
     await updateExerciseLog(exercise.logId, { completed, actualCount, actualWeightLbs });
   }
 
   async function handleCountChange(exercise: FitWorkoutExercise, value: number) {
-    updateLocalExercise(exercise.logId, { actualCount: value });
+    updateLocal([exercise.logId], { actualCount: value });
     await updateExerciseLog(exercise.logId, { actualCount: value });
   }
 
+  // Setting a weight carries forward to this exercise's later sets that
+  // haven't been touched yet -- load the bar once, not five times.
   async function handleWeightChange(exercise: FitWorkoutExercise, value: number) {
-    updateLocalExercise(exercise.logId, { actualWeightLbs: value });
-    await updateExerciseLog(exercise.logId, { actualWeightLbs: value });
+    if (!session) return;
+    const later = session.sections
+      .flatMap((s) => s.sets.flatMap((set) => set.exercises))
+      .filter((e) => e.exerciseId === exercise.exerciseId && e.setNumber > exercise.setNumber && !e.completed && e.actualWeightLbs == null);
+    updateLocal([exercise.logId, ...later.map((e) => e.logId)], { actualWeightLbs: value });
+    await Promise.all([exercise, ...later].map((e) => updateExerciseLog(e.logId, { actualWeightLbs: value })));
   }
 
   async function handleFinish() {
@@ -425,20 +549,16 @@ export function FitWorkoutScreen() {
     setFinishing(true);
     try {
       await finishWorkout(workoutLogId);
-
       const date = todayISO();
       const found = await getDrillForDate(date);
       if (found) {
         const existingScore = await getMyScoreForDate(userId, found.drill.id, date);
         if (existingScore !== null) {
-          // Already played today's Golfable -- nothing to nudge toward.
-          navigate("/app/fit");
+          navigate("/app/fit/today");
           return;
         }
         setCooldownHref("/app/today");
       } else {
-        // No Golfable scheduled today (e.g. a weekend) -- point at Choose
-        // Your Own instead.
         setCooldownHref("/app/library");
       }
     } finally {
@@ -446,57 +566,53 @@ export function FitWorkoutScreen() {
     }
   }
 
-  function handleCooldownConfirm() {
-    if (cooldownHref) navigate(cooldownHref);
-  }
-
-  function handleCooldownDismiss() {
-    navigate("/app/fit");
-  }
-
-  async function handleCancel() {
+  async function handleDiscard() {
     if (!workoutLogId) return;
-    setCanceling(true);
+    setDiscarding(true);
     try {
       await abandonWorkout(workoutLogId);
-      navigate("/app/fit");
+      navigate("/app/fit/today");
     } finally {
-      setCanceling(false);
+      setDiscarding(false);
     }
   }
 
+  const lastDoneAt = [...previous.lastDone.values()].sort().pop();
+
   return (
-    <div className="mx-auto max-w-md px-4 pt-4 pb-28">
-      <Link to="/app/fit" className="font-label inline-flex items-center gap-1 text-sm font-semibold text-neutral-500">
-        <BackIcon className="h-4 w-4" />
-        Golfable Fit
+    <div className={`mx-auto max-w-md px-4 pt-5 ${readOnly ? "pb-28" : "pb-44"}`}>
+      <Link to={readOnly ? "/app/fit/history" : "/app/fit/today"} className="font-label -ml-1 inline-flex items-center gap-0.5 text-base font-semibold text-neutral-500">
+        <ChevronLeft className="h-4 w-4" />
+        {readOnly ? "History" : "Today"}
       </Link>
 
-      <div className="mt-3 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-[2.4rem] leading-none tracking-wide">{session.templateName}</h1>
-          <p className="font-body text-sm text-neutral-500">
-            {readOnly ? `Completed ${session.completedAt ? formatDateTime(session.completedAt) : ""}` : `Started ${formatDateTime(session.startedAt)}`}
-          </p>
-        </div>
-        {!readOnly && (
-          <span className="font-label bg-gold/15 text-gold flex-none rounded-full px-2.5 py-1 text-xs font-semibold">In Progress</span>
-        )}
-      </div>
-
-      {!readOnly && (
-        <p className="font-label mt-2 text-sm font-semibold text-neutral-600">
-          {completedExercises}/{totalExercises} logged
+      <div className="bg-brand-dark mt-2 overflow-hidden rounded-3xl p-5 text-white">
+        <p className="font-label text-base font-medium text-white/60">
+          {readOnly
+            ? `Done ${session.completedAt ? `${formatDay(session.completedAt)}, ${formatTime(session.completedAt)}` : ""}`
+            : `Started ${formatTime(session.startedAt)} · ${elapsedMin} min`}
         </p>
-      )}
+        <h1 className="font-display mt-1 text-[2.6rem] leading-[0.95] tracking-wide">{session.templateName}</h1>
+        {lastDoneAt && !readOnly && <p className="font-body mt-1 text-sm text-white/60">Last time: {formatDay(lastDoneAt)}</p>}
+        <div className="mt-4">
+          <div className="font-label mb-1.5 flex justify-between text-sm font-semibold text-white/60">
+            <span>Progress</span>
+            <span className="text-white">
+              {totals.done} of {totals.total}
+            </span>
+          </div>
+          <Meter value={totals.done} max={totals.total} tone="bg-gold" track="bg-white/10" />
+        </div>
+      </div>
 
       <div className="mt-4 space-y-3">
         {session.sections.map((section) => (
           <SectionBlock
             key={section.id}
             section={section}
+            previous={previous}
             readOnly={readOnly}
-            open={openSectionIds.has(section.id)}
+            open={readOnly || openSectionIds.has(section.id)}
             onToggleOpen={() => toggleSectionOpen(section.id)}
             onToggle={handleToggle}
             onChangeCount={handleCountChange}
@@ -506,27 +622,44 @@ export function FitWorkoutScreen() {
       </div>
 
       {!readOnly && (
-        <div className="mt-6 flex gap-2">
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={canceling || finishing}
-            className="font-label rounded-md border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-600 disabled:opacity-60"
-          >
-            {canceling ? "Canceling…" : "Cancel"}
-          </button>
-          <button
-            type="button"
-            onClick={handleFinish}
-            disabled={finishing || canceling}
-            className="font-label bg-brand flex-1 rounded-md px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {finishing ? "Saving…" : "Finish Workout"}
-          </button>
+        <button
+          type="button"
+          onClick={() => setConfirmDiscard(true)}
+          className="font-label mt-6 w-full py-2 text-center text-base font-semibold text-neutral-400"
+        >
+          Discard workout
+        </button>
+      )}
+
+      {!readOnly && (
+        <div className="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-20 border-t border-black/[0.06] bg-white/95 backdrop-blur">
+          <div className="mx-auto flex max-w-md items-center gap-2 px-4 py-3">
+            {restLeft !== null && restLeft > -30 && (
+              <button
+                type="button"
+                onClick={() => setRestEndsAt(null)}
+                className={`font-label flex-none rounded-full px-4 py-3 text-base font-bold tabular-nums ${
+                  restLeft > 0 ? "bg-neutral-100 text-neutral-800" : "bg-brand/10 text-brand"
+                }`}
+                aria-label="Dismiss rest timer"
+              >
+                {restLeft > 0 ? `Rest ${formatClock(restLeft)}` : "Go"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleFinish}
+              disabled={finishing || discarding}
+              className="font-label bg-brand flex-1 rounded-full px-4 py-3.5 text-base font-bold text-white disabled:opacity-60"
+            >
+              {finishing ? "Saving…" : totals.done === totals.total ? "Finish workout" : `Finish (${totals.done}/${totals.total})`}
+            </button>
+          </div>
         </div>
       )}
 
-      {cooldownHref && <CooldownPrompt onConfirm={handleCooldownConfirm} onDismiss={handleCooldownDismiss} />}
+      {confirmDiscard && <DiscardPrompt busy={discarding} onConfirm={handleDiscard} onCancel={() => setConfirmDiscard(false)} />}
+      {cooldownHref && <CooldownPrompt onConfirm={() => navigate(cooldownHref)} onDismiss={() => navigate("/app/fit/today")} />}
     </div>
   );
 }

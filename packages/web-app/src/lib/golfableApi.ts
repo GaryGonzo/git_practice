@@ -2968,3 +2968,65 @@ export async function adjustFitCalories(userId: string, delta: number): Promise<
   const { error } = await supabase.from("fit_nutrition_plans").update(payload).eq("user_id", userId);
   if (error) throw error;
 }
+
+export interface FitPreviousSet {
+  weightLbs: number | null;
+  count: number | null;
+}
+
+export interface FitPreviousResults {
+  /** Keyed `${exerciseId}:${setNumber}` -- what was logged for that set last time. */
+  bySet: Map<string, FitPreviousSet>;
+  /** When each exercise was last done, keyed by exerciseId. */
+  lastDone: Map<string, string>;
+}
+
+// What was logged for each of these exercises the last time they were done,
+// set by set -- the runner shows it beside every set and uses it to
+// pre-fill weights. Only completed workouts count, and the current one is
+// excluded.
+export async function getPreviousExerciseResults(
+  userId: string,
+  exerciseIds: string[],
+  excludeWorkoutLogId: string
+): Promise<FitPreviousResults> {
+  const empty: FitPreviousResults = { bySet: new Map(), lastDone: new Map() };
+  if (exerciseIds.length === 0) return empty;
+
+  const { data: logRows } = await supabase
+    .from("fit_exercise_logs")
+    .select("exercise_id, workout_log_id, set_number, actual_count, actual_weight_lbs, completed")
+    .eq("user_id", userId)
+    .in("exercise_id", exerciseIds)
+    .neq("workout_log_id", excludeWorkoutLogId);
+  if (!logRows || logRows.length === 0) return empty;
+
+  const workoutIds = [...new Set(logRows.map((r) => r.workout_log_id as string))];
+  const { data: workoutRows } = await supabase
+    .from("fit_workout_logs")
+    .select("id, completed_at")
+    .in("id", workoutIds)
+    .eq("status", "completed");
+  const completedAt = new Map((workoutRows ?? []).map((w) => [w.id as string, w.completed_at as string]));
+
+  // Latest completed workout per exercise.
+  const latestWorkout = new Map<string, { id: string; at: string }>();
+  for (const r of logRows) {
+    const at = completedAt.get(r.workout_log_id as string);
+    if (!at) continue;
+    const current = latestWorkout.get(r.exercise_id as string);
+    if (!current || at > current.at) latestWorkout.set(r.exercise_id as string, { id: r.workout_log_id as string, at });
+  }
+
+  const result: FitPreviousResults = { bySet: new Map(), lastDone: new Map() };
+  for (const [exerciseId, w] of latestWorkout) result.lastDone.set(exerciseId, w.at);
+  for (const r of logRows) {
+    const latest = latestWorkout.get(r.exercise_id as string);
+    if (!latest || latest.id !== r.workout_log_id) continue;
+    result.bySet.set(`${r.exercise_id}:${r.set_number}`, {
+      weightLbs: r.actual_weight_lbs === null ? null : Number(r.actual_weight_lbs),
+      count: r.actual_count as number | null,
+    });
+  }
+  return result;
+}
