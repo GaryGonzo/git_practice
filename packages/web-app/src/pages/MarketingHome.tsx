@@ -858,8 +858,8 @@ export function MarketingHome() {
           </Reveal>
         </section>
 
-        <section className="bg-brand-dark px-6 py-20 sm:py-28">
-          <Reveal className="mx-auto max-w-3xl">
+        <section className="bg-brand-dark overflow-x-clip px-6 py-20 sm:py-28">
+          <Reveal className="mx-auto max-w-3xl min-w-0">
             <Eyebrow tone="dark">A Peek Inside the App</Eyebrow>
             <p className="font-body mx-auto mt-3 max-w-xl text-center text-sm text-white/70">
               Four real Golfables, one per skill category, shown exactly how they'd land on your Today
