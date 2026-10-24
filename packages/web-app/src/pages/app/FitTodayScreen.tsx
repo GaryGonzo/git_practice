@@ -25,6 +25,8 @@ import {
   type FitWorkoutInstance,
 } from "../../lib/golfableApi";
 import { FairwayPanel, Meter, ChevronLeft, ChevronRight } from "../../components/ui";
+import { FitBlockPanel } from "../../components/FitBlockPanel";
+import { FitStreaksPanel } from "../../components/FitStreaksPanel";
 
 function CheckIcon({ className }: { className?: string }) {
   return (
@@ -396,6 +398,65 @@ function ClipboardIcon({ className }: { className?: string }) {
   );
 }
 
+// Protein "hits" = protein-anchored meals/snacks today, tapped up to the goal.
+function ProteinCell({ hits, goal, onChange }: { hits: number; goal: number; onChange: (hits: number) => void }) {
+  const hit = hits >= goal;
+  return (
+    <div className="bg-white p-4">
+      <p className="font-label text-sm font-semibold text-neutral-500">Protein hits</p>
+      <p className="font-display text-3xl leading-none text-neutral-900">
+        {hits} <span className="font-label text-sm text-neutral-400">of {goal}</span>
+      </p>
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(0, hits - 1))}
+          disabled={hits === 0}
+          aria-label="One fewer protein hit"
+          className="font-label h-9 w-9 rounded-full bg-neutral-100 text-lg font-bold text-neutral-600 disabled:opacity-40"
+        >
+          −
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(8, hits + 1))}
+          aria-label="Log a protein hit"
+          className={`font-label h-9 flex-1 rounded-full text-base font-bold ${hit ? "bg-brand/10 text-brand" : "bg-brand text-white"}`}
+        >
+          {hit ? "Goal hit" : "+1"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function KitchenCell({ closed, onChange }: { closed: boolean | null; onChange: (closed: boolean) => void }) {
+  return (
+    <div className="bg-white p-4">
+      <p className="font-label text-sm font-semibold text-neutral-500">Kitchen closed by 8</p>
+      <p className={`font-display text-3xl leading-none ${closed ? "text-brand" : "text-neutral-900"}`}>
+        {closed === null ? "—" : closed ? "Yes" : "No"}
+      </p>
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(true)}
+          className={`font-label h-9 flex-1 rounded-full text-base font-bold ${closed ? "bg-brand text-white" : "bg-neutral-100 text-neutral-600"}`}
+        >
+          Closed
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange(false)}
+          className={`font-label h-9 flex-1 rounded-full text-base font-bold ${closed === false ? "bg-neutral-700 text-white" : "bg-neutral-100 text-neutral-600"}`}
+        >
+          Ate late
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function FitTodayScreen() {
   const { session } = useAuth();
   const userId = session!.user.id;
@@ -405,6 +466,10 @@ export function FitTodayScreen() {
   const [items, setItems] = useState<FitRoutineItem[]>([]);
   const [checks, setChecks] = useState<Set<string>>(new Set());
   const [waterOz, setWaterOz] = useState(0);
+  const [proteinHits, setProteinHits] = useState(0);
+  const [proteinGoal, setProteinGoal] = useState(4);
+  const [kitchenClosed, setKitchenClosed] = useState<boolean | null>(null);
+  const [streakKey, setStreakKey] = useState(0);
   const [sleepHours, setSleepHours] = useState<number | null>(null);
   const [waterGoal, setWaterGoal] = useState<number | null>(null);
   const [sleepGoal, setSleepGoal] = useState<number | null>(null);
@@ -426,7 +491,9 @@ export function FitTodayScreen() {
   // Targets and the active block don't depend on the date shown.
   useEffect(() => {
     Promise.all([getFitNutritionPlan(userId), getFitProfile(userId), getActiveFitBlock(userId)]).then(([n, p, b]) => {
-      setWaterGoal(n?.waterGoalOz ?? null);
+      // 110 oz is the program default until a plan sets its own.
+      setWaterGoal(n?.waterGoalOz ?? 110);
+      setProteinGoal(n?.proteinHitsGoal ?? 4);
       setSleepGoal(p?.sleepGoalHours ?? null);
       setBlock(b);
       setStepGoal(b?.stepGoal ?? null);
@@ -446,6 +513,8 @@ export function FitTodayScreen() {
       setItems(routine);
       setChecks(checked);
       setWaterOz(logs[0]?.waterOz ?? 0);
+      setProteinHits(logs[0]?.proteinHits ?? 0);
+      setKitchenClosed(logs[0]?.kitchenClosedBy ?? null);
       setSleepHours(logs[0]?.sleepHours ?? null);
       setInstances(inst);
       setSteps(stepHistory.find((s) => s.loggedDate === date)?.steps ?? null);
@@ -502,6 +571,19 @@ export function FitTodayScreen() {
   async function handleWater(oz: number) {
     setWaterOz(oz);
     await saveFitDailyLog(userId, date, { waterOz: oz });
+    setStreakKey((k) => k + 1);
+  }
+
+  async function handleProtein(hits: number) {
+    setProteinHits(hits);
+    await saveFitDailyLog(userId, date, { proteinHits: hits });
+    setStreakKey((k) => k + 1);
+  }
+
+  async function handleKitchen(closed: boolean) {
+    setKitchenClosed(closed);
+    await saveFitDailyLog(userId, date, { kitchenClosedBy: closed });
+    setStreakKey((k) => k + 1);
   }
 
   async function handleSleep(hours: number) {
@@ -690,6 +772,13 @@ export function FitTodayScreen() {
             </FairwayPanel>
           )}
 
+          {block && <FitBlockPanel userId={userId} block={block} date={date} />}
+
+          <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-black/[0.06]">
+            <ProteinCell hits={proteinHits} goal={proteinGoal} onChange={handleProtein} />
+            <KitchenCell closed={kitchenClosed} onChange={handleKitchen} />
+          </div>
+
           <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-black/[0.06]">
             <WaterCell oz={waterOz} goal={waterGoal} onChange={handleWater} />
             <SleepCell hours={sleepHours} goal={sleepGoal} onChange={handleSleep} />
@@ -728,6 +817,8 @@ export function FitTodayScreen() {
               }}
             />
           </div>
+
+          {isToday && block && <FitStreaksPanel userId={userId} sessionsPerWeek={block.sessionsPerWeek} refreshKey={streakKey} />}
 
           <button
             type="button"
