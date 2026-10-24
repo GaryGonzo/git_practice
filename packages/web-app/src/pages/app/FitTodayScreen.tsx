@@ -26,6 +26,7 @@ import {
 } from "../../lib/golfableApi";
 import { FairwayPanel, Meter, ChevronLeft, ChevronRight } from "../../components/ui";
 import { FitBlockPanel } from "../../components/FitBlockPanel";
+import { FitIdentityCard } from "../../components/FitIdentityCard";
 import { FitStreaksPanel } from "../../components/FitStreaksPanel";
 
 function CheckIcon({ className }: { className?: string }) {
@@ -771,6 +772,8 @@ export function FitTodayScreen() {
               </div>
             </FairwayPanel>
           )}
+
+          <FitIdentityCard />
 
           {block && <FitBlockPanel userId={userId} block={block} date={date} />}
 
