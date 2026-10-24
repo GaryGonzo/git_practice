@@ -55,7 +55,7 @@ export function LoginScreen() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="font-body mt-1 min-h-11 w-full rounded-md border border-neutral-300 px-3 py-2 text-base"
           />
         </div>
 
@@ -73,7 +73,7 @@ export function LoginScreen() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="font-body mt-1 min-h-11 w-full rounded-md border border-neutral-300 px-3 py-2 text-base"
           />
         </div>
 
@@ -82,7 +82,7 @@ export function LoginScreen() {
         <button
           type="submit"
           disabled={submitting}
-          className="font-label bg-brand w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="font-label bg-brand min-h-12 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
           {submitting ? "Logging in…" : "Log in"}
         </button>

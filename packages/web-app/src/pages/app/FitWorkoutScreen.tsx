@@ -10,7 +10,12 @@ import {
   getDrillForDate,
   getMyScoreForDate,
   getPreviousExerciseResults,
+  getFitStreaks,
+  countCompletedWorkoutsBetween,
+  getActiveFitBlock,
+  mondayOfISO,
   todayISO,
+  type FitBadge,
   type FitWorkoutSession,
   type FitWorkoutSectionView,
   type FitWorkoutExercise,
@@ -19,6 +24,114 @@ import {
 } from "../../lib/golfableApi";
 import { ChevronLeft, Meter } from "../../components/ui";
 import { CelebrationToast } from "../../components/CelebrationToast";
+import { ScreenSkeleton } from "../../components/FitPanelStates";
+
+const BEEP_KEY = "golfable.fit.restBeep";
+
+// Short two-tone beep via WebAudio -- no asset to load, silent if blocked.
+function playBeep() {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    [0, 0.25].forEach((offset, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = i === 0 ? 880 : 1175;
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.2);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.2);
+    });
+    setTimeout(() => ctx.close().catch(() => undefined), 800);
+  } catch {
+    // audio not available; vibration + the green bar still signal "go"
+  }
+}
+
+// Keep the phone awake while a workout is open. Re-acquires when the tab
+// comes back (the browser drops the lock when hidden); no-op where the
+// Screen Wake Lock API isn't supported.
+function useWakeLock(active: boolean) {
+  useEffect(() => {
+    if (!active || !("wakeLock" in navigator)) return;
+    let lock: WakeLockSentinel | null = null;
+    let cancelled = false;
+    const acquire = async () => {
+      try {
+        if (document.visibilityState !== "visible") return;
+        const next = await navigator.wakeLock.request("screen");
+        if (cancelled) next.release().catch(() => undefined);
+        else lock = next;
+      } catch {
+        // denied (low battery, etc.) -- the workout still works
+      }
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") acquire();
+    };
+    acquire();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      lock?.release().catch(() => undefined);
+    };
+  }, [active]);
+}
+
+interface FinishSummary {
+  setsDone: number;
+  setsTotal: number;
+  minutes: number;
+  prs: FitBadge[];
+  streak: number | null;
+  weekDone: number | null;
+  weekGoal: number | null;
+  next: string;
+}
+
+function FinishSummarySheet({ summary, onContinue }: { summary: FinishSummary; onContinue: () => void }) {
+  return (
+    <Modal>
+      <p className="text-4xl" aria-hidden="true">🏗️</p>
+      <h2 className="font-display mt-1 text-[2.2rem] leading-none tracking-wide">Brick laid.</h2>
+      <p className="font-body mt-1 text-sm text-neutral-500">Another phase of the build in the books.</p>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="rounded-2xl bg-neutral-50 p-3">
+          <p className="font-display text-brand text-3xl leading-none">{summary.setsDone}</p>
+          <p className="font-label text-xs font-semibold text-neutral-500">of {summary.setsTotal} sets</p>
+        </div>
+        <div className="rounded-2xl bg-neutral-50 p-3">
+          <p className="font-display text-brand text-3xl leading-none">{summary.streak ?? "—"}</p>
+          <p className="font-label text-xs font-semibold text-neutral-500">session streak</p>
+        </div>
+        <div className="rounded-2xl bg-neutral-50 p-3">
+          <p className="font-display text-brand text-3xl leading-none">
+            {summary.weekDone ?? "—"}
+            {summary.weekGoal ? <span className="text-lg text-neutral-400">/{summary.weekGoal}</span> : null}
+          </p>
+          <p className="font-label text-xs font-semibold text-neutral-500">this week</p>
+        </div>
+      </div>
+      {summary.prs.length > 0 && (
+        <ul className="mt-3 space-y-1 rounded-2xl bg-amber-50 p-3 text-left">
+          {summary.prs.map((pr) => (
+            <li key={pr.id ?? pr.label} className="font-label text-sm font-semibold text-amber-900">
+              🏆 New PR: {pr.label}
+              {pr.value ? ` at ${pr.value} lbs` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="font-label mt-3 text-sm font-semibold text-neutral-500">{summary.minutes} min · streak +1</p>
+      <button type="button" onClick={onContinue} className="font-label bg-brand mt-4 min-h-12 w-full rounded-full text-base font-bold text-white">
+        Continue
+      </button>
+    </Modal>
+  );
+}
 
 function ChevronDownIcon({ className, open }: { className?: string; open: boolean }) {
   return (
@@ -217,6 +330,12 @@ function SetRow({
   onChangeCount: (value: number) => void;
   onChangeWeight: (value: number) => void;
 }) {
+  const canRepeat =
+    !readOnly &&
+    !exercise.completed &&
+    !!previous &&
+    ((exercise.tracksWeight && !!previous.weightLbs && previous.weightLbs !== exercise.actualWeightLbs) ||
+      (exercise.targetCount !== null && previous.count !== null && previous.count !== exercise.actualCount));
   const [showCue, setShowCue] = useState(false);
   const hasCount = exercise.targetCount !== null;
   const prevText = previous
@@ -241,11 +360,23 @@ function SetRow({
             <p className="font-label text-sm font-semibold text-neutral-500">
               {!showName && multiSet && <span className={FLAVOR_TEXT[flavor]}>Set {exercise.setNumber}{target || prevText ? " · " : ""}</span>}
               {target && `Target ${target}`}
-              {prevText && <span className="text-neutral-400">{target ? " · " : ""}Last {prevText}</span>}
+              {prevText && <span className="text-neutral-500">{target ? " · " : ""}Last: {prevText}</span>}
             </p>
           )}
           {!showName && !multiSet && !target && !prevText && (
             <p className="font-label text-base font-semibold text-neutral-600">{exercise.completed ? "Done" : "Tap the circle when you're done"}</p>
+          )}
+          {canRepeat && (
+            <button
+              type="button"
+              onClick={() => {
+                if (exercise.tracksWeight && previous?.weightLbs) onChangeWeight(previous.weightLbs);
+                if (exercise.targetCount !== null && previous?.count != null) onChangeCount(previous.count);
+              }}
+              className="font-label text-brand -ml-2 min-h-11 rounded-full px-2 text-sm font-bold"
+            >
+              ↺ Same as last time
+            </button>
           )}
           {showName && showCue && exercise.cue && <p className="font-body mt-1 text-sm leading-relaxed text-neutral-600">{exercise.cue}</p>}
         </div>
@@ -329,15 +460,23 @@ function SwapMenu({
   if (exercise.options.length < 2) return null;
   return (
     <div className="border-b border-neutral-100 px-4 py-2">
-      <button
-        type="button"
-        disabled={locked}
-        onClick={() => setOpen((o) => !o)}
-        className="font-label text-brand text-sm font-semibold disabled:text-neutral-300"
-        aria-expanded={open}
-      >
-        {locked ? `${exercise.name} · started, can't swap` : open ? "Keep this lift" : `Swap ${exercise.name}`}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled={locked}
+          onClick={() => setOpen((o) => !o)}
+          className={`font-label inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-sm font-bold ${
+            locked ? "bg-neutral-100 text-neutral-400" : open ? "bg-brand text-white" : "bg-brand/10 text-brand"
+          }`}
+          aria-expanded={open}
+          aria-label={locked ? `${exercise.name} started, can't swap` : open ? "Keep this lift" : `Swap ${exercise.name}`}
+        >
+          <span aria-hidden="true">⇄</span> {open ? "Keep" : "Swap"}
+        </button>
+        <span className="font-body min-w-0 text-sm text-neutral-500">
+          {locked ? "Started, so it's locked in." : open ? `Swap for ${exercise.name}:` : <>{exercise.name} · <span className="text-neutral-400">Swap before your first set</span></>}
+        </span>
+      </div>
       {open && !locked && (
         <div className="mt-2 flex flex-wrap gap-2">
           {exercise.options.map((option) => {
@@ -350,7 +489,7 @@ function SwapMenu({
                   setOpen(false);
                   if (!chosen) onSwap(option);
                 }}
-                className={`font-label rounded-full px-3 py-1.5 text-left text-sm font-semibold ${
+                className={`font-label min-h-11 rounded-full px-4 py-2 text-left text-sm font-semibold ${
                   chosen ? "bg-brand text-white" : "bg-neutral-100 text-neutral-700"
                 }`}
               >
@@ -480,6 +619,27 @@ export function FitWorkoutScreen() {
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const vibrated = useRef(false);
+  const [beepOn, setBeepOn] = useState(() => {
+    try {
+      return localStorage.getItem(BEEP_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [summary, setSummary] = useState<FinishSummary | null>(null);
+
+  function toggleBeep() {
+    setBeepOn((on) => {
+      const next = !on;
+      try {
+        localStorage.setItem(BEEP_KEY, next ? "1" : "0");
+      } catch {
+        // private mode -- preference just won't stick
+      }
+      if (next) playBeep();
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!workoutLogId) return;
@@ -509,8 +669,11 @@ export function FitWorkoutScreen() {
       } catch {
         // vibration isn't available everywhere; the bar still turns green
       }
+      if (beepOn) playBeep();
     }
-  }, [restLeft]);
+  }, [restLeft, beepOn]);
+
+  useWakeLock(!!session && session.status !== "completed" && !summary);
 
   const totals = useMemo(() => {
     if (!session) return { total: 0, done: 0 };
@@ -519,7 +682,11 @@ export function FitWorkoutScreen() {
   }, [session]);
 
   if (session === undefined) {
-    return <div className="font-body p-6 text-center text-neutral-500">Loading workout…</div>;
+    return (
+      <div className="mx-auto max-w-md px-4">
+        <ScreenSkeleton label="Loading workout" />
+      </div>
+    );
   }
   if (session === null) {
     return (
@@ -628,27 +795,30 @@ export function FitWorkoutScreen() {
     setFinishing(true);
     try {
       const prs = await finishWorkout(workoutLogId);
-      if (prs.length > 0) {
-        setPrMessage(
-          prs.length === 1
-            ? `New PR: ${prs[0].label} at ${prs[0].value} lbs!`
-            : `${prs.length} new PRs: ${prs.map((b) => `${b.label} ${b.value}`).join(", ")}`
-        );
-      }
       const date = todayISO();
-      const found = await getDrillForDate(date);
+      // Summary numbers are best-effort -- a failed lookup shows a dash.
+      const [streaks, weekDone, block, found] = await Promise.all([
+        getFitStreaks(userId).catch(() => null),
+        countCompletedWorkoutsBetween(userId, mondayOfISO(date), date).catch(() => null),
+        getActiveFitBlock(userId).catch(() => null),
+        getDrillForDate(date).catch(() => null),
+      ]);
+      let next = "/app/library";
       if (found) {
-        const existingScore = await getMyScoreForDate(userId, found.drill.id, date);
-        if (existingScore !== null) {
-          // Let a PR toast play before leaving the screen.
-          if (prs.length > 0) setTimeout(() => navigate("/app/fit/today"), 2800);
-          else navigate("/app/fit/today");
-          return;
-        }
-        setCooldownHref("/app/today");
-      } else {
-        setCooldownHref("/app/library");
+        const existingScore = await getMyScoreForDate(userId, found.drill.id, date).catch(() => null);
+        next = existingScore !== null ? "/app/fit/today" : "/app/today";
       }
+      setSummary({
+        setsDone: totals.done,
+        setsTotal: totals.total,
+        minutes: elapsedMin,
+        prs,
+        streak: streaks?.training.sessions ?? null,
+        weekDone,
+        weekGoal: block?.sessionsPerWeek ?? null,
+        next,
+      });
+      if (prs.length > 0) setPrMessage(prs.length === 1 ? `New PR: ${prs[0].label}!` : `${prs.length} new PRs!`);
     } finally {
       setFinishing(false);
     }
@@ -724,22 +894,50 @@ export function FitWorkoutScreen() {
         <div className="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-20 border-t border-black/[0.06] bg-white/95 backdrop-blur">
           <div className="mx-auto flex max-w-md items-center gap-2 px-4 py-3">
             {restLeft !== null && restLeft > -30 && (
-              <button
-                type="button"
-                onClick={() => setRestEndsAt(null)}
-                className={`font-label flex-none rounded-full px-4 py-3 text-base font-bold tabular-nums ${
-                  restLeft > 0 ? "bg-neutral-100 text-neutral-800" : "bg-brand/10 text-brand"
-                }`}
-                aria-label="Dismiss rest timer"
-              >
-                {restLeft > 0 ? `Rest ${formatClock(restLeft)}` : "Go"}
-              </button>
+              <>
+                <span
+                  className={`font-label flex min-h-12 flex-none items-center rounded-full px-4 text-base font-bold tabular-nums ${
+                    restLeft > 0 ? "bg-neutral-100 text-neutral-800" : "bg-brand/10 text-brand"
+                  }`}
+                  role="timer"
+                  aria-live="off"
+                >
+                  {restLeft > 0 ? formatClock(restLeft) : "Go"}
+                </span>
+                {restLeft > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setRestEndsAt((t) => (t ?? Date.now()) + 30_000)}
+                    className="font-label min-h-12 min-w-12 flex-none rounded-full bg-neutral-100 px-3 text-sm font-bold text-neutral-700"
+                    aria-label="Add 30 seconds"
+                  >
+                    +30s
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setRestEndsAt(null)}
+                  className="font-label min-h-12 min-w-12 flex-none rounded-full bg-neutral-100 px-3 text-sm font-bold text-neutral-700"
+                  aria-label={restLeft > 0 ? "Skip rest" : "Dismiss rest timer"}
+                >
+                  {restLeft > 0 ? "Skip" : "✕"}
+                </button>
+              </>
             )}
+            <button
+              type="button"
+              onClick={toggleBeep}
+              aria-pressed={beepOn}
+              aria-label={beepOn ? "Rest beep on" : "Rest beep off"}
+              className={`flex min-h-12 min-w-12 flex-none items-center justify-center rounded-full text-lg ${beepOn ? "bg-brand/10 text-brand" : "bg-neutral-100 text-neutral-400"}`}
+            >
+              {beepOn ? "🔔" : "🔕"}
+            </button>
             <button
               type="button"
               onClick={handleFinish}
               disabled={finishing || discarding}
-              className="font-label bg-brand flex-1 rounded-full px-4 py-3.5 text-base font-bold text-white disabled:opacity-60"
+              className="font-label bg-brand min-h-12 min-w-0 flex-1 rounded-full px-4 py-3 text-base font-bold text-white disabled:opacity-60"
             >
               {finishing ? "Saving…" : totals.done === totals.total ? "Finish workout" : `Finish (${totals.done}/${totals.total})`}
             </button>
@@ -749,6 +947,17 @@ export function FitWorkoutScreen() {
 
       {prMessage && <CelebrationToast message={prMessage} particles={["🏋️", "🔥", "🏆", "💪"]} onDone={() => setPrMessage(null)} />}
       {confirmDiscard && <DiscardPrompt busy={discarding} onConfirm={handleDiscard} onCancel={() => setConfirmDiscard(false)} />}
+      {summary && (
+        <FinishSummarySheet
+          summary={summary}
+          onContinue={() => {
+            const next = summary.next;
+            setSummary(null);
+            if (next === "/app/fit/today") navigate(next);
+            else setCooldownHref(next);
+          }}
+        />
+      )}
       {cooldownHref && <CooldownPrompt onConfirm={() => navigate(cooldownHref)} onDismiss={() => navigate("/app/fit/today")} />}
     </div>
   );

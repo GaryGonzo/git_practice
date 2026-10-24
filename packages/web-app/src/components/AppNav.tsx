@@ -25,8 +25,8 @@ function golfNav(hasFit: boolean): NavItem[] {
 
 const FIT_NAV: NavItem[] = [
   { to: "/app/fit/today", label: "Today", end: true, icon: TodayIcon },
-  { to: "/app/fit", label: "Program", end: true, icon: DumbbellIcon },
-  { to: "/app/fit/checkin", label: "Check-in", end: true, icon: ProgressIcon },
+  { to: "/app/fit", label: "Block", end: true, icon: DumbbellIcon },
+  { to: "/app/fit/checkin", label: "Progress", end: true, icon: ProgressIcon },
   { to: "/app/fit/plan", label: "Walks", end: true, icon: WalkIcon },
   { to: "/app/golf", label: "Golfable", end: false, icon: SwitchIcon },
 ];

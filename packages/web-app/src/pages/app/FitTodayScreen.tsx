@@ -28,6 +28,7 @@ import { FairwayPanel, Meter, ChevronLeft, ChevronRight } from "../../components
 import { FitBlockPanel } from "../../components/FitBlockPanel";
 import { FitIdentityCard } from "../../components/FitIdentityCard";
 import { FitStreaksPanel } from "../../components/FitStreaksPanel";
+import { ScreenSkeleton } from "../../components/FitPanelStates";
 
 function CheckIcon({ className }: { className?: string }) {
   return (
@@ -102,7 +103,7 @@ function StepButton({ onClick, disabled, children, primary }: { onClick: () => v
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`font-label h-9 flex-1 rounded-lg text-sm font-bold disabled:opacity-40 ${
+      className={`font-label h-11 flex-1 rounded-lg text-sm font-bold disabled:opacity-40 ${
         primary ? "bg-fit-warmup/10 text-fit-warmup" : "bg-neutral-100 text-neutral-600"
       }`}
     >
@@ -151,7 +152,7 @@ function SleepCell({ hours, goal, onChange }: { hours: number | null; goal: numb
         <button
           type="button"
           onClick={() => onChange(shown)}
-          className={`font-label h-9 flex-[2] rounded-lg text-sm font-bold ${
+          className={`font-label h-11 flex-[2] rounded-lg text-sm font-bold ${
             hours === null ? "bg-fit-finisher text-white" : "bg-fit-finisher/10 text-fit-finisher"
           }`}
         >
@@ -414,7 +415,7 @@ function ProteinCell({ hits, goal, onChange }: { hits: number; goal: number; onC
           onClick={() => onChange(Math.max(0, hits - 1))}
           disabled={hits === 0}
           aria-label="One fewer protein hit"
-          className="font-label h-9 w-9 rounded-full bg-neutral-100 text-lg font-bold text-neutral-600 disabled:opacity-40"
+          className="font-label h-11 w-11 rounded-full bg-neutral-100 text-lg font-bold text-neutral-600 disabled:opacity-40"
         >
           −
         </button>
@@ -422,7 +423,7 @@ function ProteinCell({ hits, goal, onChange }: { hits: number; goal: number; onC
           type="button"
           onClick={() => onChange(Math.min(8, hits + 1))}
           aria-label="Log a protein hit"
-          className={`font-label h-9 flex-1 rounded-full text-base font-bold ${hit ? "bg-brand/10 text-brand" : "bg-brand text-white"}`}
+          className={`font-label h-11 flex-1 rounded-full text-base font-bold ${hit ? "bg-brand/10 text-brand" : "bg-brand text-white"}`}
         >
           {hit ? "Goal hit" : "+1"}
         </button>
@@ -442,14 +443,14 @@ function KitchenCell({ closed, onChange }: { closed: boolean | null; onChange: (
         <button
           type="button"
           onClick={() => onChange(true)}
-          className={`font-label h-9 flex-1 rounded-full text-base font-bold ${closed ? "bg-brand text-white" : "bg-neutral-100 text-neutral-600"}`}
+          className={`font-label h-11 flex-1 rounded-full text-base font-bold ${closed ? "bg-brand text-white" : "bg-neutral-100 text-neutral-600"}`}
         >
           Closed
         </button>
         <button
           type="button"
           onClick={() => onChange(false)}
-          className={`font-label h-9 flex-1 rounded-full text-base font-bold ${closed === false ? "bg-neutral-700 text-white" : "bg-neutral-100 text-neutral-600"}`}
+          className={`font-label h-11 flex-1 rounded-full text-base font-bold ${closed === false ? "bg-neutral-700 text-white" : "bg-neutral-100 text-neutral-600"}`}
         >
           Ate late
         </button>
@@ -683,6 +684,10 @@ export function FitTodayScreen() {
     }
   }
 
+  // Primary action at the top: start / resume today's lift.
+  const liftItem = items.find((i) => i.kind === "lift" && templateFor(i));
+  const liftCta = liftItem && isToday ? actionFor(liftItem, false) : null;
+
   const weighedToday = lastWeight?.on === date;
   const upNextTime = upNext?.timeOfDay ? formatTime12h(upNext.timeOfDay) : null;
   const allDone = items.length > 0 && doneCount === items.length;
@@ -693,7 +698,7 @@ export function FitTodayScreen() {
         <button
           type="button"
           onClick={() => setDate((d) => addDaysISO(d, -1))}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-600 ring-1 ring-black/[0.06]"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-neutral-600 ring-1 ring-black/[0.06]"
           aria-label="Previous day"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -705,7 +710,7 @@ export function FitTodayScreen() {
         <button
           type="button"
           onClick={() => setDate((d) => addDaysISO(d, 1))}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-600 ring-1 ring-black/[0.06]"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-neutral-600 ring-1 ring-black/[0.06]"
           aria-label="Next day"
         >
           <ChevronRight className="h-5 w-5" />
@@ -718,9 +723,15 @@ export function FitTodayScreen() {
       )}
 
       {loading ? (
-        <div className="font-body p-6 text-center text-neutral-500">Loading…</div>
+        <ScreenSkeleton label="Loading today" />
       ) : (
         <>
+          {liftCta && (
+            <div className="mt-5 [&>*]:flex [&>*]:min-h-16 [&>*]:w-full [&>*]:justify-center [&>*]:text-xl">{liftCta}</div>
+          )}
+
+          <FitIdentityCard block={block} date={date} />
+
           {items.length > 0 && (
             <FairwayPanel className="mt-5">
               <div className="p-5">
@@ -773,10 +784,6 @@ export function FitTodayScreen() {
             </FairwayPanel>
           )}
 
-          <FitIdentityCard />
-
-          {block && <FitBlockPanel userId={userId} block={block} date={date} />}
-
           <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-black/[0.06]">
             <ProteinCell hits={proteinHits} goal={proteinGoal} onChange={handleProtein} />
             <KitchenCell closed={kitchenClosed} onChange={handleKitchen} />
@@ -820,6 +827,8 @@ export function FitTodayScreen() {
               }}
             />
           </div>
+
+          {block && <FitBlockPanel userId={userId} block={block} date={date} />}
 
           {isToday && block && <FitStreaksPanel userId={userId} sessionsPerWeek={block.sessionsPerWeek} refreshKey={streakKey} />}
 
