@@ -1,3 +1,4 @@
+import { trainingStreak, dayStreak, reachedMilestones, type TrainingStreak, type DayStreak } from "./fitStreaks";
 import type { BagClub, BagEntry, Drill, HandicapTier, ScoreDirection, SkillCategory } from "@golfable/shared";
 import { BAG_CLUBS, SKILL_CATEGORIES, isBetterScore } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
@@ -2028,6 +2029,7 @@ export interface FitNutritionPlan {
   carbsG: number | null;
   fatG: number | null;
   waterGoalOz: number | null;
+  proteinHitsGoal: number;
 }
 
 function toFitNutritionPlan(row: {
@@ -2042,6 +2044,7 @@ function toFitNutritionPlan(row: {
   carbs_g?: number | null;
   fat_g?: number | null;
   water_goal_oz?: number | null;
+  protein_hits_goal?: number | null;
 }): FitNutritionPlan {
   return {
     dailyCalories: row.daily_calories,
@@ -2055,6 +2058,7 @@ function toFitNutritionPlan(row: {
     carbsG: row.carbs_g ?? null,
     fatG: row.fat_g ?? null,
     waterGoalOz: row.water_goal_oz ?? null,
+    proteinHitsGoal: row.protein_hits_goal ?? 4,
   };
 }
 
@@ -2093,6 +2097,83 @@ export interface FitBlock {
   careNotes: string | null;
   status: "active" | "completed" | "planned";
   templates: FitSessionTemplate[];
+  // Block-program fields (0067). All null/empty on blocks seeded before it.
+  goalLabel: string | null;
+  targetExercise: string | null;
+  targetValue: number | null;
+  targetUnit: string | null;
+  startDate: string | null;
+  kind: string;
+  weeks: FitBlockWeek[];
+}
+
+export type FitBlockPhase = "build" | "deload" | "benchmark";
+
+export interface FitBlockWeek {
+  weekNumber: number;
+  phase: FitBlockPhase;
+  intensityPct: number | null;
+  notes: string | null;
+}
+
+// Week N of the block for a Pacific date, derived from the block's start
+// Monday -- null before the block starts or when it has no start_date.
+// Clamped to week_count so a block left running past its end reads as its
+// last week rather than "week 7 of 5".
+export function fitBlockWeekNumber(block: { startDate: string | null; weekCount: number }, date: string = todayISO()): number | null {
+  if (!block.startDate || date < block.startDate) return null;
+  const days = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${block.startDate}T00:00:00Z`)) / 86_400_000);
+  return Math.min(Math.floor(days / 7) + 1, block.weekCount);
+}
+
+type FitBlockRow = {
+  id: string;
+  name: string;
+  week_count: number;
+  sessions_per_week: number;
+  step_goal: number | null;
+  care_notes: string | null;
+  status: string;
+  goal_label: string | null;
+  target_exercise: string | null;
+  target_value: number | string | null;
+  target_unit: string | null;
+  start_date: string | null;
+  kind: string | null;
+};
+
+function toFitBlock(row: FitBlockRow, templates: FitSessionTemplate[], weeks: FitBlockWeek[]): FitBlock {
+  return {
+    id: row.id,
+    name: row.name,
+    weekCount: row.week_count,
+    sessionsPerWeek: row.sessions_per_week,
+    stepGoal: row.step_goal,
+    careNotes: row.care_notes,
+    status: row.status as FitBlock["status"],
+    templates,
+    goalLabel: row.goal_label,
+    targetExercise: row.target_exercise,
+    targetValue: row.target_value === null ? null : Number(row.target_value),
+    targetUnit: row.target_unit,
+    startDate: row.start_date,
+    kind: row.kind ?? "standard",
+    weeks,
+  };
+}
+
+async function getFitBlockWeeks(blockId: string): Promise<FitBlockWeek[]> {
+  const { data } = await supabase
+    .from("fit_block_weeks")
+    .select("week_number, phase, intensity_pct, notes")
+    .eq("block_id", blockId)
+    .order("week_number");
+  return (data ?? []).map((w) => ({
+    weekNumber: w.week_number,
+    phase: w.phase as FitBlockPhase,
+    intensityPct: w.intensity_pct,
+    notes: w.notes,
+  }));
 }
 
 // The active block plus every session template's full circuit, nested and
@@ -2101,7 +2182,9 @@ export interface FitBlock {
 export async function getActiveFitBlock(userId: string): Promise<FitBlock | null> {
   const { data: blockRow } = await supabase
     .from("fit_blocks")
-    .select("id, name, week_count, sessions_per_week, step_goal, care_notes, status")
+    .select(
+      "id, name, week_count, sessions_per_week, step_goal, care_notes, status, goal_label, target_exercise, target_value, target_unit, start_date, kind"
+    )
     .eq("user_id", userId)
     .eq("status", "active")
     .order("order_index", { ascending: false })
@@ -2109,24 +2192,12 @@ export async function getActiveFitBlock(userId: string): Promise<FitBlock | null
     .maybeSingle();
   if (!blockRow) return null;
 
-  const { data: templateRows } = await supabase
-    .from("fit_session_templates")
-    .select("id, name, order_index")
-    .eq("block_id", blockRow.id)
-    .order("order_index");
+  const [{ data: templateRows }, weeks] = await Promise.all([
+    supabase.from("fit_session_templates").select("id, name, order_index").eq("block_id", blockRow.id).order("order_index"),
+    getFitBlockWeeks(blockRow.id),
+  ]);
   const templateIds = (templateRows ?? []).map((t) => t.id);
-  if (templateIds.length === 0) {
-    return {
-      id: blockRow.id,
-      name: blockRow.name,
-      weekCount: blockRow.week_count,
-      sessionsPerWeek: blockRow.sessions_per_week,
-      stepGoal: blockRow.step_goal,
-      careNotes: blockRow.care_notes,
-      status: blockRow.status as FitBlock["status"],
-      templates: [],
-    };
-  }
+  if (templateIds.length === 0) return toFitBlock(blockRow as FitBlockRow, [], weeks);
 
   const [{ data: sectionRows }, { data: exerciseRows }] = await Promise.all([
     supabase
@@ -2160,16 +2231,7 @@ export async function getActiveFitBlock(userId: string): Promise<FitBlock | null
     sections: sectionsByTemplate.get(t.id) ?? [],
   }));
 
-  return {
-    id: blockRow.id,
-    name: blockRow.name,
-    weekCount: blockRow.week_count,
-    sessionsPerWeek: blockRow.sessions_per_week,
-    stepGoal: blockRow.step_goal,
-    careNotes: blockRow.care_notes,
-    status: blockRow.status as FitBlock["status"],
-    templates,
-  };
+  return toFitBlock(blockRow as FitBlockRow, templates, weeks);
 }
 
 export interface FitWorkoutInstance {
@@ -2235,9 +2297,17 @@ export async function getActiveWorkoutInstance(userId: string, blockId: string):
 // they're logged one set at a time as the player goes through it. A
 // section with no set_count (e.g. Foam Roll) still gets exactly one row.
 export async function startWorkout(userId: string, blockId: string, sessionTemplateId: string): Promise<string> {
+  const { data: blockRow } = await supabase.from("fit_blocks").select("start_date, week_count").eq("id", blockId).maybeSingle();
+  const weekNumber = blockRow ? fitBlockWeekNumber({ startDate: blockRow.start_date, weekCount: blockRow.week_count }) : null;
   const { data: logRow, error } = await supabase
     .from("fit_workout_logs")
-    .insert({ user_id: userId, block_id: blockId, session_template_id: sessionTemplateId, status: "in_progress" })
+    .insert({
+      user_id: userId,
+      block_id: blockId,
+      session_template_id: sessionTemplateId,
+      status: "in_progress",
+      week_number: weekNumber,
+    })
     .select("id")
     .single();
   if (error) throw error;
@@ -2254,6 +2324,13 @@ export async function startWorkout(userId: string, blockId: string, sessionTempl
       .from("fit_block_exercises")
       .select("id, section_id, order_index")
       .in("section_id", sectionIds);
+    // Slots with a swap menu start on their default option.
+    const exerciseIds = (exerciseRows ?? []).map((e) => e.id);
+    const { data: defaultRows } =
+      exerciseIds.length > 0
+        ? await supabase.from("fit_exercise_options").select("id, exercise_id").in("exercise_id", exerciseIds).eq("is_default", true)
+        : { data: [] };
+    const defaultByExercise = new Map((defaultRows ?? []).map((o) => [o.exercise_id, o.id]));
     const logs = (exerciseRows ?? []).flatMap((e) => {
       const setCount = setCountBySection.get(e.section_id) ?? 1;
       return Array.from({ length: setCount }, (_, i) => ({
@@ -2262,6 +2339,7 @@ export async function startWorkout(userId: string, blockId: string, sessionTempl
         user_id: userId,
         order_index: e.order_index,
         set_number: i + 1,
+        chosen_option_id: defaultByExercise.get(e.id) ?? null,
       }));
     });
     if (logs.length > 0) {
@@ -2286,6 +2364,18 @@ export interface FitWorkoutExercise {
   actualWeightLbs: number | null;
   completed: boolean;
   setNumber: number;
+  // Swap menu for this slot (empty = no swaps); name/cue/prescription above
+  // already reflect the chosen option.
+  options: FitExerciseOption[];
+  chosenOptionId: string | null;
+}
+
+export interface FitExerciseOption {
+  id: string;
+  name: string;
+  prescription: string | null;
+  cue: string | null;
+  isDefault: boolean;
 }
 
 export interface FitWorkoutSetGroup {
@@ -2328,7 +2418,7 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
       : Promise.resolve({ data: null as { name: string } | null }),
     supabase
       .from("fit_exercise_logs")
-      .select("id, exercise_id, completed, actual_count, actual_weight_lbs, set_number, order_index")
+      .select("id, exercise_id, completed, actual_count, actual_weight_lbs, set_number, order_index, chosen_option_id")
       .eq("workout_log_id", workoutLogId)
       .order("order_index"),
   ]);
@@ -2342,6 +2432,21 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
           .in("id", exerciseIds)
       : { data: [] };
   const exerciseById = new Map((exerciseRows ?? []).map((e) => [e.id, e]));
+
+  const { data: optionRows } =
+    exerciseIds.length > 0
+      ? await supabase
+          .from("fit_exercise_options")
+          .select("id, exercise_id, name, prescription, cue, is_default, order_index")
+          .in("exercise_id", [...new Set(exerciseIds)])
+          .order("order_index")
+      : { data: [] };
+  const optionsByExercise = new Map<string, FitExerciseOption[]>();
+  for (const o of optionRows ?? []) {
+    const list = optionsByExercise.get(o.exercise_id) ?? [];
+    list.push({ id: o.id, name: o.name, prescription: o.prescription, cue: o.cue, isDefault: o.is_default });
+    optionsByExercise.set(o.exercise_id, list);
+  }
 
   const sectionIds = [...new Set((exerciseRows ?? []).map((e) => e.section_id))];
   const { data: sectionRows } =
@@ -2357,11 +2462,13 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
     if (!exercise) continue;
     const bySet = exercisesBySectionAndSet.get(exercise.section_id) ?? new Map<number, FitWorkoutExercise[]>();
     const list = bySet.get(logRow2.set_number) ?? [];
+    const options = optionsByExercise.get(exercise.id) ?? [];
+    const chosen = options.find((o) => o.id === logRow2.chosen_option_id) ?? null;
     list.push({
       logId: logRow2.id,
       exerciseId: exercise.id,
-      name: exercise.name,
-      cue: exercise.cue,
+      name: chosen?.name ?? exercise.name,
+      cue: chosen?.cue || exercise.cue,
       targetCount: exercise.target_count,
       unit: exercise.unit,
       actualCount: logRow2.actual_count,
@@ -2370,6 +2477,8 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
       actualWeightLbs: logRow2.actual_weight_lbs,
       completed: logRow2.completed,
       setNumber: logRow2.set_number,
+      options,
+      chosenOptionId: logRow2.chosen_option_id,
     });
     bySet.set(logRow2.set_number, list);
     exercisesBySectionAndSet.set(exercise.section_id, bySet);
@@ -2408,12 +2517,32 @@ export async function updateExerciseLog(
   if (error) throw error;
 }
 
-export async function finishWorkout(workoutLogId: string): Promise<void> {
+// Swapping applies to every set of that slot in this workout -- a swap is
+// "doing a different lift today", not a per-set choice.
+export async function chooseExerciseOption(workoutLogId: string, exerciseId: string, optionId: string): Promise<void> {
+  const { error } = await supabase
+    .from("fit_exercise_logs")
+    .update({ chosen_option_id: optionId })
+    .eq("workout_log_id", workoutLogId)
+    .eq("exercise_id", exerciseId);
+  if (error) throw error;
+}
+
+// Completing a workout fires the fit_award_lift_prs trigger (0067), which
+// writes a lift_pr badge for every lift whose top set beat the previous
+// best -- returned here so the runner can celebrate them.
+export async function finishWorkout(workoutLogId: string): Promise<FitBadge[]> {
   const { error } = await supabase
     .from("fit_workout_logs")
     .update({ status: "completed", completed_at: new Date().toISOString() })
     .eq("id", workoutLogId);
   if (error) throw error;
+  const { data } = await supabase
+    .from("fit_badges")
+    .select(FIT_BADGE_COLUMNS)
+    .eq("workout_log_id", workoutLogId)
+    .eq("type", "lift_pr");
+  return (data ?? []).map(toFitBadge);
 }
 
 // Backs out of a workout started by mistake -- cascades to its exercise logs.
@@ -2764,20 +2893,30 @@ export interface FitDailyLog {
   logDate: string;
   waterOz: number;
   sleepHours: number | null;
+  proteinHits: number;
+  kitchenClosedBy: boolean | null;
 }
 
-function toFitDailyLog(row: { log_date: string; water_oz: number; sleep_hours: number | string | null }): FitDailyLog {
+function toFitDailyLog(row: {
+  log_date: string;
+  water_oz: number;
+  sleep_hours: number | string | null;
+  protein_hits?: number | null;
+  kitchen_closed_by?: boolean | null;
+}): FitDailyLog {
   return {
     logDate: row.log_date,
     waterOz: row.water_oz,
     sleepHours: row.sleep_hours === null ? null : Number(row.sleep_hours),
+    proteinHits: row.protein_hits ?? 0,
+    kitchenClosedBy: row.kitchen_closed_by ?? null,
   };
 }
 
 export async function getFitDailyLogs(userId: string, startDate: string, endDate: string): Promise<FitDailyLog[]> {
   const { data } = await supabase
     .from("fit_daily_logs")
-    .select("log_date, water_oz, sleep_hours")
+    .select("log_date, water_oz, sleep_hours, protein_hits, kitchen_closed_by")
     .eq("user_id", userId)
     .gte("log_date", startDate)
     .lte("log_date", endDate)
@@ -2788,11 +2927,13 @@ export async function getFitDailyLogs(userId: string, startDate: string, endDate
 export async function saveFitDailyLog(
   userId: string,
   date: string,
-  updates: { waterOz?: number; sleepHours?: number | null }
+  updates: { waterOz?: number; sleepHours?: number | null; proteinHits?: number; kitchenClosedBy?: boolean | null }
 ): Promise<void> {
   const payload: Record<string, unknown> = { user_id: userId, log_date: date, updated_at: new Date().toISOString() };
   if (updates.waterOz !== undefined) payload.water_oz = Math.max(0, Math.round(updates.waterOz));
   if (updates.sleepHours !== undefined) payload.sleep_hours = updates.sleepHours;
+  if (updates.proteinHits !== undefined) payload.protein_hits = Math.min(8, Math.max(0, Math.round(updates.proteinHits)));
+  if (updates.kitchenClosedBy !== undefined) payload.kitchen_closed_by = updates.kitchenClosedBy;
   const { error } = await supabase.from("fit_daily_logs").upsert(payload, { onConflict: "user_id,log_date" });
   if (error) throw error;
 }
@@ -3085,3 +3226,217 @@ export async function deleteFitRoutineItem(userId: string, id: string): Promise<
   const { error } = await supabase.from("fit_routine_items").delete().eq("id", id).eq("user_id", userId);
   if (error) throw error;
 }
+
+// ---------------------------------------------------------------------------
+// Golfable Fit: badges, block goals, benchmarks, streaks (0067)
+// ---------------------------------------------------------------------------
+
+export type FitBadgeType =
+  | "lift_pr"
+  | "training_streak"
+  | "protein_streak"
+  | "kitchen_streak"
+  | "water_streak"
+  | "benchmark_beat"
+  | "block_goal";
+
+export interface FitBadge {
+  id: string;
+  type: FitBadgeType;
+  label: string;
+  value: number | null;
+  earnedOn: string;
+  seen: boolean;
+}
+
+const FIT_BADGE_COLUMNS = "id, type, label, value, earned_on, seen";
+
+function toFitBadge(row: { id: string; type: string; label: string; value: number | string | null; earned_on: string; seen: boolean }): FitBadge {
+  return {
+    id: row.id,
+    type: row.type as FitBadgeType,
+    label: row.label,
+    value: row.value === null ? null : Number(row.value),
+    earnedOn: row.earned_on,
+    seen: row.seen,
+  };
+}
+
+export async function getFitBadges(userId: string, limit = 30): Promise<FitBadge[]> {
+  const { data } = await supabase
+    .from("fit_badges")
+    .select(FIT_BADGE_COLUMNS)
+    .eq("user_id", userId)
+    .order("earned_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map(toFitBadge);
+}
+
+export async function markFitBadgesSeen(badgeIds: string[]): Promise<void> {
+  if (badgeIds.length === 0) return;
+  const { error } = await supabase.from("fit_badges").update({ seen: true }).in("id", badgeIds);
+  if (error) throw error;
+}
+
+export interface FitBlockGoal {
+  id: string;
+  title: string;
+  metric: string;
+  target: number | null;
+  achievedAt: string | null;
+}
+
+export async function getFitBlockGoals(blockId: string): Promise<FitBlockGoal[]> {
+  const { data } = await supabase
+    .from("fit_block_goals")
+    .select("id, title, metric, target, achieved_at")
+    .eq("block_id", blockId)
+    .order("order_index");
+  return (data ?? []).map((g) => ({
+    id: g.id,
+    title: g.title,
+    metric: g.metric,
+    target: g.target === null ? null : Number(g.target),
+    achievedAt: g.achieved_at,
+  }));
+}
+
+export async function setFitBlockGoalAchieved(userId: string, goal: FitBlockGoal, achieved: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("fit_block_goals")
+    .update({ achieved_at: achieved ? new Date().toISOString() : null })
+    .eq("id", goal.id);
+  if (error) throw error;
+  if (achieved) await insertBadgeOnce({ user_id: userId, type: "block_goal", label: goal.title });
+}
+
+export interface FitBenchmarkResult {
+  id: string;
+  blockId: string;
+  metric: string;
+  value: number;
+  unit: string | null;
+  testedOn: string;
+  previousValue: number | null;
+  previousTestedOn: string | null;
+  // null = first time testing this metric, nothing to beat yet.
+  beatLastTime: boolean | null;
+}
+
+export async function getFitBenchmarks(userId: string): Promise<FitBenchmarkResult[]> {
+  const { data } = await supabase
+    .from("fit_benchmark_comparisons")
+    .select("id, block_id, metric, value, unit, tested_on, previous_value, previous_tested_on, beat_last_time")
+    .eq("user_id", userId)
+    .order("tested_on", { ascending: false });
+  return (data ?? []).map((b) => ({
+    id: b.id,
+    blockId: b.block_id,
+    metric: b.metric,
+    value: Number(b.value),
+    unit: b.unit,
+    testedOn: b.tested_on,
+    previousValue: b.previous_value === null ? null : Number(b.previous_value),
+    previousTestedOn: b.previous_tested_on,
+    beatLastTime: b.beat_last_time,
+  }));
+}
+
+// Logs a benchmark and returns it compared to the last result for the
+// same metric -- awarding a benchmark_beat badge when it's better.
+export async function saveFitBenchmark(
+  userId: string,
+  blockId: string,
+  input: { metric: string; value: number; unit: string | null; testedOn?: string }
+): Promise<FitBenchmarkResult | null> {
+  const { data, error } = await supabase
+    .from("fit_benchmarks")
+    .insert({
+      user_id: userId,
+      block_id: blockId,
+      metric: input.metric,
+      value: input.value,
+      unit: input.unit,
+      tested_on: input.testedOn ?? todayISO(),
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  const result = (await getFitBenchmarks(userId)).find((b) => b.id === data.id) ?? null;
+  if (result?.beatLastTime) {
+    await insertBadgeOnce({ user_id: userId, type: "benchmark_beat", label: input.metric, value: input.value, earned_on: result.testedOn });
+  }
+  return result;
+}
+
+// Badge uniqueness lives in partial unique indexes, which PostgREST's
+// upsert can't target -- so insert and treat a duplicate as "already
+// earned". Returns true only when this call earned it.
+async function insertBadgeOnce(row: Record<string, unknown>): Promise<boolean> {
+  const { error } = await supabase.from("fit_badges").insert(row);
+  if (!error) return true;
+  if (error.code === "23505") return false;
+  throw error;
+}
+
+export interface FitStreaks {
+  training: TrainingStreak;
+  protein: DayStreak;
+  kitchen: DayStreak;
+  water: DayStreak;
+  // Milestone badges earned by this check (empty if nothing new).
+  newBadges: FitBadge[];
+}
+
+const NUTRITION_STREAKS = [
+  { key: "protein", column: "protein_hit", badge: "protein_streak", label: "Protein" },
+  { key: "kitchen", column: "kitchen_hit", badge: "kitchen_streak", label: "Kitchen closed by 8" },
+  { key: "water", column: "water_hit", badge: "water_streak", label: "Water" },
+] as const;
+
+// Training + nutrition streaks as of today, writing any newly reached
+// 7/14/21-day nutrition milestones into fit_badges along the way.
+export async function getFitStreaks(userId: string): Promise<FitStreaks> {
+  const today = todayISO();
+  const from = addDaysISO(today, -180);
+  const [{ data: planRows }, { data: workoutRows }, { data: hitRows }] = await Promise.all([
+    supabase.from("fit_workout_plans").select("planned_date").eq("user_id", userId).gte("planned_date", from).lte("planned_date", today),
+    supabase
+      .from("fit_workout_logs")
+      .select("completed_at")
+      .eq("user_id", userId)
+      .eq("status", "completed")
+      .gte("completed_at", addDaysISO(from, -1)),
+    supabase
+      .from("fit_nutrition_day_hits")
+      .select("log_date, protein_hit, kitchen_hit, water_hit")
+      .eq("user_id", userId)
+      .gte("log_date", from)
+      .lte("log_date", today),
+  ]);
+
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: GOLFABLE_TZ });
+  const completedDays = (workoutRows ?? []).filter((r) => r.completed_at).map((r) => fmt.format(new Date(r.completed_at as string)));
+  const training = trainingStreak(
+    (planRows ?? []).map((r) => r.planned_date),
+    completedDays,
+    today
+  );
+
+  const streaks = {} as Record<(typeof NUTRITION_STREAKS)[number]["key"], DayStreak>;
+  const newBadges: FitBadge[] = [];
+  for (const s of NUTRITION_STREAKS) {
+    const hits = new Map((hitRows ?? []).map((r) => [r.log_date as string, Boolean(r[s.column])]));
+    const streak = dayStreak(hits, today);
+    streaks[s.key] = streak;
+    for (const m of reachedMilestones(streak)) {
+      const row = { user_id: userId, type: s.badge, label: `${m.days}-day ${s.label} streak`, value: m.days, earned_on: m.earnedOn };
+      if (await insertBadgeOnce(row)) {
+        newBadges.push({ id: "", type: s.badge, label: row.label, value: m.days, earnedOn: m.earnedOn, seen: false });
+      }
+    }
+  }
+
+  return { training, ...streaks, newBadges };
+}
+export type { TrainingStreak, DayStreak } from "./fitStreaks";

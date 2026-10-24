@@ -6,6 +6,7 @@ import {
   updateExerciseLog,
   finishWorkout,
   abandonWorkout,
+  chooseExerciseOption,
   getDrillForDate,
   getMyScoreForDate,
   getPreviousExerciseResults,
@@ -14,8 +15,10 @@ import {
   type FitWorkoutSectionView,
   type FitWorkoutExercise,
   type FitPreviousResults,
+  type FitExerciseOption,
 } from "../../lib/golfableApi";
 import { ChevronLeft, Meter } from "../../components/ui";
+import { CelebrationToast } from "../../components/CelebrationToast";
 
 function ChevronDownIcon({ className, open }: { className?: string; open: boolean }) {
   return (
@@ -310,6 +313,58 @@ function SetRow({
   );
 }
 
+// Swap menu for a slot -- one chip per option; picking one swaps every set
+// of that slot in this workout. Only shown while the slot is untouched, so
+// a half-logged lift can't silently change name underneath its numbers.
+function SwapMenu({
+  exercise,
+  locked,
+  onSwap,
+}: {
+  exercise: FitWorkoutExercise;
+  locked: boolean;
+  onSwap: (option: FitExerciseOption) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (exercise.options.length < 2) return null;
+  return (
+    <div className="border-b border-neutral-100 px-4 py-2">
+      <button
+        type="button"
+        disabled={locked}
+        onClick={() => setOpen((o) => !o)}
+        className="font-label text-brand text-sm font-semibold disabled:text-neutral-300"
+        aria-expanded={open}
+      >
+        {locked ? `${exercise.name} · started, can't swap` : open ? "Keep this lift" : `Swap ${exercise.name}`}
+      </button>
+      {open && !locked && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {exercise.options.map((option) => {
+            const chosen = option.id === exercise.chosenOptionId || (!exercise.chosenOptionId && option.isDefault);
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  if (!chosen) onSwap(option);
+                }}
+                className={`font-label rounded-full px-3 py-1.5 text-left text-sm font-semibold ${
+                  chosen ? "bg-brand text-white" : "bg-neutral-100 text-neutral-700"
+                }`}
+              >
+                {option.name}
+                {option.prescription && <span className={chosen ? "text-white/70" : "text-neutral-400"}> · {option.prescription}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionBlock({
   section,
   previous,
@@ -319,6 +374,7 @@ function SectionBlock({
   onToggle,
   onChangeCount,
   onChangeWeight,
+  onSwap,
 }: {
   section: FitWorkoutSectionView;
   previous: FitPreviousResults;
@@ -328,6 +384,7 @@ function SectionBlock({
   onToggle: (exercise: FitWorkoutExercise, flavor: SectionFlavor) => void;
   onChangeCount: (exercise: FitWorkoutExercise, value: number) => void;
   onChangeWeight: (exercise: FitWorkoutExercise, value: number) => void;
+  onSwap: (exercise: FitWorkoutExercise, option: FitExerciseOption) => void;
 }) {
   const flavor = sectionFlavor(section.title);
   const all = section.sets.flatMap((s) => s.exercises);
@@ -337,6 +394,8 @@ function SectionBlock({
   // list the sets. Everything else is a circuit: each round lists its moves.
   const singleExercise = new Set(all.map((e) => e.exerciseId)).size === 1;
   const firstExercise = all[0];
+  // First set of each distinct slot, in order -- the swap menus key off it.
+  const slots = [...new Map(all.map((e) => [e.exerciseId, e])).values()];
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
@@ -362,6 +421,15 @@ function SectionBlock({
       </button>
       {open && (
         <div className="border-t border-neutral-100">
+          {!readOnly &&
+            slots.map((slot) => (
+              <SwapMenu
+                key={slot.exerciseId}
+                exercise={slot}
+                locked={all.some((e) => e.exerciseId === slot.exerciseId && e.completed)}
+                onSwap={(option) => onSwap(slot, option)}
+              />
+            ))}
           {singleExercise && firstExercise?.cue && (
             <p className="font-body border-b border-neutral-100 bg-neutral-50 px-4 py-2.5 text-sm leading-relaxed text-neutral-600">{firstExercise.cue}</p>
           )}
@@ -407,6 +475,7 @@ export function FitWorkoutScreen() {
   const [discarding, setDiscarding] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [cooldownHref, setCooldownHref] = useState<string | null>(null);
+  const [prMessage, setPrMessage] = useState<string | null>(null);
   const [openSectionIds, setOpenSectionIds] = useState<Set<string>>(new Set());
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -544,17 +613,36 @@ export function FitWorkoutScreen() {
     await Promise.all([exercise, ...later].map((e) => updateExerciseLog(e.logId, { actualWeightLbs: value })));
   }
 
+  async function handleSwap(exercise: FitWorkoutExercise, option: FitExerciseOption) {
+    if (!workoutLogId || !session) return;
+    const logIds = session.sections
+      .flatMap((s) => s.sets.flatMap((set) => set.exercises))
+      .filter((e) => e.exerciseId === exercise.exerciseId)
+      .map((e) => e.logId);
+    updateLocal(logIds, { chosenOptionId: option.id, name: option.name, cue: option.cue ?? exercise.cue });
+    await chooseExerciseOption(workoutLogId, exercise.exerciseId, option.id);
+  }
+
   async function handleFinish() {
     if (!workoutLogId) return;
     setFinishing(true);
     try {
-      await finishWorkout(workoutLogId);
+      const prs = await finishWorkout(workoutLogId);
+      if (prs.length > 0) {
+        setPrMessage(
+          prs.length === 1
+            ? `New PR: ${prs[0].label} at ${prs[0].value} lbs!`
+            : `${prs.length} new PRs: ${prs.map((b) => `${b.label} ${b.value}`).join(", ")}`
+        );
+      }
       const date = todayISO();
       const found = await getDrillForDate(date);
       if (found) {
         const existingScore = await getMyScoreForDate(userId, found.drill.id, date);
         if (existingScore !== null) {
-          navigate("/app/fit/today");
+          // Let a PR toast play before leaving the screen.
+          if (prs.length > 0) setTimeout(() => navigate("/app/fit/today"), 2800);
+          else navigate("/app/fit/today");
           return;
         }
         setCooldownHref("/app/today");
@@ -617,6 +705,7 @@ export function FitWorkoutScreen() {
             onToggle={handleToggle}
             onChangeCount={handleCountChange}
             onChangeWeight={handleWeightChange}
+            onSwap={handleSwap}
           />
         ))}
       </div>
@@ -658,6 +747,7 @@ export function FitWorkoutScreen() {
         </div>
       )}
 
+      {prMessage && <CelebrationToast message={prMessage} particles={["🏋️", "🔥", "🏆", "💪"]} onDone={() => setPrMessage(null)} />}
       {confirmDiscard && <DiscardPrompt busy={discarding} onConfirm={handleDiscard} onCancel={() => setConfirmDiscard(false)} />}
       {cooldownHref && <CooldownPrompt onConfirm={() => navigate(cooldownHref)} onDismiss={() => navigate("/app/fit/today")} />}
     </div>
