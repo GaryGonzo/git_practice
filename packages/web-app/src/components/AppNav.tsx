@@ -5,6 +5,7 @@ import { updateProfile } from "../lib/golfableApi";
 import { JUST_LOGGED_IN_KEY } from "../lib/sessionFlags";
 import { WelcomeWalkthrough } from "./WelcomeWalkthrough";
 import { WelcomeBackModal } from "./WelcomeBackModal";
+import { LockIcon } from "./RequireFitAccess";
 
 type NavItem = { to: string; label: string; end: boolean; icon: (props: { className?: string }) => React.ReactElement };
 
@@ -19,7 +20,13 @@ function golfNav(hasFit: boolean): NavItem[] {
     { to: "/app/leaderboard", label: "Leaders", end: false, icon: LeaderboardIcon },
     { to: "/app/profile", label: "Profile", end: false, icon: ProfileIcon },
   ];
-  if (hasFit) items.push({ to: "/app/fit/today", label: "Fit", end: false, icon: SwitchIcon });
+  // Everyone sees the Fit tab; without access it shows a lock and opens the
+  // "coming soon" screen (RequireFitAccess) instead of Fit itself.
+  items.push(
+    hasFit
+      ? { to: "/app/fit/today", label: "Fit", end: false, icon: SwitchIcon }
+      : { to: "/app/fit", label: "Fit", end: false, icon: LockIcon },
+  );
   return items;
 }
 
@@ -169,7 +176,7 @@ export function AppShell() {
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const hasFit = profile?.fit_access ?? false;
   const onLauncher = hasFit && (pathname === "/app" || pathname === "/app/");
-  const navItems = pathname.startsWith("/app/fit") ? FIT_NAV : golfNav(hasFit);
+  const navItems = hasFit && pathname.startsWith("/app/fit") ? FIT_NAV : golfNav(hasFit);
 
   useEffect(() => {
     if (sessionStorage.getItem(JUST_LOGGED_IN_KEY)) {

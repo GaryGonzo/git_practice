@@ -216,7 +216,7 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ease-out ${
+      className={`transition-all duration-700 ease-out motion-reduce:translate-y-0 motion-reduce:opacity-100 motion-reduce:transition-none ${
         visible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
       } ${className}`}
     >
@@ -280,18 +280,21 @@ function Eyebrow({ children, tone = "light" }: { children: ReactNode; tone?: "li
   );
 }
 
-const HOW_IT_WORKS = [
+const HOW_IT_WORKS: { step: string; title: string; body: string; icon: ComponentType<{ className?: string }> }[] = [
   {
+    icon: CalendarCheckIcon,
     step: "1",
     title: "One shared Golfable, every day",
     body: "Everyone training that day — your buddies, your club, golfers around the world — gets the exact same drill. Same setup, same rules, same target.",
   },
   {
+    icon: TargetIcon,
     step: "2",
     title: "Scored to your handicap tier",
     body: "Targets are set for Scratch+, Low, Mid, and High separately, so the challenge is calibrated to your game, not a stranger's.",
   },
   {
+    icon: TrophyIcon,
     step: "3",
     title: "Log it, track it, climb the board",
     body: "Log your score in seconds. Watch your trend on drills you repeat, hit your weekly practice goal, and see where you land on today's leaderboard.",
@@ -705,6 +708,81 @@ const MEMBER_BENEFITS: {
   },
 ];
 
+// Logo lockup in one place, so swapping /golfable-mark-*.png (or the
+// wordmark) later only touches GolfableMark and this component.
+function BrandLockup({ tone = "on-light" }: { tone?: "on-light" | "on-dark" }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <GolfableMark className="h-9 w-9" tone={tone} />
+      <span className={`font-display text-3xl tracking-wide ${tone === "on-dark" ? "text-white" : "text-brand"}`}>
+        GOLFABLE
+      </span>
+    </div>
+  );
+}
+
+function FlameIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.2 1-3.6 2-4.6.3 1.6 1 2.6 2 3.1C10.5 9 11 5.5 12 3Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DumbbellMiniIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M3 12h2M19 12h2M8 12h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="5" y="8.5" width="3" height="7" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="16" y="8.5" width="3" height="7" rx="1" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function LeafIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14Zm0 0 7-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const PILLARS: {
+  key: string;
+  name: string;
+  tagline: string;
+  icon: ComponentType<{ className?: string }>;
+  points: string[];
+  soon: boolean;
+}[] = [
+  {
+    key: "practice",
+    name: "Practice",
+    tagline: "Open now",
+    icon: TargetIcon,
+    points: ["A new daily Golfable, every day", "Scored drills by handicap tier", "Daily leaderboard and friend challenges"],
+    soon: false,
+  },
+  {
+    key: "train",
+    name: "Train",
+    tagline: "Golfable Fit",
+    icon: DumbbellMiniIcon,
+    points: ["5-week golf strength blocks", "Swap menus for every lift", "Streaks and PR badges"],
+    soon: true,
+  },
+  {
+    key: "fuel",
+    name: "Fuel",
+    tagline: "Golfable Fuel",
+    icon: LeafIcon,
+    points: ["Simple weekly meal plans", "A ready-made shopping list", "A healthy mocktail generator"],
+    soon: true,
+  },
+];
+
+const STREAK_DAYS = ["M", "T", "W", "T", "F", "S", "S"];
+
 export function MarketingHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
@@ -717,105 +795,136 @@ export function MarketingHome() {
   const showCountdown = spotsRemaining !== null && spotsRemaining / FOUNDER_SPOTS <= COUNTDOWN_THRESHOLD;
   const spotsFull = spotsRemaining === 0;
 
-  return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900">
-      <div className="bg-brand-dark px-6 py-2 text-center">
-        <p className="font-label text-gold text-sm font-semibold tracking-wide whitespace-nowrap">
-          {spotsFull
-            ? "FOUNDER SPOTS ARE FULL."
-            : showCountdown
-              ? `ONLY ${spotsRemaining} FOUNDER SPOT${spotsRemaining === 1 ? "" : "S"} LEFT — FREE FOREVER.`
-              : "100 FOUNDER SPOTS — FREE FOREVER."}{" "}
-          <Link to={joinHref} className="underline underline-offset-2" onClick={() => trackCta("banner")}>
-            {spotsFull ? "Join the waitlist" : "Claim yours"}
-          </Link>
-        </p>
-      </div>
+  const spotsMessage = spotsFull
+    ? "Founder spots are full"
+    : showCountdown
+      ? `Only ${spotsRemaining} founder spot${spotsRemaining === 1 ? "" : "s"} left · free forever`
+      : "100 founder spots · free forever";
+  const heroDrill = SNEAK_PEEK_DRILLS[0];
 
-      <header className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
-        <div className="flex items-center gap-2.5">
-          <GolfableMark className="h-9 w-9" />
-          <span className="font-display text-brand text-3xl tracking-wide">GOLFABLE</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link to="/studios" className="font-label hidden text-sm font-semibold text-neutral-600 sm:inline-block">
-            For Studios
+  return (
+    <div className="min-h-screen overflow-x-clip bg-neutral-50 text-neutral-900">
+      <header className="sticky top-0 z-40 border-b border-neutral-200/80 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+          <Link to="/" aria-label="Golfable home" className="flex min-h-11 items-center">
+            <BrandLockup />
           </Link>
-          <Link
-            to={loginHref}
-            className="font-label rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-600"
-          >
-            Log In
-          </Link>
-          <Link
-            to={joinHref}
-            className="font-label rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"
-            onClick={() => trackCta("header")}
-          >
-            Join Free
-          </Link>
+          <nav className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/studios"
+              className="font-label hidden min-h-11 items-center px-2 text-sm font-semibold text-neutral-600 sm:inline-flex"
+            >
+              For Studios
+            </Link>
+            <Link
+              to={loginHref}
+              className="font-label inline-flex min-h-11 items-center rounded-md px-3 text-sm font-semibold text-neutral-700"
+            >
+              Log In
+            </Link>
+            <Link
+              to={joinHref}
+              className="font-label bg-brand inline-flex min-h-11 items-center rounded-md px-4 text-sm font-semibold text-white"
+              onClick={() => trackCta("header")}
+            >
+              Join free
+            </Link>
+          </nav>
         </div>
       </header>
 
       <main>
-        <section className="relative flex min-h-[92vh] items-center overflow-hidden px-6 py-24 text-center">
+        {/* Hero: crisp dark brand field, one founder message, product front and center. */}
+        <section className="bg-brand-dark relative overflow-hidden">
           <div
-            className="absolute inset-0"
+            className="pointer-events-none absolute inset-0 opacity-[0.35]"
             style={{
-              backgroundImage: "url(/hero-course.png)",
-              backgroundSize: "cover",
-              backgroundPosition: "center 60%",
-              animation: "ken-burns 22s ease-in-out infinite alternate",
+              background:
+                "radial-gradient(60% 60% at 80% 30%, rgba(201,162,74,0.35), transparent 70%), radial-gradient(50% 60% at 10% 90%, rgba(46,110,77,0.6), transparent 70%)",
             }}
+            aria-hidden="true"
           />
-          <div className="from-brand-dark/80 absolute inset-0 bg-gradient-to-t via-black/30 to-black/10" />
-          <div className="relative w-full">
-            <div className="flex justify-center">
-              <span className="font-label inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold tracking-widest text-white uppercase backdrop-blur-sm">
-                100 Founder Spots — Free Forever
-              </span>
+          <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pt-14 pb-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:pt-20 lg:pb-24">
+            <div className="text-center lg:text-left">
+              <Link
+                to={joinHref}
+                onClick={() => trackCta("hero-pill")}
+                className="font-label border-gold/40 bg-gold/10 text-gold inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-xs font-semibold tracking-widest uppercase"
+              >
+                <span className="bg-gold h-1.5 w-1.5 rounded-full" aria-hidden="true" />
+                {spotsMessage}
+              </Link>
+              <h1 className="font-display mt-6 text-6xl leading-[0.9] tracking-wide text-white sm:text-8xl">
+                Practice.
+                <br />
+                <span className="text-gold">Gamified.</span>
+              </h1>
+              <p className="font-body mx-auto mt-5 max-w-md text-lg text-white/85 sm:text-xl lg:mx-0">
+                One scored golf challenge a day, built for your handicap, with no swing changes.
+              </p>
+              <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+                <Link
+                  to={joinHref}
+                  className="font-label bg-gold text-brand-dark inline-flex min-h-12 items-center rounded-md px-8 text-base font-semibold shadow-lg shadow-black/30 transition-transform hover:-translate-y-0.5 motion-reduce:transform-none"
+                  onClick={() => trackCta("hero")}
+                >
+                  Join free
+                </Link>
+                <span className="font-body text-sm text-white/60">No card required</span>
+              </div>
+              <ul className="font-label mt-10 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-semibold text-white/70 lg:justify-start">
+                <li>✓ Same clubs</li>
+                <li>✓ Minutes a day</li>
+                <li>✓ Scored by tier</li>
+              </ul>
             </div>
-            <h1 className="font-display mt-5 text-5xl tracking-wide text-white sm:text-7xl">
-              Practice. <span className="text-gold">Gamified.</span>
-            </h1>
-            <p className="font-body mx-auto mt-4 max-w-xl text-lg text-white/85">
-              Intelligently and intuitively programmed practice — scored, tracked, competitive, and
-              gamified — built to make real progress in your golf game.
-            </p>
-            <Link
-              to={joinHref}
-              className="font-label bg-gold text-brand-dark mt-8 inline-block rounded-md px-7 py-3.5 text-sm font-semibold shadow-lg"
-              onClick={() => trackCta("hero")}
-            >
-              Join free — no card required
-            </Link>
-          </div>
-          <div className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 animate-bounce sm:block">
-            <svg viewBox="0 0 20 20" fill="none" className="h-6 w-6 text-white/70" aria-hidden="true">
-              <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="bg-gold/20 absolute -inset-6 rounded-[3rem] blur-2xl" aria-hidden="true" />
+                <div className="relative w-[270px] rounded-[2.5rem] bg-neutral-900 p-2.5 shadow-2xl ring-1 ring-white/10 sm:w-[300px]">
+                  <div className="flex justify-center pt-1 pb-1.5">
+                    <div className="h-1.5 w-16 rounded-full bg-neutral-700" />
+                  </div>
+                  <div className="relative max-h-[540px] overflow-hidden rounded-[2rem] bg-neutral-50" aria-label="The Golfable Today screen">
+                    <DrillFreshView
+                      drill={heroDrill.drill}
+                      tier="mid"
+                      maxScore={heroDrill.maxScore}
+                      weeklyGoal={4}
+                      sessionsThisWeek={2}
+                      date={todayISO()}
+                      interactive={false}
+                    />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-neutral-50" aria-hidden="true" />
+                  </div>
+                </div>
+                <div className="font-label absolute -bottom-4 -left-4 flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold shadow-xl sm:-left-10">
+                  <TrophyIcon className="text-gold h-5 w-5" />
+                  #3 in Mid today
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="bg-brand-dark px-6 py-5">
-          <p className="font-body mx-auto max-w-2xl text-center text-sm text-white/90">
-            <span className="font-label font-semibold text-white">No swing changes. No swing tips.</span>{" "}
-            Golfable doesn't touch your mechanics — it changes how you practice and train, so the
-            improvement is real and it lasts.
+        <section className="bg-gold px-5 py-4">
+          <p className="font-body text-brand-dark mx-auto max-w-3xl text-center text-sm sm:text-base">
+            <span className="font-display mr-1.5 text-xl tracking-wide sm:text-2xl">No swing changes. No swing tips.</span>{" "}
+            Golfable changes how you practice and train, not your mechanics.
           </p>
         </section>
 
-        <section className="bg-white px-6 py-20 sm:py-28">
+        <section className="bg-white px-5 py-16 sm:px-6 sm:py-24">
           <Reveal className="mx-auto max-w-3xl">
             <Eyebrow>Why Golfable</Eyebrow>
-            <h3 className="font-display mt-3 text-center text-4xl tracking-wide sm:text-5xl">
+            <h2 className="font-display mt-3 text-center text-4xl tracking-wide sm:text-6xl">
               More instruction than ever.
               <br className="hidden sm:block" /> Handicaps haven't moved.
-            </h3>
+            </h2>
             <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
-              Golfers today have more lessons, technology, and data available than any generation before
-              them — and average handicaps haven't improved in decades. That's not an information
-              problem.
+              Golfers have more lessons, tech, and data than any generation before, and average handicaps
+              haven't improved in decades. That's not an information problem.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -823,8 +932,8 @@ export function MarketingHome() {
                   The problem
                 </p>
                 <p className="font-body mt-2 text-sm text-neutral-700">
-                  Hitting range balls for an hour doesn't transfer to the course. Endless reps with no
-                  score, no target, and no reason to care just builds a better range game.
+                  An hour of range balls with no score, no target, and no reason to care just builds a
+                  better range game.
                 </p>
               </div>
               <div className="bg-brand rounded-xl p-6 text-white shadow-lg">
@@ -832,61 +941,185 @@ export function MarketingHome() {
                   The Golfable way
                 </p>
                 <p className="font-body mt-2 text-sm text-white/90">
-                  Short, scored sessions built around real on-course situations — not swing mechanics.
-                  Every Golfable is gamified and over in minutes, so you actually do it, and it shows up
-                  in your score.
+                  Short, scored sessions built around real on-course situations. Gamified, over in
+                  minutes, so you actually do it and it shows up in your score.
                 </p>
               </div>
             </div>
           </Reveal>
         </section>
 
-        <section className="bg-neutral-50 px-6 py-20 sm:py-28">
-          <Reveal className="mx-auto max-w-3xl">
+        <section className="bg-neutral-50 px-5 py-16 sm:px-6 sm:py-24">
+          <Reveal className="mx-auto max-w-5xl">
             <Eyebrow>How it works</Eyebrow>
-            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-              {HOW_IT_WORKS.map((item) => (
-                <div key={item.step} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
-                  <div className="font-display bg-brand flex h-7 w-7 items-center justify-center rounded-full text-sm text-white sm:h-8 sm:w-8">
-                    {item.step}
+            <h2 className="font-display mt-3 text-center text-4xl tracking-wide sm:text-5xl">Three steps. Every day.</h2>
+            <ol className="mt-10 grid gap-4 md:grid-cols-3">
+              {HOW_IT_WORKS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <li key={item.step} className="relative flex gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-neutral-200 md:flex-col">
+                    <div className="bg-brand text-gold flex h-12 w-12 flex-none items-center justify-center rounded-xl">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="font-display text-brand/40 text-sm tracking-widest">STEP {item.step}</p>
+                      <h3 className="font-label text-base font-semibold sm:text-lg">{item.title}</h3>
+                      <p className="font-body mt-1 text-sm text-neutral-600">{item.body}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </Reveal>
+        </section>
+
+        <section className="bg-brand-dark px-5 py-16 sm:px-6 sm:py-24">
+          <Reveal className="mx-auto max-w-6xl min-w-0">
+            <Eyebrow tone="dark">A Peek Inside the App</Eyebrow>
+            <h2 className="font-display mt-3 text-center text-4xl tracking-wide text-white sm:text-5xl">Your Today screen</h2>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-sm text-white/70">
+              Four real Golfables, one per skill category, exactly how they land when you open the app.
+              <span className="lg:hidden"> Swipe to see more.</span>
+            </p>
+            <div className="relative mt-10">
+              <div className="no-scrollbar -mx-5 flex snap-x snap-mandatory scroll-px-5 gap-5 overflow-x-auto px-5 pb-2 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-5 lg:overflow-visible lg:px-0">
+                {SNEAK_PEEK_DRILLS.map(({ drill, maxScore }) => (
+                  <div
+                    key={drill.id}
+                    className="w-[260px] flex-none snap-start rounded-[2.25rem] bg-neutral-900 p-2.5 shadow-2xl lg:w-auto"
+                  >
+                    <div className="flex justify-center pt-1 pb-1.5">
+                      <div className="h-1.5 w-16 rounded-full bg-neutral-700" />
+                    </div>
+                    <div className="max-h-[520px] overflow-y-auto rounded-[1.75rem] bg-neutral-50">
+                      <DrillFreshView
+                        drill={drill}
+                        tier="mid"
+                        maxScore={maxScore}
+                        weeklyGoal={4}
+                        sessionsThisWeek={2}
+                        date={todayISO()}
+                        interactive={false}
+                      />
+                    </div>
                   </div>
-                  <h3 className="font-label mt-3 text-sm font-semibold sm:text-base">{item.title}</h3>
-                  <p className="font-body mt-1.5 text-xs text-neutral-600 sm:text-sm">{item.body}</p>
-                </div>
-              ))}
+                ))}
+              </div>
+              <div className="from-brand-dark pointer-events-none absolute inset-y-0 right-[-1.25rem] w-12 bg-gradient-to-l lg:hidden" aria-hidden="true" />
             </div>
           </Reveal>
         </section>
 
-        <section className="bg-brand-dark overflow-x-clip px-6 py-20 sm:py-28">
-          <Reveal className="mx-auto max-w-3xl min-w-0">
-            <Eyebrow tone="dark">A Peek Inside the App</Eyebrow>
-            <p className="font-body mx-auto mt-3 max-w-xl text-center text-sm text-white/70">
-              Four real Golfables, one per skill category, shown exactly how they'd land on your Today
-              screen the moment you open the app. Swipe to see more.
+        <section className="bg-white px-5 py-16 sm:px-6 sm:py-24">
+          <Reveal className="mx-auto max-w-6xl">
+            <Eyebrow>Where Golfable is headed</Eyebrow>
+            <h2 className="font-display mt-3 text-center text-5xl tracking-wide sm:text-7xl">
+              Practice. <span className="text-brand">Train.</span> <span className="text-gold">Fuel.</span>
+            </h2>
+            <p className="font-body mx-auto mt-3 max-w-xl text-center text-neutral-600">
+              Practice is open to everyone today. Train and Fuel are in testing with a small group.
             </p>
-            <div className="no-scrollbar -mx-6 mt-10 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-2">
-              {SNEAK_PEEK_DRILLS.map(({ drill, maxScore }) => (
-                <div
-                  key={drill.id}
-                  className="w-[260px] flex-none snap-center rounded-[2.25rem] bg-neutral-900 p-2.5 shadow-2xl sm:w-[280px]"
-                >
-                  <div className="flex justify-center pt-1 pb-1.5">
-                    <div className="h-1.5 w-16 rounded-full bg-neutral-700" />
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
+              {PILLARS.map((pillar) => {
+                const Icon = pillar.icon;
+                return (
+                  <div
+                    key={pillar.key}
+                    className={`relative flex flex-col rounded-2xl p-6 ${
+                      pillar.soon ? "bg-neutral-50 ring-1 ring-neutral-200" : "bg-brand text-white shadow-lg"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                          pillar.soon ? "bg-brand/10 text-brand" : "text-gold bg-white/10"
+                        }`}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <span
+                        className={`font-label rounded-full px-3 py-1 text-xs font-semibold tracking-wide uppercase ${
+                          pillar.soon ? "bg-neutral-900 text-white" : "bg-gold text-brand-dark"
+                        }`}
+                      >
+                        {pillar.soon ? "Coming soon · invite only" : "Open now"}
+                      </span>
+                    </div>
+                    <h3 className="font-display mt-5 text-4xl tracking-wide">{pillar.name}</h3>
+                    <p className={`font-label text-sm font-semibold ${pillar.soon ? "text-neutral-500" : "text-white/70"}`}>
+                      {pillar.soon ? pillar.tagline : "The daily Golfable"}
+                    </p>
+                    <ul className="font-body mt-4 space-y-2 text-sm">
+                      {pillar.points.map((point) => (
+                        <li key={point} className="flex gap-2">
+                          <CheckIcon className={`mt-0.5 h-4 w-4 flex-none ${pillar.soon ? "text-brand" : "text-gold"}`} />
+                          <span className={pillar.soon ? "text-neutral-700" : "text-white/90"}>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {!pillar.soon && (
+                      <Link
+                        to={joinHref}
+                        onClick={() => trackCta("pillar-practice")}
+                        className="font-label bg-gold text-brand-dark mt-6 inline-flex min-h-11 items-center justify-center rounded-md px-5 text-sm font-semibold"
+                      >
+                        Join free
+                      </Link>
+                    )}
                   </div>
-                  <div className="max-h-[600px] overflow-y-auto rounded-[1.75rem] bg-neutral-50">
-                    <DrillFreshView
-                      drill={drill}
-                      tier="mid"
-                      maxScore={maxScore}
-                      weeklyGoal={4}
-                      sessionsThisWeek={2}
-                      date={todayISO()}
-                      interactive={false}
-                    />
-                  </div>
+                );
+              })}
+            </div>
+          </Reveal>
+        </section>
+
+        <section className="bg-brand px-5 py-16 text-white sm:px-6 sm:py-24">
+          <Reveal className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2">
+            <div className="text-center md:text-left">
+              <p className="font-label text-gold text-sm font-semibold tracking-widest uppercase">The daily habit</p>
+              <h2 className="font-display mt-2 text-5xl leading-none tracking-wide sm:text-6xl">
+                Motivation fades.
+                <br />
+                <span className="text-gold">Streaks don't.</span>
+              </h2>
+              <p className="font-body mx-auto mt-4 max-w-md text-white/80 md:mx-0">
+                Set a weekly practice goal, play the day's Golfable, and watch the streak build. A few minutes
+                a day adds up to a number you can actually see move.
+              </p>
+            </div>
+            <div className="mx-auto w-full max-w-sm rounded-2xl bg-white p-5 text-neutral-900 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FlameIcon className="text-gold h-6 w-6" />
+                  <span className="font-display text-3xl tracking-wide">12-day streak</span>
                 </div>
-              ))}
+              </div>
+              <div className="mt-4 grid grid-cols-7 gap-1.5">
+                {STREAK_DAYS.map((d, i) => (
+                  <div key={i} className="flex flex-col items-center gap-1">
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                        i < 5 ? "bg-brand text-white" : i === 5 ? "border-gold text-gold border-2 border-dashed" : "bg-neutral-100"
+                      }`}
+                    >
+                      {i < 5 && <CheckIcon className="h-4 w-4" />}
+                    </div>
+                    <span className="font-label text-xs text-neutral-500">{d}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5">
+                <div className="font-label flex justify-between text-sm font-semibold">
+                  <span>Weekly goal</span>
+                  <span className="text-brand">4 / 4 ✓</span>
+                </div>
+                <div className="mt-1.5 h-2.5 rounded-full bg-neutral-100">
+                  <div className="bg-brand h-2.5 w-full rounded-full" />
+                </div>
+              </div>
+              <p className="font-body mt-4 rounded-lg bg-neutral-50 p-3 text-sm text-neutral-600">
+                <span className="font-semibold text-neutral-900">Today: </span>play the Golfable to keep it going.
+              </p>
             </div>
           </Reveal>
         </section>
@@ -1246,14 +1479,14 @@ export function MarketingHome() {
 
       <footer className="bg-brand-dark px-6 py-10 text-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
-          <GolfableMark className="h-9 w-9" tone="on-dark" />
+          <BrandLockup tone="on-dark" />
           <p className="font-body text-sm text-white/40">{CAPTION_HASHTAGS}</p>
-          <Link to="/terms" className="font-label text-sm font-semibold text-white/50 underline">
+          <Link to="/terms" className="font-label inline-flex min-h-11 items-center text-sm font-semibold text-white/60 underline">
             Terms of Service
           </Link>
           <Link
             to="/studios"
-            className="font-label mt-1 text-sm font-semibold text-white/70 underline sm:hidden"
+            className="font-label mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-white/70 underline sm:hidden"
           >
             Studio Owners, Golf Course Managers, PGA Pros, etc. — Click Here
           </Link>
