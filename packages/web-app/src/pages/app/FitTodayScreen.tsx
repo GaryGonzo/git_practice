@@ -28,6 +28,7 @@ import { FairwayPanel, Meter, ChevronLeft, ChevronRight } from "../../components
 import { FitBlockPanel } from "../../components/FitBlockPanel";
 import { FitIdentityCard } from "../../components/FitIdentityCard";
 import { FitStreaksPanel } from "../../components/FitStreaksPanel";
+import { FitNutritionWeekCard } from "../../components/FitNutritionWeekCard";
 import { ScreenSkeleton } from "../../components/FitPanelStates";
 
 function CheckIcon({ className }: { className?: string }) {
@@ -831,6 +832,8 @@ export function FitTodayScreen() {
           {block && <FitBlockPanel userId={userId} block={block} date={date} />}
 
           {isToday && block && <FitStreaksPanel userId={userId} sessionsPerWeek={block.sessionsPerWeek} refreshKey={streakKey} />}
+
+          {isToday && <FitNutritionWeekCard userId={userId} refreshKey={streakKey} />}
 
           <button
             type="button"
