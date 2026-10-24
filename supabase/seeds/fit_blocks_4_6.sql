@@ -1,4 +1,4 @@
--- Golfable Fit: Blocks 4-6 (Nov 30 2026 -> Mar 14 2027). NOT a migration --
+-- Golfable Fit: Blocks 4-6 (Oct 26 2026 -> Feb 7 2027, back to back). NOT a migration --
 -- run by hand (SQL editor / psql) once 0067 is live. Idempotent: each
 -- block is skipped if one with the same name already exists for Gary.
 --
@@ -8,7 +8,8 @@
 --
 -- Knee-safe by design: no running, jumping, or HIIT; bilateral lifts
 -- only (no lunges/split squats/step-ups); no drills that drive the left
--- hip into internal rotation under load. Everything seeds as 'planned';
+-- hip into internal rotation under load. Block 4 seeds as 'active' (Block 3
+-- is closed out first); Blocks 5-6 seed as 'planned';
 -- tracks_weight lifts start with target_weight_lbs = null (build by feel).
 
 -- Scratch helpers live in pg_temp and disappear with the session.
@@ -89,15 +90,15 @@ declare
   ex uuid;
 begin
   ---------------------------------------------------------------------------
-  -- Block 4: Foundation Strength (Mon Nov 30 2026 - Sun Jan 3 2027)
+  -- Block 4: Foundation Strength (Mon Oct 26 - Sun Nov 29 2026)
   ---------------------------------------------------------------------------
   if not exists (select 1 from fit_blocks where user_id = gary_id and name = 'Block 4') then
     insert into fit_blocks (user_id, name, week_count, sessions_per_week, step_goal, care_notes, status, order_index,
                             goal_label, target_exercise, target_value, target_unit, start_date, kind)
     values (gary_id, 'Block 4', 5, 4, 8000,
       'Foundation Strength. Mon/Tue/Thu/Fri, about 45 min. Box squat to a box at or just above knee height -- sit back, never bounce. No running, jumping, or single-leg loading. Ice the knee if it flares.',
-      'planned', 4,
-      'Foundation Strength', 'Bench Press', null, 'lbs for 5x5', '2026-11-30', 'strength')
+      'active', 4,
+      'Foundation Strength', 'Bench Press', null, 'lbs for 5x5', '2026-10-26', 'strength')
     returning id into blk;
     perform pg_temp.add_weeks(blk, gary_id, 'bench press 5x5');
 
@@ -160,7 +161,7 @@ begin
   end if;
 
   ---------------------------------------------------------------------------
-  -- Block 5: Rotate and Reach (Mon Jan 4 - Sun Feb 7 2027)
+  -- Block 5: Rotate and Reach (Mon Nov 30 2026 - Sun Jan 3 2027)
   ---------------------------------------------------------------------------
   if not exists (select 1 from fit_blocks where user_id = gary_id and name = 'Block 5') then
     insert into fit_blocks (user_id, name, week_count, sessions_per_week, step_goal, care_notes, status, order_index,
@@ -168,7 +169,7 @@ begin
     values (gary_id, 'Block 5', 5, 4, 8000,
       'Rotate and Reach. Strength stays, rotation and T-spine reach come in. Rotate through the upper back with the hips quiet -- no drills that drive the left hip into internal rotation. No running, jumping, or single-leg loading.',
       'planned', 5,
-      'Rotate and Reach', 'Hang Deadlift', null, 'lbs for 5x3', '2027-01-04', 'mobility')
+      'Rotate and Reach', 'Hang Deadlift', null, 'lbs for 5x3', '2026-11-30', 'mobility')
     returning id into blk;
     perform pg_temp.add_weeks(blk, gary_id, 'hang deadlift 5x3');
 
@@ -230,7 +231,7 @@ begin
   end if;
 
   ---------------------------------------------------------------------------
-  -- Block 6: Power and Speed (Mon Feb 8 - Sun Mar 14 2027)
+  -- Block 6: Power and Speed (Mon Jan 4 - Sun Feb 7 2027)
   ---------------------------------------------------------------------------
   if not exists (select 1 from fit_blocks where user_id = gary_id and name = 'Block 6') then
     insert into fit_blocks (user_id, name, week_count, sessions_per_week, step_goal, care_notes, status, order_index,
@@ -238,7 +239,7 @@ begin
     values (gary_id, 'Block 6', 5, 4, 8000,
       'Power and Speed. Fast intent with no jumping or running. Throws are standing, feet square, with the turn coming from the upper back and the trail side -- do not drive into the left hip. Stop any set once speed drops.',
       'planned', 6,
-      'Power and Speed', 'Med-Ball Rotational Throw', null, 'ft (best of 3 each side)', '2027-02-08', 'power')
+      'Power and Speed', 'Med-Ball Rotational Throw', null, 'ft (best of 3 each side)', '2027-01-04', 'power')
     returning id into blk;
     perform pg_temp.add_weeks(blk, gary_id, 'med-ball rotational throw distance');
 
