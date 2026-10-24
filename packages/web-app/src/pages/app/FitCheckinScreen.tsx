@@ -1,3 +1,4 @@
+import { ScreenSkeleton } from "../../components/FitPanelStates";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthProvider";
@@ -267,7 +268,7 @@ export function FitCheckinScreen() {
       </div>
 
       {loading ? (
-        <div className="p-6 text-center font-body text-neutral-500">Loading…</div>
+        <div className="mx-auto max-w-md px-4"><ScreenSkeleton /></div>
       ) : (
         <>
           <FairwayPanel className="mt-5">

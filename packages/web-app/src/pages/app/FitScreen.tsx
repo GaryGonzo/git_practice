@@ -1,3 +1,4 @@
+import { ScreenSkeleton } from "../../components/FitPanelStates";
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthProvider";
@@ -828,7 +829,7 @@ export function FitScreen() {
   }
 
   if (loading) {
-    return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
+    return <div className="mx-auto max-w-md px-4"><ScreenSkeleton /></div>;
   }
 
   const activeTemplateName = block?.templates.find((t) => t.id === activeInstance?.sessionTemplateId)?.name ?? "Workout";

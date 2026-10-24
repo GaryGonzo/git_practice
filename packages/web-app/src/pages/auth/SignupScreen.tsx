@@ -134,7 +134,7 @@ export function SignupScreen() {
               required
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+              className="font-body mt-1 min-h-11 w-full rounded-md border border-neutral-300 px-3 py-2 text-base"
             />
           </div>
           <div>
@@ -146,7 +146,7 @@ export function SignupScreen() {
               required
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+              className="font-body mt-1 min-h-11 w-full rounded-md border border-neutral-300 px-3 py-2 text-base"
             />
           </div>
         </div>
@@ -160,7 +160,7 @@ export function SignupScreen() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="font-body mt-1 min-h-11 w-full rounded-md border border-neutral-300 px-3 py-2 text-base"
           />
         </div>
 
@@ -174,7 +174,7 @@ export function SignupScreen() {
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="font-body mt-1 w-full rounded-md border border-neutral-300 px-3 py-2"
+            className="font-body mt-1 min-h-11 w-full rounded-md border border-neutral-300 px-3 py-2 text-base"
           />
         </div>
 
@@ -188,7 +188,7 @@ export function SignupScreen() {
                 key={t}
                 type="button"
                 onClick={() => setTier(t)}
-                className={`font-label rounded-md border px-3 py-2 text-sm font-semibold ${
+                className={`font-label min-h-11 rounded-md border px-3 py-2 text-sm font-semibold ${
                   tier === t
                     ? "bg-brand border-brand text-white"
                     : "border-neutral-300 text-neutral-600"
@@ -209,7 +209,7 @@ export function SignupScreen() {
               type="button"
               onClick={() => setShowWeeklyGoalInfo((v) => !v)}
               aria-label="What is the weekly goal?"
-              className="text-neutral-400"
+              className="-my-3 p-3 text-neutral-400"
             >
               <InfoIcon className="h-3.5 w-3.5" />
             </button>
@@ -227,7 +227,7 @@ export function SignupScreen() {
                 key={n}
                 type="button"
                 onClick={() => setWeeklyGoal(n)}
-                className={`font-label rounded-md border px-2 py-2 text-sm font-semibold ${
+                className={`font-label min-h-11 rounded-md border px-2 py-2 text-sm font-semibold ${
                   weeklyGoal === n
                     ? "bg-brand border-brand text-white"
                     : "border-neutral-300 text-neutral-600"
@@ -254,7 +254,7 @@ export function SignupScreen() {
         <button
           type="submit"
           disabled={submitting}
-          className="font-label bg-brand w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="font-label bg-brand min-h-12 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
           {submitting ? "Creating account…" : "Create account"}
         </button>
