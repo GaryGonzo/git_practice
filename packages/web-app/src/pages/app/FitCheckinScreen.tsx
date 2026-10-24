@@ -1,4 +1,5 @@
 import { ScreenSkeleton } from "../../components/FitPanelStates";
+import { FitNutritionWeekCard } from "../../components/FitNutritionWeekCard";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../lib/AuthProvider";
@@ -294,6 +295,8 @@ export function FitCheckinScreen() {
             )}
           </div>
           </FairwayPanel>
+
+          <FitNutritionWeekCard userId={userId} weekStart={weekStart} withHarperCopy />
 
           <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-black/[0.06]">
             <Stat

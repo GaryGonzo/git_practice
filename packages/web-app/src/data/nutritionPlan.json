@@ -1,0 +1,662 @@
+{
+ "for": "Gary Gonzalez - Golfable Fit",
+ "author": "Harper (nutrition)",
+ "targets": {
+  "note": "All calorie/macro numbers are approximate.",
+  "block": "Block 4 Foundation Strength, Oct 26 - Nov 29, 2026",
+  "daily": {
+   "kcal": 2150,
+   "protein_g": 195,
+   "carbs_g": 205,
+   "fat_g": 57
+  },
+  "deload": {
+   "week": 5,
+   "dates": "Nov 23 - Nov 29",
+   "kcal": 2500,
+   "note": "Maintenance; keep protein ~195 g, add carbs"
+  },
+  "water_oz": 110,
+  "protein_hits_per_day": 4,
+  "protein_hit_g": "45-50",
+  "kitchen_closed": "20:00",
+  "weekly_mini_goals": [
+   "Protein hits 4/4 on 5+ days",
+   "Kitchen closed by 8pm 5+ nights",
+   "Water goal (110 oz) 5+ days",
+   "Sunday prep done",
+   "Drinks only on one planned night (Friday)"
+  ],
+  "streak_targets_days": [
+   7,
+   14,
+   21
+  ],
+  "weigh_ins": "Daily morning weigh-in, reported to Harper; judged on weekly average"
+ },
+ "schedule": {
+  "breakfast": "7:15",
+  "lunch": "12:00",
+  "pre_lift_snack": "14:30",
+  "lift": "15:30",
+  "post_workout": "16:45",
+  "dinner": "18:30 (done by 19:30)",
+  "kitchen_closed": "20:00"
+ },
+ "daily_totals_approx": "~2,150-2,200 kcal, ~200 g protein",
+ "meals": [
+  {
+   "id": "protein-shake",
+   "name": "Protein Shake",
+   "slot": "Breakfast 7:15",
+   "days": [
+    "Mon",
+    "Wed",
+    "Fri"
+   ],
+   "kcal": 425,
+   "protein_g": 47,
+   "photo": "/nutrition/meals/protein-shake.webp",
+   "ingredients": [
+    "1.25 scoops Levels whey (~38 g)",
+    "1 cup Fairlife fat-free milk",
+    "1/2 frozen banana",
+    "1/2 cup frozen blueberries",
+    "1 tbsp peanut butter",
+    "4-6 ice cubes, optional"
+   ],
+   "steps": [
+    "Add milk first, then remaining ingredients to blender.",
+    "Blend 45-60 sec until smooth."
+   ]
+  },
+  {
+   "id": "eggs-and-salsa",
+   "name": "Eggs + Salsa",
+   "slot": "Breakfast 7:15",
+   "days": [
+    "Tue",
+    "Thu"
+   ],
+   "kcal": 445,
+   "protein_g": 45,
+   "photo": "/nutrition/meals/eggs-and-salsa.webp",
+   "ingredients": [
+    "3 whole eggs",
+    "1 cup liquid egg whites",
+    "1/4 cup salsa",
+    "Cooking spray",
+    "Pinch salt and pepper",
+    "1 cup berries or 1 medium orange"
+   ],
+   "steps": [
+    "Whisk eggs and egg whites with salt and pepper.",
+    "Spray nonstick pan, medium-low heat; scramble 3-4 min until just set.",
+    "Top with salsa; fruit on the side."
+   ]
+  },
+  {
+   "id": "greek-chicken-bowl",
+   "name": "Greek Chicken Bowl",
+   "slot": "Lunch 12:00 (eaten cold)",
+   "days": [
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri"
+   ],
+   "kcal": 480,
+   "protein_g": 49,
+   "photo": "/nutrition/meals/greek-chicken-bowl.webp",
+   "ingredients": [
+    "5 oz cooked chicken breast (Sunday prep)",
+    "3/4 cup cooked rice",
+    "2 cups chopped cucumber + grape tomatoes",
+    "1/4 cup pickled red onion",
+    "4 pepperoncini",
+    "1 tbsp red wine vinegar",
+    "1 tsp olive oil",
+    "1/4 tsp oregano",
+    "Pinch salt and pepper"
+   ],
+   "steps": [
+    "Pre-packed Sunday: chicken + rice in container.",
+    "Add veg, onion, pepperoncini (veg Mon-Wed chopped Sunday, Thu-Fri chopped Wed night).",
+    "Dress with vinegar, oil, oregano, salt, pepper. Eat cold."
+   ]
+  },
+  {
+   "id": "banana-and-jerky",
+   "name": "Banana + Beef Jerky",
+   "slot": "Pre-lift snack 2:30",
+   "days": [
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri"
+   ],
+   "kcal": 190,
+   "protein_g": 12,
+   "photo": "/nutrition/meals/banana-and-jerky.webp",
+   "ingredients": [
+    "1 medium banana",
+    "1 oz beef jerky (pre-portioned bag)"
+   ],
+   "steps": [
+    "Zero prep; keep in desk drawer."
+   ]
+  },
+  {
+   "id": "crockpot-beef-stew",
+   "name": "Crockpot Beef Stew",
+   "slot": "Post-workout ~4:45",
+   "days": [
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri"
+   ],
+   "kcal": 545,
+   "protein_g": 53,
+   "servings": 5,
+   "photo": "/nutrition/meals/crockpot-beef-stew.webp",
+   "ingredients": [
+    "2.5 lb top round or eye of round, 1.5 in chunks",
+    "2.5 lb Yukon gold potatoes, chunked",
+    "1 lb carrots, 1 in pieces",
+    "1 yellow onion, diced",
+    "4 cloves garlic, minced",
+    "1 can (28 oz) diced tomatoes",
+    "2 tbsp tomato paste",
+    "2 cups low-sodium beef broth",
+    "1 tbsp oregano",
+    "1 tsp thyme",
+    "2 tsp garlic powder",
+    "1 tsp smoked paprika",
+    "1.5 tsp salt",
+    "1 tsp pepper",
+    "2 bay leaves",
+    "1 bag (12 oz) frozen cut green beans",
+    "2 tbsp cornstarch + 2 tbsp cold water",
+    "1 tbsp red wine vinegar"
+   ],
+   "steps": [
+    "Add beef, potatoes, carrots, onion, garlic to crockpot.",
+    "Add tomatoes, tomato paste, broth and all seasonings; stir; cover.",
+    "Cook LOW 8 hr or HIGH 4-5 hr.",
+    "Last 30 min: stir in green beans, then cornstarch slurry.",
+    "Remove bay leaves, stir in vinegar, split into 5 containers. Reheat 2-3 min. No celery."
+   ]
+  },
+  {
+   "id": "sheet-pan-chicken-dinner",
+   "name": "Sheet-Pan Chicken + Steamer Veg",
+   "slot": "Dinner ~6:30 (done by 7:30)",
+   "days": [
+    "Mon",
+    "Tue (leftovers)"
+   ],
+   "kcal": 520,
+   "protein_g": 53,
+   "servings": 2,
+   "photo": "/nutrition/meals/sheet-pan-chicken-dinner.webp",
+   "ingredients": [
+    "1 lb chicken breast (2 servings)",
+    "2 tsp oil",
+    "1 tsp oregano",
+    "1 tsp garlic powder",
+    "1 tsp smoked paprika",
+    "3/4 tsp salt",
+    "1/2 tsp pepper",
+    "Juice of 1/2 lemon",
+    "Per serving: 1 steamer veggie bag (or 1/2 large bag), 1/2 cup cooked rice"
+   ],
+   "steps": [
+    "Heat oven to 425F.",
+    "Toss chicken with oil, seasonings and lemon on lined sheet pan.",
+    "Bake 20-22 min to 165F.",
+    "Microwave steamer bag while it bakes.",
+    "Plate half with 1/2 cup rice and veg; pack the other half for Tuesday."
+   ]
+  },
+  {
+   "id": "shrimp-rice-bowl",
+   "name": "Shrimp Rice Bowl",
+   "slot": "Dinner ~6:30 (done by 7:30)",
+   "days": [
+    "Wed",
+    "Thu"
+   ],
+   "kcal": 520,
+   "protein_g": 50,
+   "photo": "/nutrition/meals/shrimp-rice-bowl.webp",
+   "ingredients": [
+    "8 oz precooked frozen shrimp",
+    "1 tsp Old Bay",
+    "Juice of 1/2 lemon",
+    "1/2 cup cooked rice",
+    "1 steamer veggie bag"
+   ],
+   "steps": [
+    "Thaw shrimp in a bowl of cold water ~5 min; drain and pat dry.",
+    "Toss with Old Bay and lemon.",
+    "Eat cold or warm in pan 2 min.",
+    "Serve over rice with microwaved steamer veg."
+   ]
+  },
+  {
+   "id": "date-night-sirloin-chimichurri",
+   "name": "Date-Night Sirloin with Chimichurri (lemon-free, serves 2)",
+   "slot": "Dinner Fri (planned drinks night)",
+   "days": [
+    "Fri"
+   ],
+   "kcal": 600,
+   "protein_g": 52,
+   "servings": 2,
+   "photo": "/nutrition/meals/date-night-sirloin-chimichurri.webp",
+   "ingredients": [
+    "Steaks: 2 top sirloin steaks (8 oz each); per steak 1/2 tsp kosher salt, 1/4 tsp pepper, 1/4 tsp garlic powder; 1 tsp oil for pan",
+    "Potatoes: 600 g Yukon gold (300 g each), chunked; 1 tsp oil, 1/2 tsp oregano, 1/2 tsp garlic powder, 1/2 tsp salt",
+    "Asparagus: 1 bunch, woody ends snapped; salt and pepper",
+    "Greek salad: 2 romaine hearts chopped, 1 cucumber, 1 cup grape tomatoes, 1/4 cup pickled red onion, 4-5 kalamata olives, 3-4 pepperoncini; dressing 1.5 tbsp red wine vinegar, 1 tsp olive oil, 1/2 tsp oregano, 1/4 tsp garlic powder, pinch salt and pepper",
+    "Chimichurri: 2 tbsp olive oil, 1 tbsp red wine vinegar, 1/4 cup chopped parsley, 1 minced garlic clove, 1/2 tsp oregano, pinch red pepper flakes, 1/4 tsp salt"
+   ],
+   "steps": [
+    "Pat steaks dry and season; rest at room temp 20 min.",
+    "Mix chimichurri; set aside.",
+    "Air fry potatoes 400F 15-18 min, shake halfway.",
+    "Heat cast iron with 1 tsp oil until smoking; sear steaks 3-4 min per side to 130F (medium-rare); rest 5 min.",
+    "Same pan: asparagus with salt and pepper 4-5 min.",
+    "Toss salad with dressing.",
+    "Slice steak, spoon chimichurri over. Pair with 2 mocktails (or one light planned drink)."
+   ]
+  }
+ ],
+ "week_menu": {
+  "Mon": [
+   "protein-shake",
+   "greek-chicken-bowl",
+   "banana-and-jerky",
+   "crockpot-beef-stew",
+   "sheet-pan-chicken-dinner"
+  ],
+  "Tue": [
+   "eggs-and-salsa",
+   "greek-chicken-bowl",
+   "banana-and-jerky",
+   "crockpot-beef-stew",
+   "sheet-pan-chicken-dinner (leftovers)"
+  ],
+  "Wed": [
+   "protein-shake",
+   "greek-chicken-bowl",
+   "banana-and-jerky",
+   "crockpot-beef-stew",
+   "shrimp-rice-bowl"
+  ],
+  "Thu": [
+   "eggs-and-salsa",
+   "greek-chicken-bowl",
+   "banana-and-jerky",
+   "crockpot-beef-stew",
+   "shrimp-rice-bowl"
+  ],
+  "Fri": [
+   "protein-shake",
+   "greek-chicken-bowl",
+   "banana-and-jerky",
+   "crockpot-beef-stew",
+   "date-night-sirloin-chimichurri"
+  ]
+ },
+ "shopping_list": {
+  "store": "WinCo Foods, Springfield (in-store only, no online ordering)",
+  "week_of": "Oct 26, 2026",
+  "sections": {
+   "Produce": [
+    "Cucumbers - 4",
+    "Grape tomatoes - 2 clamshells (10 oz)",
+    "Red onions - 2",
+    "Yellow onion - 1",
+    "Yukon gold potatoes - 1 bag (5 lb; need ~3.8 lb incl. Fri)",
+    "Carrots - 1 bag (1 lb)",
+    "Garlic - 1 head",
+    "Lemons - 3",
+    "Bananas - 1 bunch (5, slightly green)",
+    "Asparagus - 1 bunch",
+    "Romaine hearts - 1 pack (3 ct)",
+    "Flat-leaf parsley - 1 bunch",
+    "Berries or oranges - 1 clamshell berries or 2 oranges (Tue/Thu breakfast)"
+   ],
+   "Meat": [
+    "Top round or eye of round roast - 1 package (~2.5 lb; not pre-cut stew meat)",
+    "Top sirloin steaks - 2 (~8 oz each)"
+   ],
+   "Frozen": [
+    "Cooked peeled shrimp - 1 bag (1 lb)",
+    "Steamer veggie bags - 4 (mix broccoli, green beans, California blend)",
+    "Cut green beans - 1 bag (12 oz)"
+   ],
+   "Canned & Jarred": [
+    "Diced tomatoes - 1 can (28 oz)",
+    "Tomato paste - 1 can (6 oz)",
+    "Low-sodium beef broth - 1 carton (32 oz)",
+    "Pepperoncini - 1 jar (16 oz), if low",
+    "Salsa - 1 jar (16 oz), if low",
+    "Kalamata olives - 1 jar, if low",
+    "Red wine vinegar - 1 bottle, if low"
+   ],
+   "Baking": [
+    "Cornstarch - 1 box, if out"
+   ],
+   "Dairy & Eggs": [
+    "Eggs - 1 dozen",
+    "Liquid egg whites - 1 carton (32 oz)"
+   ],
+   "Snacks": [
+    "Beef jerky - 5 oz total (1 large bag or 5 x 1 oz bags; bulk bins work)"
+   ],
+   "Spices (check first)": [
+    "Oregano",
+    "Thyme",
+    "Bay leaves",
+    "Smoked paprika",
+    "Garlic powder",
+    "Old Bay",
+    "Red pepper flakes",
+    "Kosher salt"
+   ],
+   "Mocktail add-ons": [
+    "Limes - 6",
+    "Grapefruit - 1",
+    "Oranges - 2",
+    "Sparkling water - 1 twelve-pack (unflavored or lime)",
+    "Lapsang souchong or smoked black tea - 1 box",
+    "Black tea bags - 1 box, if out",
+    "Hibiscus tea - 1 box",
+    "Fresh mint - 1 pack",
+    "Fresh ginger - 1 small knob",
+    "Jalapeno - 1",
+    "Unsweetened tart cherry juice - 1 small bottle",
+    "100% pomegranate juice - 1 small bottle",
+    "Cinnamon sticks - 1 jar, if out"
+   ]
+  },
+  "on_hand": [
+   "Frozen chicken breast (thaw 3 lb: 2 lb Sunday lunches, 1 lb Monday sheet pan)",
+   "Rice",
+   "Levels whey",
+   "Fairlife fat-free milk",
+   "Peanut butter",
+   "Frozen banana",
+   "Frozen blueberries",
+   "Olive oil",
+   "Sugar"
+  ]
+ },
+ "prep_day": {
+  "day": "Sunday Oct 25",
+  "hands_on_min": 60,
+  "steps": [
+   "1. Start crockpot stew first (morning): cut beef, potatoes, carrots, onion, garlic; add tomatoes, paste, broth, seasonings; LOW 8 hr. Last 30 min add green beans + slurry; finish with vinegar; portion into 5 containers.",
+   "2. Rice cooker: 2 cups dry rice (~6 cups cooked). 3/4 cup per lunch x5; rest for dinners (1/2 cup each).",
+   "3. Lunch chicken: toss 2 lb thawed breast with 1 tbsp oil, 1 tbsp oregano, 2 tsp garlic powder, 1 tsp smoked paprika, 1 tsp salt, 1/2 tsp pepper, juice of 1 lemon. Bake 425F 20-25 min to 165F. Rest 5 min, slice, ~5 oz into each of 5 containers with rice.",
+   "4. Pickled onions: slice 1 red onion into a jar; add 1/2 cup red wine vinegar, 1/2 cup water, 1 tsp sugar, 1 tsp salt; shake; refrigerate (ready in 1 hr, lasts 2 weeks).",
+   "5. Veg: chop cucumbers and tomatoes for Mon-Wed lunches; chop the rest Wed night.",
+   "6. Snacks: portion jerky into 5 x 1 oz bags; put bananas + jerky in work bag/desk drawer.",
+   "7. Move 1 lb chicken to fridge for Monday's sheet pan if not already thawed.",
+   "Midweek: Wed night chop Thu-Fri veg; Fri thaw nothing (steaks fresh)."
+  ]
+ },
+ "mocktails": {
+  "notes": "Weeknight swap for whiskey; all <=40 kcal approx. Only 08 and 09 are lemon-forward. No celery.",
+  "recipes": [
+   {
+    "id": "01",
+    "name": "Smoky Orange Old Fashioned (NA)",
+    "ingredients": [
+     "6 oz lapsang souchong tea, brewed strong and chilled (1 bag per 6 oz, steep 5 min)",
+     "1 wide orange peel",
+     "1 cinnamon stick",
+     "2 dashes alcohol-free aromatic bitters (optional)",
+     "1 large ice cube"
+    ],
+    "steps": [
+     "Brew and chill tea.",
+     "Express orange peel over a rocks glass and rub the rim.",
+     "Add ice, tea, bitters; stir 15 sec; garnish with peel and cinnamon stick."
+    ],
+    "kcal_approx": 5,
+    "tags": [
+     "smoky",
+     "bitter",
+     "whiskey-style",
+     "low-sugar",
+     "orange"
+    ],
+    "photo": "/nutrition/mocktails/01-smoky-orange-old-fashioned.webp"
+   },
+   {
+    "id": "02",
+    "name": "Grapefruit Rosemary Spritz",
+    "ingredients": [
+     "2 oz fresh grapefruit juice",
+     "6 oz sparkling water",
+     "1 rosemary sprig",
+     "Ice",
+     "Grapefruit wheel"
+    ],
+    "steps": [
+     "Lightly bruise rosemary in glass.",
+     "Add ice and grapefruit juice; top with sparkling water.",
+     "Garnish with grapefruit wheel and rosemary."
+    ],
+    "kcal_approx": 25,
+    "tags": [
+     "citrus",
+     "bubbly",
+     "herbal"
+    ],
+    "photo": "/nutrition/mocktails/02-grapefruit-rosemary-spritz.webp"
+   },
+   {
+    "id": "03",
+    "name": "Cucumber Mint Lime Cooler",
+    "ingredients": [
+     "1 oz fresh lime juice",
+     "4 thin cucumber slices or ribbons",
+     "6 mint leaves",
+     "8 oz sparkling water",
+     "Ice"
+    ],
+    "steps": [
+     "Muddle mint and 2 cucumber slices gently.",
+     "Add ice, lime juice, remaining cucumber.",
+     "Top with sparkling water; stir."
+    ],
+    "kcal_approx": 10,
+    "tags": [
+     "citrus",
+     "bubbly",
+     "herbal",
+     "low-sugar"
+    ],
+    "photo": "/nutrition/mocktails/03-cucumber-mint-lime-cooler.webp"
+   },
+   {
+    "id": "04",
+    "name": "Jalapeno Lime Fizz",
+    "ingredients": [
+     "1 oz fresh lime juice",
+     "2-3 jalapeno slices",
+     "8 oz sparkling water",
+     "Chili-salt rim (1/4 tsp chili powder + pinch salt)",
+     "Ice"
+    ],
+    "steps": [
+     "Rim glass with lime wedge then chili-salt.",
+     "Muddle jalapeno lightly with lime juice.",
+     "Add ice, top with sparkling water."
+    ],
+    "kcal_approx": 10,
+    "tags": [
+     "spicy",
+     "citrus",
+     "bubbly",
+     "low-sugar"
+    ],
+    "photo": "/nutrition/mocktails/04-jalapeno-lime-fizz.webp"
+   },
+   {
+    "id": "05",
+    "name": "Orange Basil Smash",
+    "ingredients": [
+     "1.5 oz fresh orange juice",
+     "1/2 oz fresh lime juice",
+     "5 basil leaves",
+     "6 oz sparkling water",
+     "Crushed ice"
+    ],
+    "steps": [
+     "Muddle basil with citrus juices.",
+     "Fill glass with crushed ice.",
+     "Top with sparkling water; garnish with orange half-wheel."
+    ],
+    "kcal_approx": 28,
+    "tags": [
+     "citrus",
+     "herbal",
+     "bubbly"
+    ],
+    "photo": "/nutrition/mocktails/05-orange-basil-smash.webp"
+   },
+   {
+    "id": "06",
+    "name": "Black Cherry Smoke (NA Manhattan-style)",
+    "ingredients": [
+     "1 oz unsweetened tart cherry juice",
+     "4 oz lapsang souchong or smoked black tea, chilled",
+     "2 oz sparkling water",
+     "Orange peel",
+     "2 dashes alcohol-free aromatic bitters (optional)",
+     "1 large ice cube"
+    ],
+    "steps": [
+     "Stir cherry juice, smoked tea and bitters over ice.",
+     "Top with sparkling water.",
+     "Express orange peel; garnish."
+    ],
+    "kcal_approx": 35,
+    "tags": [
+     "smoky",
+     "bitter",
+     "whiskey-style",
+     "fruity"
+    ],
+    "photo": "/nutrition/mocktails/06-black-cherry-smoke.webp"
+   },
+   {
+    "id": "07",
+    "name": "Hibiscus Ginger Iced Tea",
+    "ingredients": [
+     "8 oz unsweetened hibiscus tea, chilled",
+     "3 thin slices fresh ginger",
+     "1/2 oz fresh lime juice",
+     "Ice",
+     "Lime wheel"
+    ],
+    "steps": [
+     "Steep hibiscus tea with ginger 5 min; chill.",
+     "Pour over ice with lime juice.",
+     "Garnish with lime wheel."
+    ],
+    "kcal_approx": 8,
+    "tags": [
+     "herbal",
+     "tart",
+     "spicy",
+     "low-sugar"
+    ],
+    "photo": "/nutrition/mocktails/07-hibiscus-ginger-iced-tea.webp"
+   },
+   {
+    "id": "08",
+    "name": "Greek Lemon Thyme Sparkler",
+    "ingredients": [
+     "1/2 oz fresh lemon juice",
+     "2 thyme sprigs",
+     "8 oz sparkling water",
+     "Ice",
+     "Lemon wheel"
+    ],
+    "steps": [
+     "Bruise thyme in glass.",
+     "Add ice and lemon juice; top with sparkling water.",
+     "Garnish with lemon wheel and thyme."
+    ],
+    "kcal_approx": 5,
+    "tags": [
+     "lemon",
+     "herbal",
+     "bubbly",
+     "Mediterranean",
+     "low-sugar"
+    ],
+    "photo": "/nutrition/mocktails/08-lemon-thyme-sparkler.webp"
+   },
+   {
+    "id": "09",
+    "name": "Arnold Palmer Fizz",
+    "ingredients": [
+     "6 oz unsweetened black tea, chilled",
+     "1/2 oz fresh lemon juice",
+     "3 oz sparkling water",
+     "Ice",
+     "Lemon wheel"
+    ],
+    "steps": [
+     "Pour tea and lemon over ice.",
+     "Top with sparkling water; stir gently."
+    ],
+    "kcal_approx": 6,
+    "tags": [
+     "lemon",
+     "tea",
+     "bubbly",
+     "golf",
+     "low-sugar"
+    ],
+    "photo": "/nutrition/mocktails/09-arnold-palmer-fizz.webp"
+   },
+   {
+    "id": "10",
+    "name": "Spiced Pomegranate Fizz",
+    "ingredients": [
+     "1 oz 100% pomegranate juice",
+     "1/2 oz fresh lime juice",
+     "7 oz sparkling water",
+     "1 cinnamon stick",
+     "Orange peel",
+     "Ice",
+     "1 tbsp pomegranate seeds (optional, +10 kcal)"
+    ],
+    "steps": [
+     "Stir pomegranate and lime juice with cinnamon stick in glass 20 sec.",
+     "Add ice; top with sparkling water.",
+     "Garnish with orange peel."
+    ],
+    "kcal_approx": 22,
+    "tags": [
+     "fruity",
+     "spiced",
+     "bubbly"
+    ],
+    "photo": "/nutrition/mocktails/10-spiced-pomegranate-fizz.webp"
+   }
+  ]
+ }
+}

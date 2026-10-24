@@ -48,6 +48,7 @@ const FitWorkoutScreen = lazy(() => import("./pages/app/FitWorkoutScreen").then(
 const FitHistoryScreen = lazy(() => import("./pages/app/FitHistoryScreen").then((m) => ({ default: m.FitHistoryScreen })));
 const FitPlanScreen = lazy(() => import("./pages/app/FitPlanScreen").then((m) => ({ default: m.FitPlanScreen })));
 const FitTodayScreen = lazy(() => import("./pages/app/FitTodayScreen").then((m) => ({ default: m.FitTodayScreen })));
+const FitNutritionScreen = lazy(() => import("./pages/app/FitNutritionScreen").then((m) => ({ default: m.FitNutritionScreen })));
 const FitCheckinScreen = lazy(() => import("./pages/app/FitCheckinScreen").then((m) => ({ default: m.FitCheckinScreen })));
 const FitScheduleScreen = lazy(() => import("./pages/app/FitScheduleScreen").then((m) => ({ default: m.FitScheduleScreen })));
 const StudioAdminScreen = lazy(() => import("./pages/app/StudioAdminScreen").then((m) => ({ default: m.StudioAdminScreen })));
@@ -159,6 +160,14 @@ function App() {
           element={
             <RequireFitAccess>
               <FitScheduleScreen />
+            </RequireFitAccess>
+          }
+        />
+        <Route
+          path="fit/fuel"
+          element={
+            <RequireFitAccess>
+              <FitNutritionScreen />
             </RequireFitAccess>
           }
         />
