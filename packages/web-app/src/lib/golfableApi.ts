@@ -3310,6 +3310,24 @@ export async function setFitBlockGoalAchieved(userId: string, goal: FitBlockGoal
   if (achieved) await insertBadgeOnce({ user_id: userId, type: "block_goal", label: goal.title });
 }
 
+// Owner-only RLS (fit_blocks_owner / fit_block_goals_owner) covers these.
+export async function setFitBlockTarget(
+  userId: string,
+  blockId: string,
+  target: { value: number | null; exercise?: string | null; unit?: string | null },
+): Promise<void> {
+  const patch: Record<string, unknown> = { target_value: target.value };
+  if (target.exercise !== undefined) patch.target_exercise = target.exercise;
+  if (target.unit !== undefined) patch.target_unit = target.unit;
+  const { error } = await supabase.from("fit_blocks").update(patch).eq("id", blockId).eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function setFitBlockGoalTarget(goalId: string, target: number | null): Promise<void> {
+  const { error } = await supabase.from("fit_block_goals").update({ target }).eq("id", goalId);
+  if (error) throw error;
+}
+
 export interface FitBenchmarkResult {
   id: string;
   blockId: string;
