@@ -1,0 +1,147 @@
+ALTER TABLE
+INSERT 0 3
+INSERT 0 3
+UPDATE 3
+                  id                  | fit_access 
+--------------------------------------+------------
+ 49f0de4a-af0f-4ff8-9651-75ef0f448272 | t
+ aaaaaaaa-0000-0000-0000-000000000001 | t
+ bbbbbbbb-0000-0000-0000-000000000002 | f
+(3 rows)
+
+== BEFORE 0068: N (no access) inserts a fit_daily_logs row
+SET
+SET
+           r            
+------------------------
+ N INSERT OK (the hole)
+(1 row)
+
+INSERT 0 1
+RESET
+== APPLY 0068
+CREATE FUNCTION
+REVOKE
+GRANT
+DO
+== re-apply 0068 (idempotent)
+CREATE FUNCTION
+REVOKE
+GRANT
+DO
+== AFTER: N insert/select/update/delete
+SET
+SET
+ n_has_access 
+--------------
+ f
+(1 row)
+
+psql:supabase/tests/0068_fit_access_rls_test.sql:19: ERROR:  new row violates row-level security policy for table "fit_daily_logs"
+psql:supabase/tests/0068_fit_access_rls_test.sql:20: ERROR:  new row violates row-level security policy for table "fit_blocks"
+ n_visible_rows 
+----------------
+              0
+(1 row)
+
+ r 
+---
+(0 rows)
+
+UPDATE 0
+== N tries to self-grant fit_access
+psql:supabase/tests/0068_fit_access_rls_test.sql:24: ERROR:  permission denied for table profiles
+RESET
+== AFTER: Gary insert/select/update
+SET
+SET
+ gary_has_access 
+-----------------
+ t
+(1 row)
+
+       r        
+----------------
+ GARY INSERT OK
+(1 row)
+
+INSERT 0 1
+       r        
+----------------
+ GARY UPDATE OK
+(1 row)
+
+UPDATE 1
+ gary_visible_rows 
+-------------------
+                 1
+(1 row)
+
+== Gary tries to write a row for A
+psql:supabase/tests/0068_fit_access_rls_test.sql:33: ERROR:  new row violates row-level security policy for table "fit_daily_logs"
+RESET
+== A (fit_access) inserts own, cannot see Gary/N rows
+SET
+SET
+      r      
+-------------
+ A INSERT OK
+(1 row)
+
+INSERT 0 1
+ a_visible_rows | only_own 
+----------------+----------
+              1 | t
+(1 row)
+
+RESET
+               user_id                | total_rows_as_postgres 
+--------------------------------------+------------------------
+ 49f0de4a-af0f-4ff8-9651-75ef0f448272 |                      1
+ aaaaaaaa-0000-0000-0000-000000000001 |                      1
+ bbbbbbbb-0000-0000-0000-000000000002 |                      1
+(3 rows)
+
+== Policies after
+         tablename         |           policyname            | cmd |                     qual                      |                  with_check                   
+---------------------------+---------------------------------+-----+-----------------------------------------------+-----------------------------------------------
+ fit_badges                | fit_badges_owner                | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_benchmarks            | fit_benchmarks_owner            | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_block_exercises       | fit_block_exercises_owner       | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_block_goals           | fit_block_goals_owner           | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_block_sections        | fit_block_sections_owner        | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_block_weeks           | fit_block_weeks_owner           | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_blocks                | fit_blocks_owner                | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_body_logs             | fit_body_logs_owner             | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_daily_logs            | fit_daily_logs_owner            | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_exercise_logs         | fit_exercise_logs_owner         | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_exercise_options      | fit_exercise_options_owner      | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_notification_settings | fit_notification_settings_owner | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_nutrition_plans       | fit_nutrition_plans_owner       | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_profiles              | fit_profiles_owner              | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_routine_checks        | fit_routine_checks_owner        | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_routine_items         | fit_routine_items_owner         | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_session_templates     | fit_session_templates_owner     | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_step_logs             | fit_step_logs_owner             | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_walks                 | fit_walks_owner                 | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_weekly_checkins       | fit_weekly_checkins_owner       | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_workout_logs          | fit_workout_logs_owner          | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+ fit_workout_plans         | fit_workout_plans_owner         | ALL | ((auth.uid() = user_id) AND has_fit_access()) | ((auth.uid() = user_id) AND has_fit_access())
+(22 rows)
+
+== ROLLBACK then re-check N
+DO
+DROP FUNCTION
+ policies_restored 
+-------------------
+                22
+(1 row)
+
+SET
+SET
+ n_visible_after_rollback 
+--------------------------
+                        1
+(1 row)
+
+RESET
