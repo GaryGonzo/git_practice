@@ -1,0 +1,64 @@
+== BEFORE
+                               tmpls                                |            blk            |                weeks                | routine | plans | all_tmpls 
+--------------------------------------------------------------------+---------------------------+-------------------------------------+---------+-------+-----------
+ Lower A (Mon):6, Upper A (Tue):6, Lower B (Thu):6, Upper B (Fri):6 | Foundation Strength spw=4 | 1build,2build,3build,4build,5deload |       5 |    21 |        12
+(1 row)
+
+== AFTER APPLY
+            tmpls             |           blk            |                weeks                | routine | plans | all_tmpls 
+------------------------------+--------------------------+-------------------------------------+---------+-------+-----------
+ Upper (Tue):5, Lower (Thu):5 | Peace and Strength spw=2 | 1build,2build,3build,4build,5deload |       9 |    11 |        10
+(1 row)
+
+                 title                  |  days_of_week   | template_index 
+----------------------------------------+-----------------+----------------
+ Yoga (10 min) + walk or hike           | {6,0}           |               
+ Yoga: breath + calm (20 min)           | {5}             |               
+ Yoga: hips + hamstrings (20 min)       | {1}             |               
+ Yoga: restorative (20 min)             | {4}             |               
+ Yoga: shoulders + upper back (20 min)  | {2}             |               
+ Steps: 8,000 (10,000 Wed/Sat/Sun)      | {0,1,2,3,4,5,6} |               
+ Lift: Lower                            | {4}             |              1
+ Lift: Upper                            | {2}             |              0
+ Yoga: standing flow + balance (20 min) | {3}             |               
+(9 rows)
+
+                                                          plans                                                           
+--------------------------------------------------------------------------------------------------------------------------
+ 2026-10-22 2026-10-27 2026-10-29 2026-11-03 2026-11-05 2026-11-10 2026-11-12 2026-11-17 2026-11-19 2026-11-24 2026-11-26
+(1 row)
+
+== Gary reads via RLS
+               name               | set_count | target_count |                               swaps                                
+----------------------------------+-----------+--------------+--------------------------------------------------------------------
+ Arm Circles                      |         2 |           10 | 
+ Band Pull-Apart                  |         2 |           12 | 
+ Bench Press                      |         4 |            6 | 
+ Pull-Up                          |         3 |            3 | 
+ Barbell Bent-Over Row            |         3 |            8 | Barbell Bent-Over Row / Band Row / Band Pull-Apart
+ Doorway Pec Stretch              |         1 |           30 | 
+ Cross-Body Shoulder Stretch      |         1 |           30 | 
+ Leg Swings                       |         2 |           10 | 
+ Glute Bridge                     |         2 |           12 | 
+ Box Squat                        |         4 |            6 | 
+ Romanian Deadlift                |         3 |            6 | 
+ Bodyweight Single-Leg RDL        |         3 |            8 | Bodyweight Single-Leg RDL / Glute Bridge March / Lateral Band Walk
+ Half-Kneeling Hip Flexor Stretch |         1 |           30 | 
+ Standing Hamstring Stretch       |         1 |           30 | 
+(14 rows)
+
+== re-apply must refuse
+psql:supabase/seeds/fit_block4_peace_and_strength.sql:196: ERROR:  Already applied: Block 4 is Peace and Strength
+CONTEXT:  PL/pgSQL function inline_code_block line 13 at RAISE
+== ROLLBACK
+                               tmpls                                |            blk            |                weeks                | routine | plans | all_tmpls 
+--------------------------------------------------------------------+---------------------------+-------------------------------------+---------+-------+-----------
+ Lower A (Mon):6, Upper A (Tue):6, Lower B (Thu):6, Upper B (Fri):6 | Foundation Strength spw=4 | 1build,2build,3build,4build,5deload |       5 |    21 |        12
+(1 row)
+
+== RE-APPLY
+            tmpls             |           blk            |                weeks                | routine | plans | all_tmpls 
+------------------------------+--------------------------+-------------------------------------+---------+-------+-----------
+ Upper (Tue):5, Lower (Thu):5 | Peace and Strength spw=2 | 1build,2build,3build,4build,5deload |       9 |    11 |        10
+(1 row)
+
