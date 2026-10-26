@@ -11,7 +11,7 @@ import {
   getMyScoreForDate,
   getPreviousExerciseResults,
   getFitStreaks,
-  countCompletedWorkoutsBetween,
+  countSessionsDoneBetween,
   getActiveFitBlock,
   mondayOfISO,
   todayISO,
@@ -799,7 +799,7 @@ export function FitWorkoutScreen() {
       // Summary numbers are best-effort -- a failed lookup shows a dash.
       const [streaks, weekDone, block, found] = await Promise.all([
         getFitStreaks(userId).catch(() => null),
-        countCompletedWorkoutsBetween(userId, mondayOfISO(date), date).catch(() => null),
+        countSessionsDoneBetween(userId, mondayOfISO(date), date).catch(() => null),
         getActiveFitBlock(userId).catch(() => null),
         getDrillForDate(date).catch(() => null),
       ]);
@@ -814,8 +814,8 @@ export function FitWorkoutScreen() {
         minutes: elapsedMin,
         prs,
         streak: streaks?.training.sessions ?? null,
-        weekDone,
-        weekGoal: block?.sessionsPerWeek ?? null,
+        weekDone: weekDone?.done ?? null,
+        weekGoal: block ? block.sessionsPerWeek + (weekDone?.yogaPerWeek ?? 0) : null,
         next,
       });
       if (prs.length > 0) setPrMessage(prs.length === 1 ? `New PR: ${prs[0].label}!` : `${prs.length} new PRs!`);

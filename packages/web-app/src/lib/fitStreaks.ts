@@ -12,6 +12,26 @@ function mondayOf(date: string): string {
   return shiftISO(date, dow === 0 ? -6 : 1 - dow);
 }
 
+// Days a yoga routine item is scheduled, from the first day yoga was on
+// the plan up to (and including) today. Each such day is a planned
+// session: checking off yoga that day counts, skipping it is a miss.
+export function yogaPlannedDays(daysOfWeek: Iterable<number>, startDate: string | null, today: string): string[] {
+  const dows = new Set(daysOfWeek);
+  if (!startDate || dows.size === 0 || startDate > today) return [];
+  const out: string[] = [];
+  for (let day = startDate; day <= today; day = shiftISO(day, 1)) {
+    if (dows.has(new Date(`${day}T00:00:00Z`).getUTCDay())) out.push(day);
+  }
+  return out;
+}
+
+// Sessions done in a stretch of days: every completed lift, plus one per
+// distinct day with a yoga check-in. A lift and yoga on the same day are
+// two sessions.
+export function sessionsDone(liftDays: Iterable<string>, yogaDays: Iterable<string>): number {
+  return [...liftDays].length + new Set(yogaDays).size;
+}
+
 export interface TrainingStreak {
   // Workouts completed since the streak started.
   sessions: number;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   getFitStreaks,
-  countCompletedWorkoutsBetween,
+  countSessionsDoneBetween,
   mondayOfISO,
   todayISO,
   type FitStreaks,
@@ -35,16 +35,18 @@ function nextBadgeNote(days: number): string | null {
 export function FitStreaksPanel({ userId, sessionsPerWeek, refreshKey }: { userId: string; sessionsPerWeek: number; refreshKey: number }) {
   const [streaks, setStreaks] = useState<FitStreaks | null>(null);
   const [weekDone, setWeekDone] = useState(0);
+  const [yogaPerWeek, setYogaPerWeek] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     const today = todayISO();
-    Promise.all([getFitStreaks(userId), countCompletedWorkoutsBetween(userId, mondayOfISO(today), today)])
-      .then(([s, done]) => {
+    Promise.all([getFitStreaks(userId), countSessionsDoneBetween(userId, mondayOfISO(today), today)])
+      .then(([s, week]) => {
         setStreaks(s);
-        setWeekDone(done);
+        setWeekDone(week.done);
+        setYogaPerWeek(week.yogaPerWeek);
         setState("ready");
         if (s.newBadges.length > 0) setToast(`${s.newBadges.map((b) => b.label).join(" + ")}!`);
       })
@@ -65,7 +67,9 @@ export function FitStreaksPanel({ userId, sessionsPerWeek, refreshKey }: { userI
     );
 
   const thinIce = streaks.training.onThinIce;
-  const left = Math.max(sessionsPerWeek - weekDone, 0);
+  // Weekly goal = planned lifts + scheduled yoga days.
+  const weekGoal = sessionsPerWeek + yogaPerWeek;
+  const left = Math.max(weekGoal - weekDone, 0);
 
   return (
     <div className={`mt-4 rounded-2xl bg-white p-4 ring-1 ${thinIce ? "ring-2 ring-amber-400" : "ring-black/[0.06]"}`}>
@@ -75,7 +79,7 @@ export function FitStreaksPanel({ userId, sessionsPerWeek, refreshKey }: { userI
         </p>
       )}
       <div className="flex items-center gap-4">
-        <WeeklyGoalRing completed={weekDone} goal={sessionsPerWeek} size={72} />
+        <WeeklyGoalRing completed={weekDone} goal={weekGoal} size={72} />
         <div className="grid flex-1 grid-cols-2 gap-3">
           <StreakStat
             label="Training streak"
