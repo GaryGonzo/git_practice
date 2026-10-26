@@ -1,4 +1,4 @@
-import { trainingStreak, dayStreak, reachedMilestones, type TrainingStreak, type DayStreak } from "./fitStreaks";
+import { trainingStreak, dayStreak, reachedMilestones, yogaPlannedDays, sessionsDone, type TrainingStreak, type DayStreak } from "./fitStreaks";
 import type { BagClub, BagEntry, Drill, HandicapTier, ScoreDirection, SkillCategory } from "@golfable/shared";
 import { BAG_CLUBS, SKILL_CATEGORIES, isBetterScore } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
@@ -2969,6 +2969,57 @@ export async function countCompletedWorkoutsBetween(userId: string, startDate: s
   }).length;
 }
 
+// Yoga = mobility routine items whose title starts with "Yoga". startDate
+// is the Pacific day the earliest one was added, so days before yoga was
+// on the plan are never counted as misses.
+export interface FitYogaPlan {
+  itemIds: string[];
+  daysOfWeek: number[];
+  startDate: string | null;
+}
+
+export async function getFitYogaPlan(userId: string): Promise<FitYogaPlan> {
+  const { data } = await supabase
+    .from("fit_routine_items")
+    .select("id, days_of_week, created_at")
+    .eq("user_id", userId)
+    .eq("kind", "mobility")
+    .ilike("title", "yoga%");
+  const rows = data ?? [];
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: GOLFABLE_TZ });
+  const starts = rows.map((r) => fmt.format(new Date(r.created_at as string))).sort();
+  return {
+    itemIds: rows.map((r) => r.id as string),
+    daysOfWeek: [...new Set(rows.flatMap((r) => r.days_of_week as number[]))],
+    startDate: starts[0] ?? null,
+  };
+}
+
+// Distinct Pacific days with at least one yoga item checked off.
+export async function getYogaCheckDays(userId: string, plan: FitYogaPlan, startDate: string, endDate: string): Promise<string[]> {
+  if (plan.itemIds.length === 0) return [];
+  const { data } = await supabase
+    .from("fit_routine_checks")
+    .select("check_date")
+    .eq("user_id", userId)
+    .in("item_id", plan.itemIds)
+    .gte("check_date", startDate)
+    .lte("check_date", endDate);
+  return [...new Set((data ?? []).map((r) => r.check_date as string))];
+}
+
+// Yoga days scheduled per week (the weekly goal adds these to the lifts).
+export function yogaDaysPerWeek(plan: FitYogaPlan): number {
+  return plan.daysOfWeek.length;
+}
+
+// "Sessions done": completed lifts plus distinct yoga check-in days.
+export async function countSessionsDoneBetween(userId: string, startDate: string, endDate: string): Promise<{ done: number; lifts: number; yogaDays: number; yogaPerWeek: number }> {
+  const plan = await getFitYogaPlan(userId);
+  const [lifts, yoga] = await Promise.all([countCompletedWorkoutsBetween(userId, startDate, endDate), getYogaCheckDays(userId, plan, startDate, endDate)]);
+  return { done: sessionsDone(Array(lifts).fill(""), yoga), lifts, yogaDays: yoga.length, yogaPerWeek: yogaDaysPerWeek(plan) };
+}
+
 export interface FitRoundSummary {
   playedOn: string;
   holeCount: number;
@@ -3435,9 +3486,13 @@ export async function getFitStreaks(userId: string): Promise<FitStreaks> {
 
   const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: GOLFABLE_TZ });
   const completedDays = (workoutRows ?? []).filter((r) => r.completed_at).map((r) => fmt.format(new Date(r.completed_at as string)));
+  // Yoga days count too: a scheduled yoga day is a planned session, and
+  // a yoga check-in makes the day count as done.
+  const yogaPlan = await getFitYogaPlan(userId);
+  const yogaDone = await getYogaCheckDays(userId, yogaPlan, from, today);
   const training = trainingStreak(
-    (planRows ?? []).map((r) => r.planned_date),
-    completedDays,
+    [...(planRows ?? []).map((r) => r.planned_date as string), ...yogaPlannedDays(yogaPlan.daysOfWeek, yogaPlan.startDate, today)],
+    [...completedDays, ...yogaDone],
     today
   );
 

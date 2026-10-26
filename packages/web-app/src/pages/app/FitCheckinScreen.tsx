@@ -10,7 +10,7 @@ import {
   getActiveFitBlock,
   getFitNutritionPlan,
   getFitProfile,
-  countCompletedWorkoutsBetween,
+  countSessionsDoneBetween,
   getFitRoundSummaries,
   getFitWeeklyCheckins,
   saveFitWeeklyCheckin,
@@ -143,7 +143,7 @@ export function FitCheckinScreen() {
         getActiveFitBlock(userId),
         getFitNutritionPlan(userId),
         getFitProfile(userId),
-        countCompletedWorkoutsBetween(userId, weekStart, weekEnd),
+        countSessionsDoneBetween(userId, weekStart, weekEnd),
         getFitRoundSummaries(userId, weekStart, weekEnd),
         getFitWeeklyCheckins(userId),
       ]);
@@ -163,8 +163,9 @@ export function FitCheckinScreen() {
       setLastAvg(average(weightsIn(lastStart)));
       setPrevAvg(average(weightsIn(prevStart)));
 
-      setWorkoutsDone(done);
-      setWorkoutsGoal(block?.sessionsPerWeek ?? null);
+      setWorkoutsDone(done.done);
+      // Lifts + yoga days, e.g. 2 + 7 = 9 for Peace and Strength.
+      setWorkoutsGoal(block ? block.sessionsPerWeek + done.yogaPerWeek : null);
       setStepGoal(block?.stepGoal ?? null);
       const weekSteps = stepHistory.filter((s) => s.loggedDate >= weekStart && s.loggedDate <= weekEnd).map((s) => s.steps);
       const stepAvg = average(weekSteps);
@@ -310,7 +311,7 @@ export function FitCheckinScreen() {
               good={weighIns >= 3 ? null : false}
             />
             <Stat
-              label="Workouts"
+              label="Sessions (lifts + yoga)"
               value={`${workoutsDone}${workoutsGoal ? `/${workoutsGoal}` : ""}`}
               good={workoutsGoal ? workoutsDone >= workoutsGoal : null}
             />
@@ -451,7 +452,7 @@ export function FitCheckinScreen() {
                       <span className="font-label text-sm font-semibold">Week of {formatShort(h.weekStart)}</span>
                       <span className="font-body text-sm text-neutral-600">
                         {h.weightAvg !== null ? `${h.weightAvg} lbs` : "—"} · {h.workoutsDone}
-                        {h.workoutsGoal ? `/${h.workoutsGoal}` : ""} lifts
+                        {h.workoutsGoal ? `/${h.workoutsGoal}` : ""} sessions
                         {h.roundScore !== null ? ` · shot ${h.roundScore}` : ""}
                       </span>
                     </button>
