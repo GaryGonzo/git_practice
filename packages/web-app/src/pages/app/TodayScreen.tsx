@@ -115,8 +115,8 @@ export function TodayScreen() {
       setRoundBest(roundBestResult);
       if (existingScore !== null) {
         setSubmittedScore(existingScore);
-        // A custom drill is private, so there's no board to rank on.
-        if (found.drill.isCustom) {
+        // A private drill has nobody else on its board to rank against.
+        if (found.drill.visibility === "private") {
           setLoading(false);
           return;
         }
@@ -145,7 +145,7 @@ export function TodayScreen() {
     try {
       await submitScore(userId, drill.id, value, date);
       const [board, newWeekCount] = await Promise.all([
-        drill.isCustom
+        drill.visibility === "private"
           ? Promise.resolve([] as LeaderboardEntry[])
           : getRankBoard(profile.studio_id, drill.id, profile.tier, date, drill.scoreDirection),
         getSessionsThisWeek(userId),
@@ -153,7 +153,7 @@ export function TodayScreen() {
       const reachedGoalNow = sessionsThisWeek < profile.weekly_goal && newWeekCount >= profile.weekly_goal;
       const newPersonalBest = personalBest === null || isBetterScore(value, personalBest, drill.scoreDirection);
       setSubmittedScore(value);
-      if (isFirstCompletion && !drill.isCustom) setShowRatingPrompt(true);
+      if (isFirstCompletion && drill.visibility !== "private") setShowRatingPrompt(true);
       setSessionsThisWeek(newWeekCount);
       setIsNewPersonalBest(newPersonalBest);
       setPersonalBest((prev) => (prev === null || isBetterScore(value, prev, drill.scoreDirection) ? value : prev));
@@ -176,7 +176,7 @@ export function TodayScreen() {
         <BackIcon className="h-4 w-4" />
         Library
       </Link>
-      {drill?.isCustom && (
+      {drill?.isCustom && drill.createdBy === userId && (
         <Link to={`/app/my-drills/${drill.id}/edit`} className="font-label text-brand text-base font-semibold">
           Edit drill
         </Link>
@@ -264,7 +264,9 @@ export function TodayScreen() {
         error={submitError}
         eyebrow={
           drill.isCustom
-            ? "Your drill"
+            ? drill.createdBy === userId
+              ? "Your drill"
+              : "Community drill"
             : isChooseYourOwn
             ? "Your pick"
             : isToday
@@ -292,7 +294,9 @@ export function TodayScreen() {
                 isNewPersonalBest,
                 rank,
                 rankLabel: `You're #${rank} in ${rankScope} ${isToday || isChooseYourOwn ? "today" : `on ${formatDate(date)}`}`,
-                rankSublabel: isChooseYourOwn
+                rankSublabel: drill.isCustom
+                  ? "On this community drill"
+                  : isChooseYourOwn
                   ? "From Choose Your Own"
                   : isToday
                     ? "Resets tomorrow with the next Golfable"

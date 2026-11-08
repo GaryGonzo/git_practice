@@ -7,6 +7,8 @@ import { PageHeader, Section, Panel, ChevronRight } from "../../components/ui";
 import {
   getAllDrills,
   getMyCustomDrills,
+  getCommunityDrills,
+  type CommunityDrill,
   getAllDrillRatingSummaries,
   getMyDrillRatings,
   getMyGameRatings,
@@ -71,6 +73,7 @@ export function LibraryScreen() {
   const [favoriteFilter, setFavoriteFilter] = useState<FavoriteFilter>("all");
   const [drills, setDrills] = useState<{ drill: Drill; maxScore: number }[]>([]);
   const [myDrills, setMyDrills] = useState<{ drill: Drill; maxScore: number }[]>([]);
+  const [communityDrills, setCommunityDrills] = useState<CommunityDrill[]>([]);
   const [ratingSummaries, setRatingSummaries] = useState<Record<string, DrillRatingSummary>>({});
   const [myRatings, setMyRatings] = useState<Record<string, number>>({});
   const [gameRatings, setGameRatings] = useState<Partial<Record<SkillCategory, number>>>({});
@@ -88,9 +91,11 @@ export function LibraryScreen() {
       profile ? getMyGameRatings(profile.id) : Promise.resolve({}),
       profile ? getRoundCategorySignals(profile.id) : Promise.resolve({}),
       profile ? getMyCustomDrills(profile.id) : Promise.resolve([]),
-    ]).then(([drillResult, summaries, mine, game, roundSignals, custom]) => {
+      profile ? getCommunityDrills(profile.id) : Promise.resolve([]),
+    ]).then(([drillResult, summaries, mine, game, roundSignals, custom, community]) => {
       setDrills(drillResult);
       setMyDrills(custom);
+      setCommunityDrills(community);
       setRatingSummaries(summaries);
       setMyRatings(mine);
       setGameRatings(blendGameRatings(game, roundSignals));
@@ -111,6 +116,19 @@ export function LibraryScreen() {
           return true;
         })
       : [];
+
+  // Community drills take the same club/search/favorite filters as the
+  // official catalog (they can be rated like any other drill). "For you"
+  // leaves them out -- it's about the weakest part of the player's game, and
+  // the official catalog already covers every category.
+  const visibleCommunity = communityDrills.filter(({ drill, creatorFirstName }) => {
+    if (category !== "all" && drill.category !== category) return false;
+    if (q && !`${drill.name} ${drill.setup.description} ${CATEGORY_INFO[drill.category].label} ${creatorFirstName ?? ""}`.toLowerCase().includes(q)) return false;
+    if (favoriteFilter === "mine") return (myRatings[drill.id] ?? 0) >= FAVORITE_THRESHOLD;
+    if (favoriteFilter === "community") return (ratingSummaries[drill.id]?.avgRating ?? 0) >= FAVORITE_THRESHOLD;
+    if (favoriteFilter === "recommended") return false;
+    return true;
+  });
 
   const visibleDrills = drills.filter(({ drill }) => {
     if (category !== "all" && drill.category !== category) return false;
@@ -150,7 +168,7 @@ export function LibraryScreen() {
     ? SKILL_CATEGORIES.map((c) => ({ category: c, items: visibleDrills.filter(({ drill }) => drill.category === c) })).filter((g) => g.items.length > 0)
     : [{ category: null as SkillCategory | null, items: visibleDrills }];
 
-  function drillRow(drill: Drill) {
+  function drillRow(drill: Drill, byline?: string) {
     const summary = ratingSummaries[drill.id];
     return (
       <Link key={drill.id} to={`/app/play/${drill.id}`} className="flex items-center gap-3 px-4 py-3 active:bg-neutral-50">
@@ -159,7 +177,11 @@ export function LibraryScreen() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="font-label block truncate text-[1.05rem] leading-tight font-semibold text-neutral-900">{drill.name}</span>
-          <span className="font-body block truncate text-sm text-neutral-500">{drill.setup.description}</span>
+          <span className="font-body block truncate text-sm text-neutral-500">
+            {byline ? <span className="font-semibold text-neutral-600">{byline} · </span> : null}
+            {drill.visibility === "community" && !byline ? <span className="font-semibold text-neutral-600">Shared · </span> : null}
+            {drill.setup.description}
+          </span>
         </span>
         {summary && (
           <span className="text-gold flex flex-none items-center gap-0.5" aria-label={`Rated ${summary.avgRating} of 5`}>
@@ -284,6 +306,20 @@ export function LibraryScreen() {
             <Panel>{g.items.map(({ drill }) => drillRow(drill))}</Panel>
           </Section>
         ))
+      )}
+
+      {!loading && visibleCommunity.length > 0 && (
+        <Section
+          className="mt-6"
+          title="Community Drills"
+          action={<span className="font-label text-sm font-semibold text-neutral-400">{visibleCommunity.length}</span>}
+        >
+          <Panel>
+            {visibleCommunity.map(({ drill, creatorFirstName }) =>
+              drillRow(drill, creatorFirstName ? `By ${creatorFirstName}` : "By a member")
+            )}
+          </Panel>
+        </Section>
       )}
     </div>
   );

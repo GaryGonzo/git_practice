@@ -18,5 +18,10 @@ delete from public.drill_ratings where drill_id in (select id from public.drills
 delete from public.drills where created_by is not null;
 
 alter table public.drills drop constraint if exists drills_custom_shape_check;
+alter table public.drills drop constraint if exists drills_visibility_check;
 drop index if exists drills_created_by_idx;
-alter table public.drills drop column if exists archived_at, drop column if exists created_by;
+drop index if exists drills_community_idx;
+alter table public.drills
+  drop column if exists archived_at,
+  drop column if exists visibility,
+  drop column if exists created_by;

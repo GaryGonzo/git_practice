@@ -5,12 +5,10 @@ import { useAuth } from "../../lib/AuthProvider";
 import { CategoryIcon } from "../../components/CategoryIcon";
 import {
   archiveCustomDrill,
-  createCustomDrill,
+  CustomDrillError,
   decodeCustomGoal,
   getDrillById,
-  getMyCustomDrills,
-  suggestDrillName,
-  updateCustomDrill,
+  saveCustomDrill,
   type CustomDrillInput,
 } from "../../lib/golfableApi";
 
@@ -58,9 +56,10 @@ function splitCommas(text: string): string[] {
     .filter(Boolean);
 }
 
-// Create or edit a member's own drill. Leaving the name blank asks the
-// server to name it from the drill itself (with a plain "<Club> Drill"
-// fallback). Saving lands on the play screen so it can be scored right away.
+// Create or edit a member's own drill. Leaving the name blank has the
+// server name it from the drill itself. Sharing with the community runs the
+// text through the server's word filter first. Saving lands on the play
+// screen so it can be scored right away.
 export function CustomDrillScreen() {
   const { session } = useAuth();
   const userId = session!.user.id;
@@ -79,22 +78,15 @@ export function CustomDrillScreen() {
   const [scoreDirection, setScoreDirection] = useState<ScoreDirection>("higher");
   const [maxScore, setMaxScore] = useState("");
   const [goal, setGoal] = useState("");
-  const [existingNames, setExistingNames] = useState<string[]>([]);
+  const [visibility, setVisibility] = useState<"private" | "community">("private");
   const [saving, setSaving] = useState(false);
-  const [savingLabel, setSavingLabel] = useState("Saving…");
   const [error, setError] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   useEffect(() => {
-    getMyCustomDrills(userId).then((mine) =>
-      setExistingNames(mine.filter(({ drill }) => drill.id !== drillId).map(({ drill }) => drill.name))
-    );
-  }, [userId, drillId]);
-
-  useEffect(() => {
     if (!drillId) return;
     getDrillById(drillId).then((found) => {
-      if (!found || !found.drill.isCustom) {
+      if (!found || !found.drill.isCustom || found.drill.createdBy !== userId) {
         setNotFound(true);
         setLoading(false);
         return;
@@ -110,9 +102,10 @@ export function CustomDrillScreen() {
       setMaxScore(String(found.maxScore));
       const g = decodeCustomGoal(d);
       setGoal(g === null ? "" : String(g));
+      setVisibility(d.visibility ?? "private");
       setLoading(false);
     });
-  }, [drillId]);
+  }, [drillId, userId]);
 
   const max = Number(maxScore);
   const maxValid = Number.isInteger(max) && max >= 1 && max <= 999;
@@ -141,19 +134,15 @@ export function CustomDrillScreen() {
       maxScore: max,
       scoreDirection,
       goal: goalNum,
+      visibility,
     };
 
     setSaving(true);
     try {
-      if (!input.name) {
-        setSavingLabel("Naming your drill…");
-        input.name = await suggestDrillName(session!.access_token, input, existingNames);
-      }
-      setSavingLabel("Saving…");
-      const id = isEdit ? (await updateCustomDrill(drillId!, input), drillId!) : await createCustomDrill(userId, input);
+      const { id } = await saveCustomDrill(session!.access_token, input, drillId);
       navigate(`/app/play/${id}`, { replace: true });
-    } catch {
-      setError("Couldn't save that drill -- check your connection and try again.");
+    } catch (err) {
+      setError(err instanceof CustomDrillError ? err.message : "Couldn't save that drill -- try again.");
       setSaving(false);
     }
   }
@@ -162,7 +151,7 @@ export function CustomDrillScreen() {
     if (!drillId) return;
     setSaving(true);
     try {
-      await archiveCustomDrill(drillId);
+      await archiveCustomDrill(session!.access_token, drillId);
       navigate("/app/library", { replace: true });
     } catch {
       setError("Couldn't remove that drill -- try again.");
@@ -170,6 +159,7 @@ export function CustomDrillScreen() {
     }
   }
 
+  const savingLabel = !name.trim() ? "Naming your drill…" : visibility === "community" ? "Checking and sharing…" : "Saving…";
   const backTo = isEdit ? `/app/play/${drillId}` : "/app/library";
 
   if (loading) return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
@@ -332,6 +322,38 @@ export function CustomDrillScreen() {
             ? "Scores are logged from 0 up to the max. Hit your goal or better and it counts as a target hit."
             : "Scores are logged from 0 up to this number. Hit your goal or fewer and it counts as a target hit."}
         </p>
+
+        <Field label="Who can see it?">
+          <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+            {(
+              [
+                { value: "private", label: "Just me", sub: "Only you see it" },
+                { value: "community", label: "Community", sub: "Any member can play it" },
+              ] as const
+            ).map((opt) => {
+              const active = visibility === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setVisibility(opt.value)}
+                  aria-pressed={active}
+                  className={`rounded-xl px-3 py-2.5 text-left ring-1 ${
+                    active ? "bg-brand-dark text-white ring-transparent" : "bg-white text-neutral-700 ring-black/[0.06]"
+                  }`}
+                >
+                  <span className="font-label block text-base font-semibold">{opt.label}</span>
+                  <span className={`font-body block text-xs ${active ? "text-white/70" : "text-neutral-500"}`}>{opt.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+          {visibility === "community" && (
+            <p className="font-body mt-1.5 text-xs text-neutral-500">
+              Shared drills show under Community Drills with your first name. Keep it clean -- wording is checked before it goes up.
+            </p>
+          )}
+        </Field>
       </div>
 
       {error && <p className="font-body mt-5 text-sm text-red-600">{error}</p>}
@@ -348,7 +370,7 @@ export function CustomDrillScreen() {
         (confirmRemove ? (
           <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
             <p className="font-body text-sm text-neutral-700">
-              Remove this drill from your Library? Scores you've already logged on it stay in your history.
+              Remove this drill from your Library{visibility === "community" ? " and Community Drills" : ""}? Scores already logged on it stay in everyone's history.
             </p>
             <div className="mt-3 flex gap-2">
               <button

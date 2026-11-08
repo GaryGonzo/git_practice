@@ -20,6 +20,7 @@ interface DrillRow {
   video_url: string | null;
   target_yardage: number | null;
   created_by: string | null;
+  visibility: "private" | "community";
   archived_at: string | null;
 }
 
@@ -40,6 +41,8 @@ function toDrill(row: DrillRow): Drill {
     videoUrl: row.video_url ?? undefined,
     targetYardage: row.target_yardage ?? undefined,
     isCustom: row.created_by ? true : undefined,
+    createdBy: row.created_by ?? undefined,
+    visibility: row.created_by ? row.visibility : undefined,
   };
 }
 
@@ -402,9 +405,9 @@ export const GOLFABLE_SCORE_WINDOW = 10;
 // Exported so the score-detail page can list exactly the attempts that
 // produced the number, without redefining "which ones count" a second time.
 export function recentCategoryAttempts(history: ScoreHistoryEntry[], category: SkillCategory): ScoreHistoryEntry[] {
-  // Member-written drills are excluded: their max score isn't calibrated
-  // against the official rubric, so they'd skew a category's number.
-  return history.filter((h) => h.drill.category === category && !h.drill.isCustom).slice(0, GOLFABLE_SCORE_WINDOW);
+  // Member-written drills count too -- the point is practicing every part of
+  // the game consistently, not whose drill it was.
+  return history.filter((h) => h.drill.category === category).slice(0, GOLFABLE_SCORE_WINDOW);
 }
 
 export interface GolfableScores {
@@ -3522,12 +3525,14 @@ export type { TrainingStreak, DayStreak } from "./fitStreaks";
 
 // ---------------------------------------------------------------------------
 // Custom drills (see 0069_custom_drills.sql). A member's own drill lives in
-// the drills table with created_by set, so play/score/history/weekly-goal
-// all work off the normal drill_id paths. Only the author can see it.
+// the drills table with created_by set, so play/score/history/weekly goal/
+// Golfable Score all work off the normal drill_id paths. Reads are direct;
+// every write goes through /api/custom-drill, which word-filters anything
+// shared with the community and names a drill left unnamed.
 // ---------------------------------------------------------------------------
 
 export interface CustomDrillInput {
-  /** Blank means "name it for me" -- the editor resolves a name before saving. */
+  /** Blank means "name it for me" -- the server fills one in. */
   name: string;
   category: SkillCategory;
   setupDescription: string;
@@ -3538,15 +3543,7 @@ export interface CustomDrillInput {
   scoreDirection: ScoreDirection;
   /** Optional personal target; null hides the target block on the play screen. */
   goal: number | null;
-}
-
-// One goal applies to every tier (a custom drill is personal, not tiered).
-// Encoded the same way official targets are so isTargetHit/formatScore just
-// work: "N/max" for higher-is-better, a bare "N" for lower-is-better, and an
-// empty string for "no target".
-function encodeGoal(goal: number | null, maxScore: number, direction: ScoreDirection): string {
-  if (goal === null) return "";
-  return direction === "lower" ? `${goal}` : `${goal}/${maxScore}`;
+  visibility: "private" | "community";
 }
 
 export function decodeCustomGoal(drill: Drill): number | null {
@@ -3554,24 +3551,6 @@ export function decodeCustomGoal(drill: Drill): number | null {
   if (!raw) return null;
   const n = Number(raw.split("/")[0]);
   return Number.isFinite(n) ? n : null;
-}
-
-function customDrillRow(input: CustomDrillInput) {
-  const target = encodeGoal(input.goal, input.maxScore, input.scoreDirection);
-  return {
-    name: input.name.trim(),
-    category: input.category,
-    setup_description: input.setupDescription.trim(),
-    setup_equipment: input.equipment.map((e) => e.trim()).filter(Boolean),
-    rules_description: input.rulesDescription.trim(),
-    rules_scoring: input.scoring.map((s) => s.trim()).filter(Boolean),
-    max_score: input.maxScore,
-    score_direction: input.scoreDirection,
-    target_scratch: target,
-    target_low: target,
-    target_mid: target,
-    target_high: target,
-  };
 }
 
 export async function getMyCustomDrills(userId: string): Promise<{ drill: Drill; maxScore: number }[]> {
@@ -3585,69 +3564,72 @@ export async function getMyCustomDrills(userId: string): Promise<{ drill: Drill;
   return (data as DrillRow[]).map((row) => ({ drill: toDrill(row), maxScore: row.max_score }));
 }
 
-export async function createCustomDrill(userId: string, input: CustomDrillInput): Promise<string> {
-  const id = `custom-${crypto.randomUUID()}`;
-  const { error } = await supabase.from("drills").insert({ id, created_by: userId, ...customDrillRow(input) });
-  if (error) throw error;
-  return id;
+export interface CommunityDrill {
+  drill: Drill;
+  maxScore: number;
+  creatorFirstName: string | null;
 }
 
-export async function updateCustomDrill(drillId: string, input: CustomDrillInput): Promise<void> {
-  const { error } = await supabase.from("drills").update(customDrillRow(input)).eq("id", drillId);
-  if (error) throw error;
+/** Every member's shared drills except your own (those already show under My drills). */
+export async function getCommunityDrills(userId: string): Promise<CommunityDrill[]> {
+  const { data } = await supabase
+    .from("drills")
+    .select("*, creator:profiles!drills_created_by_fkey(first_name)")
+    .eq("visibility", "community")
+    .not("created_by", "is", null)
+    .neq("created_by", userId)
+    .is("archived_at", null)
+    .order("created_at", { ascending: false });
+  if (!data) return [];
+  return (data as (DrillRow & { creator: { first_name: string | null } | { first_name: string | null }[] | null })[]).map(
+    (row) => {
+      const creator = Array.isArray(row.creator) ? row.creator[0] : row.creator;
+      return { drill: toDrill(row), maxScore: row.max_score, creatorFirstName: creator?.first_name ?? null };
+    }
+  );
 }
 
-// Soft delete: the drill leaves the Library but every score logged on it --
-// and the days those scores counted toward -- stays.
-export async function archiveCustomDrill(drillId: string): Promise<void> {
-  const { error } = await supabase.from("drills").update({ archived_at: new Date().toISOString() }).eq("id", drillId);
-  if (error) throw error;
+export class CustomDrillError extends Error {
+  /** True when the word filter rejected it (vs. a network/server problem). */
+  flagged: boolean;
+  constructor(message: string, flagged: boolean) {
+    super(message);
+    this.flagged = flagged;
+  }
 }
 
-/** Used if the naming service is unreachable: "Wedges Drill", then "Wedges Drill 2", ... */
-export function fallbackDrillName(category: SkillCategory, existingNames: string[]): string {
-  const base = `${CATEGORY_SHORT_LABEL[category]} Drill`;
-  const taken = new Set(existingNames.map((n) => n.toLowerCase()));
-  if (!taken.has(base.toLowerCase())) return base;
-  let n = 2;
-  while (taken.has(`${base} ${n}`.toLowerCase())) n++;
-  return `${base} ${n}`;
-}
-
-const CATEGORY_SHORT_LABEL: Record<SkillCategory, string> = {
-  driver: "Driver",
-  irons: "Irons",
-  wedges: "Wedges",
-  putter: "Putter",
-};
-
-// Asks the server to name a drill from what it is. Falls back to a plain
-// category name on any failure so saving never blocks on naming.
-export async function suggestDrillName(
-  accessToken: string,
-  input: CustomDrillInput,
-  existingNames: string[]
-): Promise<string> {
+async function postCustomDrill(accessToken: string, payload: unknown): Promise<Record<string, unknown>> {
+  let res: Response;
   try {
-    const res = await fetch("/api/name-drill", {
+    res = await fetch("/api/custom-drill", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({
-        category: input.category,
-        setupDescription: input.setupDescription,
-        equipment: input.equipment,
-        rulesDescription: input.rulesDescription,
-        scoring: input.scoring,
-        scoreDirection: input.scoreDirection,
-        maxScore: input.maxScore,
-        avoid: existingNames,
-      }),
+      body: JSON.stringify(payload),
     });
-    const body = await res.json();
-    const name = typeof body.name === "string" ? body.name.trim() : "";
-    if (res.ok && name) return name.slice(0, 60);
   } catch {
-    // fall through to the plain name
+    throw new CustomDrillError("Couldn't reach Golfable -- check your connection and try again.", false);
   }
-  return fallbackDrillName(input.category, existingNames);
+  const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const message =
+      res.status === 400 || res.status === 422 ? String(body.error ?? "Couldn't save that drill.") : "Couldn't save that drill -- try again.";
+    throw new CustomDrillError(message, Boolean(body.flagged));
+  }
+  return body;
+}
+
+/** Creates (no id) or updates (id) a custom drill. Returns its id and final name. */
+export async function saveCustomDrill(
+  accessToken: string,
+  input: CustomDrillInput,
+  drillId?: string
+): Promise<{ id: string; name: string }> {
+  const body = await postCustomDrill(accessToken, { action: "save", id: drillId, drill: input });
+  return { id: body.id as string, name: body.name as string };
+}
+
+// Soft delete: the drill leaves listings, but every score already logged on
+// it -- by the author or anyone who played it from Community -- stays.
+export async function archiveCustomDrill(accessToken: string, drillId: string): Promise<void> {
+  await postCustomDrill(accessToken, { action: "archive", id: drillId });
 }

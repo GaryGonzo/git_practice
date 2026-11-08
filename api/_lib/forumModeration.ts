@@ -11,8 +11,28 @@ import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from "o
 // leetspeak/spacing variants) even if the AI call below is slow or down.
 // The word list itself comes from the `obscenity` package (MIT, actively
 // maintained) rather than being hand-authored here.
+// Real golf phrases the generic list would otherwise flag ("cock your
+// wrists" is standard swing instruction). A match that falls inside one of
+// these is ignored; the same word used any other way is still caught.
+const GOLF_WHITELIST = [
+  "cock your wrist",
+  "cock your wrists",
+  "cock the wrist",
+  "cock the wrists",
+  "cock the club",
+  "wrist cock",
+  "wrists cock",
+  "hinge and cock",
+  "early cock",
+  "late cock",
+  "dick's sporting goods",
+  "dicks sporting goods",
+];
+
+const englishTerms = englishDataset.build();
 const wordListMatcher = new RegExpMatcher({
-  ...englishDataset.build(),
+  ...englishTerms,
+  whitelistedTerms: [...(englishTerms.whitelistedTerms ?? []), ...GOLF_WHITELIST],
   ...englishRecommendedTransformers,
 });
 
