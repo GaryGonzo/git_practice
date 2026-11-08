@@ -119,6 +119,10 @@ export function DrillFreshView({
 }: DrillFreshViewProps) {
   const tierTarget = drill.targets[tier];
   const tierInfo = TIER_INFO[tier];
+  // A custom drill has one personal goal (same in every tier column), or
+  // none at all -- an empty target hides the target block and copy.
+  const hasTarget = tierTarget !== "";
+  const targetLabel = drill.isCustom ? "Your goal" : `Your ${tierInfo.label} target`;
   const puttingDistances = (PUTTING_ROTATION_DRILL_IDS as readonly string[]).includes(drill.id)
     ? generatePuttingHoleDistances(date)
     : null;
@@ -223,10 +227,13 @@ export function DrillFreshView({
           </ul>
         </section>
 
-        <section className={`flex items-center justify-between gap-3 border-l-4 p-4 ${TIER_BORDER[tier]}`}>
+        {hasTarget && (
+        <section className={`flex items-center justify-between gap-3 border-l-4 p-4 ${drill.isCustom ? "border-brand" : TIER_BORDER[tier]}`}>
           <div>
-            <h3 className="font-label text-lg font-semibold text-neutral-900">Your target</h3>
-            <p className="font-body text-sm text-neutral-500">{tierInfo.label} tier</p>
+            <h3 className="font-label text-lg font-semibold text-neutral-900">{drill.isCustom ? "Your goal" : "Your target"}</h3>
+            <p className="font-body text-sm text-neutral-500">
+              {drill.isCustom ? (drill.scoreDirection === "lower" ? "Or fewer" : "Or better") : `${tierInfo.label} tier`}
+            </p>
             {roundBest && (
               <p className="font-body mt-1 text-sm text-neutral-600">
                 Best round: <span className="text-brand font-semibold">{formatScore(roundBest.score, roundBest.maxScore, drill.scoreDirection)}</span>{" "}
@@ -234,8 +241,9 @@ export function DrillFreshView({
               </p>
             )}
           </div>
-          <p className={`font-display text-5xl leading-none ${TIER_TEXT[tier]}`}>{tierTarget}</p>
+          <p className={`font-display text-5xl leading-none ${drill.isCustom ? "text-brand" : TIER_TEXT[tier]}`}>{tierTarget}</p>
         </section>
+        )}
       </div>
 
       {result ? (
@@ -244,9 +252,10 @@ export function DrillFreshView({
             <p className="font-label text-base font-medium text-white/70">You scored</p>
             <p className="font-display text-7xl leading-none">{formatScore(result.score, maxScore, drill.scoreDirection)}</p>
             <p className="font-body mt-2 text-sm text-white/80">
-              {isTargetHit(result.score, tierTarget, drill.scoreDirection)
-                ? `Target hit. Your ${tierInfo.label} target was ${tierTarget}.`
-                : `Target was ${tierTarget}. Keep after it.`}
+              {hasTarget &&
+                (isTargetHit(result.score, tierTarget, drill.scoreDirection)
+                  ? `${drill.isCustom ? "Goal" : "Target"} hit. ${targetLabel} was ${tierTarget}.`
+                  : `${drill.isCustom ? "Goal" : "Target"} was ${tierTarget}. Keep after it.`)}
               {result.lastAttempt !== null && (
                 <>
                   {" "}

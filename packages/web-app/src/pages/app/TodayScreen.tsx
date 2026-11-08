@@ -115,6 +115,11 @@ export function TodayScreen() {
       setRoundBest(roundBestResult);
       if (existingScore !== null) {
         setSubmittedScore(existingScore);
+        // A custom drill is private, so there's no board to rank on.
+        if (found.drill.isCustom) {
+          setLoading(false);
+          return;
+        }
         const board = await getRankBoard(
           profile.studio_id,
           found.drill.id,
@@ -140,13 +145,15 @@ export function TodayScreen() {
     try {
       await submitScore(userId, drill.id, value, date);
       const [board, newWeekCount] = await Promise.all([
-        getRankBoard(profile.studio_id, drill.id, profile.tier, date, drill.scoreDirection),
+        drill.isCustom
+          ? Promise.resolve([] as LeaderboardEntry[])
+          : getRankBoard(profile.studio_id, drill.id, profile.tier, date, drill.scoreDirection),
         getSessionsThisWeek(userId),
       ]);
       const reachedGoalNow = sessionsThisWeek < profile.weekly_goal && newWeekCount >= profile.weekly_goal;
       const newPersonalBest = personalBest === null || isBetterScore(value, personalBest, drill.scoreDirection);
       setSubmittedScore(value);
-      if (isFirstCompletion) setShowRatingPrompt(true);
+      if (isFirstCompletion && !drill.isCustom) setShowRatingPrompt(true);
       setSessionsThisWeek(newWeekCount);
       setIsNewPersonalBest(newPersonalBest);
       setPersonalBest((prev) => (prev === null || isBetterScore(value, prev, drill.scoreDirection) ? value : prev));
@@ -161,7 +168,7 @@ export function TodayScreen() {
   }
 
   const backLink = (!isToday || isChooseYourOwn) && (
-    <div className="mx-auto max-w-md px-4 pt-4">
+    <div className="mx-auto flex max-w-md items-center justify-between px-4 pt-4">
       <Link
         to="/app/library"
         className="font-label inline-flex items-center gap-0.5 text-base font-semibold text-neutral-500"
@@ -169,6 +176,11 @@ export function TodayScreen() {
         <BackIcon className="h-4 w-4" />
         Library
       </Link>
+      {drill?.isCustom && (
+        <Link to={`/app/my-drills/${drill.id}/edit`} className="font-label text-brand text-base font-semibold">
+          Edit drill
+        </Link>
+      )}
     </div>
   );
 
@@ -251,7 +263,9 @@ export function TodayScreen() {
         submitting={submitting}
         error={submitError}
         eyebrow={
-          isChooseYourOwn
+          drill.isCustom
+            ? "Your drill"
+            : isChooseYourOwn
             ? "Your pick"
             : isToday
               ? "Today's Golfable"
@@ -260,7 +274,9 @@ export function TodayScreen() {
                 : `Played ${formatDate(date)}`
         }
         subtitle={
-          isToday
+          drill.isCustom
+            ? "Log a score and it counts toward your week"
+            : isToday
             ? "Everyone plays this one today"
             : submittedScore === null
               ? "Play it now and log your score"

@@ -22,6 +22,7 @@ const TodayScreen = lazy(() => import("./pages/app/TodayScreen").then((m) => ({ 
 const ProgressScreen = lazy(() => import("./pages/app/ProgressScreen").then((m) => ({ default: m.ProgressScreen })));
 const GolfableScoreDetailScreen = lazy(() => import("./pages/app/GolfableScoreDetailScreen").then((m) => ({ default: m.GolfableScoreDetailScreen })));
 const LibraryScreen = lazy(() => import("./pages/app/LibraryScreen").then((m) => ({ default: m.LibraryScreen })));
+const CustomDrillScreen = lazy(() => import("./pages/app/CustomDrillScreen").then((m) => ({ default: m.CustomDrillScreen })));
 const RoundScreen = lazy(() => import("./pages/app/RoundScreen").then((m) => ({ default: m.RoundScreen })));
 const RoundPlayScreen = lazy(() => import("./pages/app/RoundPlayScreen").then((m) => ({ default: m.RoundPlayScreen })));
 const ProfileScreen = lazy(() => import("./pages/app/ProfileScreen").then((m) => ({ default: m.ProfileScreen })));
@@ -93,6 +94,8 @@ function App() {
         <Route path="golfable-score/:category" element={<GolfableScoreDetailScreen />} />
         <Route path="library" element={<LibraryScreen />} />
         <Route path="library/:date" element={<TodayScreen />} />
+        <Route path="my-drills/new" element={<CustomDrillScreen />} />
+        <Route path="my-drills/:drillId/edit" element={<CustomDrillScreen />} />
         <Route path="round" element={<RoundScreen />} />
         <Route path="round/:roundId" element={<RoundPlayScreen />} />
         <Route path="play/:drillId" element={<TodayScreen />} />

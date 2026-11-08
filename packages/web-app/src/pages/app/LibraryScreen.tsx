@@ -6,6 +6,7 @@ import { CategoryIcon } from "../../components/CategoryIcon";
 import { PageHeader, Section, Panel, ChevronRight } from "../../components/ui";
 import {
   getAllDrills,
+  getMyCustomDrills,
   getAllDrillRatingSummaries,
   getMyDrillRatings,
   getMyGameRatings,
@@ -69,6 +70,7 @@ export function LibraryScreen() {
   const [category, setCategory] = useState<SkillCategory | "all">("all");
   const [favoriteFilter, setFavoriteFilter] = useState<FavoriteFilter>("all");
   const [drills, setDrills] = useState<{ drill: Drill; maxScore: number }[]>([]);
+  const [myDrills, setMyDrills] = useState<{ drill: Drill; maxScore: number }[]>([]);
   const [ratingSummaries, setRatingSummaries] = useState<Record<string, DrillRatingSummary>>({});
   const [myRatings, setMyRatings] = useState<Record<string, number>>({});
   const [gameRatings, setGameRatings] = useState<Partial<Record<SkillCategory, number>>>({});
@@ -85,8 +87,10 @@ export function LibraryScreen() {
       profile ? getMyDrillRatings(profile.id) : Promise.resolve({}),
       profile ? getMyGameRatings(profile.id) : Promise.resolve({}),
       profile ? getRoundCategorySignals(profile.id) : Promise.resolve({}),
-    ]).then(([drillResult, summaries, mine, game, roundSignals]) => {
+      profile ? getMyCustomDrills(profile.id) : Promise.resolve([]),
+    ]).then(([drillResult, summaries, mine, game, roundSignals, custom]) => {
       setDrills(drillResult);
+      setMyDrills(custom);
       setRatingSummaries(summaries);
       setMyRatings(mine);
       setGameRatings(blendGameRatings(game, roundSignals));
@@ -97,6 +101,17 @@ export function LibraryScreen() {
   const recommendedCategories = weakestCategories(gameRatings);
 
   const q = query.trim().toLowerCase();
+  // A member's own drills: same club + search filters, shown only on the
+  // "Everything" list (ratings/recommendations are about the official catalog).
+  const visibleMyDrills =
+    favoriteFilter === "all"
+      ? myDrills.filter(({ drill }) => {
+          if (category !== "all" && drill.category !== category) return false;
+          if (q && !`${drill.name} ${drill.setup.description} ${CATEGORY_INFO[drill.category].label}`.toLowerCase().includes(q)) return false;
+          return true;
+        })
+      : [];
+
   const visibleDrills = drills.filter(({ drill }) => {
     if (category !== "all" && drill.category !== category) return false;
     if (q && !`${drill.name} ${drill.setup.description} ${CATEGORY_INFO[drill.category].label}`.toLowerCase().includes(q)) return false;
@@ -219,6 +234,38 @@ export function LibraryScreen() {
           );
         })}
       </div>
+
+      {!loading && favoriteFilter === "all" && (
+        <Section
+          className="mt-6"
+          title="My drills"
+          action={
+            <Link to="/app/my-drills/new" className="font-label text-brand text-sm font-semibold">
+              + Build your own
+            </Link>
+          }
+        >
+          {visibleMyDrills.length > 0 ? (
+            <Panel>{visibleMyDrills.map(({ drill }) => drillRow(drill))}</Panel>
+          ) : myDrills.length > 0 ? (
+            <Panel>
+              <p className="font-body px-4 py-3 text-sm text-neutral-500">None of your drills match.</p>
+            </Panel>
+          ) : (
+            <Link
+              to="/app/my-drills/new"
+              className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06] active:bg-neutral-50"
+            >
+              <span className="bg-brand/10 text-brand font-display flex h-9 w-9 flex-none items-center justify-center rounded-full text-2xl leading-none">+</span>
+              <span className="min-w-0 flex-1">
+                <span className="font-label block text-[1.05rem] leading-tight font-semibold text-neutral-900">Build your own drill</span>
+                <span className="font-body block text-sm text-neutral-500">Your rules, your scoring. Counts toward your week.</span>
+              </span>
+              <ChevronRight className="h-4 w-4 flex-none text-neutral-300" />
+            </Link>
+          )}
+        </Section>
+      )}
 
       {loading ? (
         <p className="font-body mt-6 text-sm text-neutral-500">Loading drills…</p>

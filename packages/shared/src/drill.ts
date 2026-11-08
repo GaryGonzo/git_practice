@@ -24,4 +24,6 @@ export interface Drill {
   videoUrl?: string;
   /** The yardage this drill calls for, if it's yardage-based. Most drills don't set this. */
   targetYardage?: number;
+  /** True for a drill a member wrote themselves (only they can see it). Official drills leave this unset. */
+  isCustom?: boolean;
 }
