@@ -2969,7 +2969,8 @@ export async function countCompletedWorkoutsBetween(userId: string, startDate: s
   }).length;
 }
 
-// Yoga = mobility routine items whose title starts with "Yoga". startDate
+// Yoga = mobility routine items whose title starts with "Yoga" or
+// "Mobility" (the 16-week program's daily mobility counts the same way). startDate
 // is the Pacific day the earliest one was added, so days before yoga was
 // on the plan are never counted as misses.
 export interface FitYogaPlan {
@@ -2984,7 +2985,7 @@ export async function getFitYogaPlan(userId: string): Promise<FitYogaPlan> {
     .select("id, days_of_week, created_at")
     .eq("user_id", userId)
     .eq("kind", "mobility")
-    .ilike("title", "yoga%");
+    .or("title.ilike.yoga%,title.ilike.mobility%");
   const rows = data ?? [];
   const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: GOLFABLE_TZ });
   const starts = rows.map((r) => fmt.format(new Date(r.created_at as string))).sort();
@@ -3093,6 +3094,18 @@ export interface FitWeeklyCheckin {
   stress: number | null;
   adjustment: string | null;
   notes: string | null;
+  // Weekly progress tracker for the 16-week program (0069). All optional.
+  backPainAvg?: number | null;
+  backPainWorst?: number | null;
+  hipComfort?: number | null;
+  rotationComfort?: number | null;
+  sidePlankLeftS?: number | null;
+  sidePlankRightS?: number | null;
+  mobilityDays?: number | null;
+  golfStage?: number | null;
+  golfNextMorningBack?: number | null;
+  recovery?: number | null;
+  flare?: boolean | null;
 }
 
 export async function getFitWeeklyCheckins(userId: string, limit = 8): Promise<FitWeeklyCheckin[]> {
@@ -3116,6 +3129,17 @@ export async function getFitWeeklyCheckins(userId: string, limit = 8): Promise<F
     stress: row.stress,
     adjustment: row.adjustment,
     notes: row.notes,
+    backPainAvg: row.back_pain_avg ?? null,
+    backPainWorst: row.back_pain_worst ?? null,
+    hipComfort: row.hip_comfort ?? null,
+    rotationComfort: row.rotation_comfort ?? null,
+    sidePlankLeftS: row.side_plank_left_s ?? null,
+    sidePlankRightS: row.side_plank_right_s ?? null,
+    mobilityDays: row.mobility_days ?? null,
+    golfStage: row.golf_stage ?? null,
+    golfNextMorningBack: row.golf_next_morning_back ?? null,
+    recovery: row.recovery ?? null,
+    flare: row.flare ?? null,
   }));
 }
 
@@ -3136,6 +3160,17 @@ export async function saveFitWeeklyCheckin(userId: string, checkin: FitWeeklyChe
       stress: checkin.stress,
       adjustment: checkin.adjustment,
       notes: checkin.notes,
+      back_pain_avg: checkin.backPainAvg ?? null,
+      back_pain_worst: checkin.backPainWorst ?? null,
+      hip_comfort: checkin.hipComfort ?? null,
+      rotation_comfort: checkin.rotationComfort ?? null,
+      side_plank_left_s: checkin.sidePlankLeftS ?? null,
+      side_plank_right_s: checkin.sidePlankRightS ?? null,
+      mobility_days: checkin.mobilityDays ?? null,
+      golf_stage: checkin.golfStage ?? null,
+      golf_next_morning_back: checkin.golfNextMorningBack ?? null,
+      recovery: checkin.recovery ?? null,
+      flare: checkin.flare ?? null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,week_start" }

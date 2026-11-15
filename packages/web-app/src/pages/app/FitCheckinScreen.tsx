@@ -97,6 +97,115 @@ function Stat({ label, value, sub, good }: { label: string; value: string; sub?:
   );
 }
 
+// 0-10 (or 1-5) tap row used by the back / hip / golf tracker.
+function ScaleRow({
+  label,
+  value,
+  onChange,
+  min = 0,
+  max = 10,
+  lowLabel,
+  highLabel,
+  badHigh = true,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (n: number) => void;
+  min?: number;
+  max?: number;
+  lowLabel: string;
+  highLabel: string;
+  badHigh?: boolean;
+}) {
+  const values = Array.from({ length: max - min + 1 }, (_, i) => i + min);
+  const isBad = (n: number) => (badHigh ? n >= min + (max - min) * 0.4 : n <= min + (max - min) * 0.3);
+  return (
+    <div className="mt-3">
+      <p className="font-label text-sm font-semibold text-neutral-700">{label}</p>
+      <div className="mt-1.5 grid gap-1" style={{ gridTemplateColumns: `repeat(${values.length}, minmax(0, 1fr))` }}>
+        {values.map((n) => (
+          <button
+            key={n}
+            type="button"
+            aria-label={`${label} ${n}`}
+            onClick={() => onChange(n)}
+            className={`font-label rounded-md py-1.5 text-sm font-semibold ${
+              value === n ? (isBad(n) ? "bg-fit-circuit text-white" : "bg-brand text-white") : "bg-neutral-100 text-neutral-600"
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <div className="font-body mt-0.5 flex justify-between text-[11px] text-neutral-400">
+        <span>{lowLabel}</span>
+        <span>{highLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+type Tracker = Pick<
+  FitWeeklyCheckin,
+  | "backPainAvg"
+  | "backPainWorst"
+  | "hipComfort"
+  | "rotationComfort"
+  | "sidePlankLeftS"
+  | "sidePlankRightS"
+  | "mobilityDays"
+  | "golfStage"
+  | "golfNextMorningBack"
+  | "recovery"
+  | "flare"
+>;
+
+const EMPTY_TRACKER: Tracker = {
+  backPainAvg: null,
+  backPainWorst: null,
+  hipComfort: null,
+  rotationComfort: null,
+  sidePlankLeftS: null,
+  sidePlankRightS: null,
+  mobilityDays: null,
+  golfStage: null,
+  golfNextMorningBack: null,
+  recovery: null,
+  flare: null,
+};
+
+const GOLF_STAGES = [
+  { n: 1, label: "Short game", detail: "Putting, chipping, pitches to 40 yd." },
+  { n: 2, label: "Controlled", detail: "50-60% swings, wedges to 7-iron, 40 balls max, no driver." },
+  { n: 3, label: "Smooth bag", detail: "75% effort, all clubs, 60 balls max, smooth 18." },
+  { n: 4, label: "Normal golf", detail: "Full rounds, driver at 85-90%, 80 balls max." },
+  { n: 5, label: "Speed", detail: "Full effort and speed work, 2x/week max." },
+];
+
+// The program's traffic light, read from this week's tracker. Flare or a
+// red score drops a golf stage; two calm weeks in a row at the same stage
+// earn a step up (the strength tests are checked by hand).
+function trackerCall(t: Tracker, last: Tracker | null): string | null {
+  const worst = Math.max(t.backPainWorst ?? -1, t.golfNextMorningBack ?? -1);
+  if (t.backPainAvg == null && worst < 0 && t.flare == null) return null;
+  if (t.flare || worst >= 4) {
+    const stage = t.golfStage ? Math.max(1, t.golfStage - 1) : null;
+    return `Red week. Hold the phase (repeat this week's lifts) and drop golf one stage${stage ? ` to Stage ${stage}` : ""} for a week. Two red weeks in a row: book the PT.`;
+  }
+  if (worst === 3 || (t.backPainAvg ?? 0) >= 3) {
+    return "Amber week. Same loads next week -- no progression -- and keep golf at this stage.";
+  }
+  const lastCalm =
+    last != null &&
+    !last.flare &&
+    Math.max(last.backPainWorst ?? 0, last.golfNextMorningBack ?? 0) <= 2 &&
+    last.golfStage === t.golfStage;
+  if (t.golfStage && t.golfStage < 5 && lastCalm) {
+    return `Green two weeks running at Stage ${t.golfStage}. If the strength checks for Stage ${t.golfStage + 1} pass (see the doc), move up to Stage ${t.golfStage + 1}.`;
+  }
+  return "Green week. Progress the lifts where every set was clean, and keep golf at this stage.";
+}
+
 export function FitCheckinScreen() {
   const { session } = useAuth();
   const userId = session!.user.id;
@@ -121,6 +230,8 @@ export function FitCheckinScreen() {
   const [history, setHistory] = useState<FitWeeklyCheckin[]>([]);
 
   const [stress, setStress] = useState<number | null>(null);
+  const [tracker, setTracker] = useState<Tracker>(EMPTY_TRACKER);
+  const [lastTracker, setLastTracker] = useState<Tracker | null>(null);
   const [leak, setLeak] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [applied, setApplied] = useState<string | null>(null);
@@ -164,7 +275,7 @@ export function FitCheckinScreen() {
       setPrevAvg(average(weightsIn(prevStart)));
 
       setWorkoutsDone(done.done);
-      // Lifts + yoga days, e.g. 2 + 7 = 9 for Peace and Strength.
+      // Lifts + mobility/yoga days, e.g. 3 + 7 = 10 for the 16-week program.
       setWorkoutsGoal(block ? block.sessionsPerWeek + done.yogaPerWeek : null);
       setStepGoal(block?.stepGoal ?? null);
       const weekSteps = stepHistory.filter((s) => s.loggedDate >= weekStart && s.loggedDate <= weekEnd).map((s) => s.steps);
@@ -185,6 +296,27 @@ export function FitCheckinScreen() {
 
       const existing = checkins.find((c) => c.weekStart === weekStart);
       setStress(existing?.stress ?? null);
+      const pick = (c: FitWeeklyCheckin | undefined): Tracker => ({
+        backPainAvg: c?.backPainAvg ?? null,
+        backPainWorst: c?.backPainWorst ?? null,
+        hipComfort: c?.hipComfort ?? null,
+        rotationComfort: c?.rotationComfort ?? null,
+        sidePlankLeftS: c?.sidePlankLeftS ?? null,
+        sidePlankRightS: c?.sidePlankRightS ?? null,
+        mobilityDays: c?.mobilityDays ?? null,
+        golfStage: c?.golfStage ?? null,
+        golfNextMorningBack: c?.golfNextMorningBack ?? null,
+        recovery: c?.recovery ?? null,
+        flare: c?.flare ?? null,
+      });
+      const previous = checkins.find((c) => c.weekStart === lastStart);
+      const next = pick(existing);
+      // Mobility days come from the routine check-offs; golf stage carries
+      // over from last week until it's changed.
+      if (next.mobilityDays == null) next.mobilityDays = Math.min(7, done.yogaDays);
+      if (next.golfStage == null) next.golfStage = previous?.golfStage ?? null;
+      setTracker(next);
+      setLastTracker(previous ? pick(previous) : null);
       setLeak(existing?.biggestLeak ?? suggestLeak(latestRound));
       setNotes(existing?.notes ?? "");
       if (existing?.adjustment) setApplied(existing.adjustment);
@@ -196,6 +328,11 @@ export function FitCheckinScreen() {
   const leakFocus = LEAKS.find((l) => l.id === leak)?.focus ?? null;
   const roundLeak = suggestLeak(round);
   const isCurrentWeek = weekStart === mondayOfISO(todayISO());
+  const trackerAdvice = trackerCall(tracker, lastTracker);
+  const setT = (patch: Partial<Tracker>) => {
+    setSaved(false);
+    setTracker((t) => ({ ...t, ...patch }));
+  };
 
   async function handleApply() {
     if (suggestion.calorieDelta === 0 || calories === null) return;
@@ -230,6 +367,7 @@ export function FitCheckinScreen() {
         stress,
         adjustment: applied,
         notes: notes.trim() || null,
+        ...tracker,
       });
       setHistory(await getFitWeeklyCheckins(userId));
       setSaved(true);
@@ -299,6 +437,97 @@ export function FitCheckinScreen() {
 
           <FitNutritionWeekCard userId={userId} weekStart={weekStart} withHarperCopy />
 
+          <div className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+            <p className="font-label text-lg font-semibold text-neutral-900">Back, hip and golf</p>
+            <p className="font-body text-sm text-neutral-500">The 16-week program's tracker. Tap what fits this week.</p>
+            {trackerAdvice && (
+              <p className="font-body mt-2 rounded-xl bg-neutral-50 p-3 text-sm text-neutral-800 ring-1 ring-black/[0.04]">{trackerAdvice}</p>
+            )}
+            <ScaleRow label="Low back pain, average" value={tracker.backPainAvg ?? null} onChange={(n) => setT({ backPainAvg: n })} lowLabel="None" highLabel="Worst" badHigh />
+            <ScaleRow label="Low back pain, worst moment" value={tracker.backPainWorst ?? null} onChange={(n) => setT({ backPainWorst: n })} lowLabel="None" highLabel="Worst" badHigh />
+            <ScaleRow label="Left hip comfort" value={tracker.hipComfort ?? null} onChange={(n) => setT({ hipComfort: n })} lowLabel="Can't" highLabel="Totally free" badHigh={false} />
+            <ScaleRow label="Rotation comfort (incl. getting out of the car)" value={tracker.rotationComfort ?? null} onChange={(n) => setT({ rotationComfort: n })} lowLabel="Pinches" highLabel="Totally free" badHigh={false} />
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <label className="font-label text-sm font-semibold text-neutral-700">
+                Side plank L (s)
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  aria-label="Side plank left seconds"
+                  value={tracker.sidePlankLeftS ?? ""}
+                  onChange={(e) => setT({ sidePlankLeftS: e.target.value === "" ? null : Math.max(0, Math.min(600, Number(e.target.value))) })}
+                  className="font-body focus:border-brand mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2 text-base outline-none"
+                />
+              </label>
+              <label className="font-label text-sm font-semibold text-neutral-700">
+                Side plank R (s)
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  aria-label="Side plank right seconds"
+                  value={tracker.sidePlankRightS ?? ""}
+                  onChange={(e) => setT({ sidePlankRightS: e.target.value === "" ? null : Math.max(0, Math.min(600, Number(e.target.value))) })}
+                  className="font-body focus:border-brand mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2 text-base outline-none"
+                />
+              </label>
+              <label className="font-label text-sm font-semibold text-neutral-700">
+                Mobility days
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  aria-label="Mobility days"
+                  value={tracker.mobilityDays ?? ""}
+                  onChange={(e) => setT({ mobilityDays: e.target.value === "" ? null : Math.max(0, Math.min(7, Number(e.target.value))) })}
+                  className="font-body focus:border-brand mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2 text-base outline-none"
+                />
+              </label>
+            </div>
+            <p className="font-label mt-4 text-sm font-semibold text-neutral-700">Golf stage this week</p>
+            <div className="mt-1.5 grid grid-cols-5 gap-1">
+              {GOLF_STAGES.map((g) => (
+                <button
+                  key={g.n}
+                  type="button"
+                  aria-label={`Golf stage ${g.n}`}
+                  onClick={() => setT({ golfStage: g.n })}
+                  className={`font-label rounded-md px-1 py-1.5 text-xs leading-tight font-semibold ${
+                    tracker.golfStage === g.n ? "bg-gold text-white" : "bg-neutral-100 text-neutral-600"
+                  }`}
+                >
+                  {g.n}
+                  <span className="block text-[10px] font-medium">{g.label}</span>
+                </button>
+              ))}
+            </div>
+            {tracker.golfStage != null && (
+              <p className="font-body mt-1.5 text-xs text-neutral-500">{GOLF_STAGES[tracker.golfStage - 1].detail}</p>
+            )}
+            <ScaleRow label="Back the morning after golf" value={tracker.golfNextMorningBack ?? null} onChange={(n) => setT({ golfNextMorningBack: n })} lowLabel="None" highLabel="Worst" badHigh />
+            <ScaleRow label="Recovery" value={tracker.recovery ?? null} onChange={(n) => setT({ recovery: n })} min={1} max={5} lowLabel="Wrecked" highLabel="Fresh" badHigh={false} />
+            <div className="mt-3 flex items-center justify-between">
+              <p className="font-label text-sm font-semibold text-neutral-700">Any flare this week?</p>
+              <div className="flex gap-1.5">
+                {[
+                  { v: false, l: "No" },
+                  { v: true, l: "Yes" },
+                ].map((o) => (
+                  <button
+                    key={o.l}
+                    type="button"
+                    onClick={() => setT({ flare: o.v })}
+                    className={`font-label rounded-full px-4 py-1.5 text-sm font-semibold ${
+                      tracker.flare === o.v ? (o.v ? "bg-fit-circuit text-white" : "bg-brand text-white") : "bg-neutral-100 text-neutral-600"
+                    }`}
+                  >
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="font-body mt-1 text-xs text-neutral-400">Flare = back 4/10+, the rotation pinch back in daily life, or moving differently to avoid pain.</p>
+          </div>
+
+
           <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-neutral-100 ring-1 ring-black/[0.06]">
             <Stat
               label="Weight avg"
@@ -311,7 +540,7 @@ export function FitCheckinScreen() {
               good={weighIns >= 3 ? null : false}
             />
             <Stat
-              label="Sessions (lifts + yoga)"
+              label="Sessions (lifts + mobility)"
               value={`${workoutsDone}${workoutsGoal ? `/${workoutsGoal}` : ""}`}
               good={workoutsGoal ? workoutsDone >= workoutsGoal : null}
             />
@@ -454,6 +683,8 @@ export function FitCheckinScreen() {
                         {h.weightAvg !== null ? `${h.weightAvg} lbs` : "—"} · {h.workoutsDone}
                         {h.workoutsGoal ? `/${h.workoutsGoal}` : ""} sessions
                         {h.roundScore !== null ? ` · shot ${h.roundScore}` : ""}
+                        {h.backPainAvg != null ? ` · back ${h.backPainAvg}/10` : ""}
+                        {h.golfStage != null ? ` · stage ${h.golfStage}` : ""}
                       </span>
                     </button>
                   ))}
