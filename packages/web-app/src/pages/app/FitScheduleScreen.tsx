@@ -4,6 +4,7 @@ import {
   getAllFitRoutineItems,
   saveFitRoutineItem,
   deleteFitRoutineItem,
+  deleteFitRoutineItems,
   getActiveFitBlock,
   dayOfWeekISO,
   todayISO,
@@ -39,7 +40,9 @@ const KINDS: { value: FitRoutineKind; label: string; color: string }[] = [
   { value: "checkin", label: "Check-in", color: "bg-brand" },
 ];
 
-const KIND_COLOR = Object.fromEntries(KINDS.map((k) => [k.value, k.color])) as Record<FitRoutineKind, string>;
+const KIND_COLOR = Object.fromEntries(
+  KINDS.map((k) => [k.value, k.color]),
+) as Record<FitRoutineKind, string>;
 
 function formatTime12h(time: string): string {
   const [h, m] = time.split(":").map(Number);
@@ -49,7 +52,8 @@ function formatTime12h(time: string): string {
 function daysLabel(days: number[]): string {
   const set = new Set(days);
   if (set.size === 7) return "Every day";
-  if (set.size === 5 && [1, 2, 3, 4, 5].every((d) => set.has(d))) return "Weekdays";
+  if (set.size === 5 && [1, 2, 3, 4, 5].every((d) => set.has(d)))
+    return "Weekdays";
   if (set.size === 2 && set.has(0) && set.has(6)) return "Weekends";
   if (set.size === 0) return "Not scheduled";
   return DAYS.filter((d) => set.has(d.value))
@@ -59,14 +63,37 @@ function daysLabel(days: number[]): string {
 
 function BellIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path d="M6 10a6 6 0 0 1 12 0c0 3.5 1 5 2 6H4c1-1 2-2.5 2-6Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M10 19a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M6 10a6 6 0 0 1 12 0c0 3.5 1 5 2 6H4c1-1 2-2.5 2-6Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 19a2 2 0 0 0 4 0"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
   return (
     <button
       type="button"
@@ -76,15 +103,25 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
       onClick={() => onChange(!checked)}
       className={`relative h-7 w-12 flex-none rounded-full transition-colors ${checked ? "bg-brand" : "bg-neutral-300"}`}
     >
-      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+      <span
+        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[22px]" : "translate-x-0.5"}`}
+      />
     </button>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="mt-4">
-      <p className="font-label mb-1.5 text-base font-semibold text-neutral-700">{label}</p>
+      <p className="font-label mb-1.5 text-base font-semibold text-neutral-700">
+        {label}
+      </p>
       {children}
     </div>
   );
@@ -109,18 +146,26 @@ function ItemEditor({
 }) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [detail, setDetail] = useState(initial?.detail ?? "");
-  const [anytime, setAnytime] = useState(initial ? initial.timeOfDay === null : false);
+  const [anytime, setAnytime] = useState(
+    initial ? initial.timeOfDay === null : false,
+  );
   const [time, setTime] = useState(initial?.timeOfDay ?? "12:00");
-  const [days, setDays] = useState<number[]>(initial?.daysOfWeek ?? [defaultDay]);
+  const [days, setDays] = useState<number[]>(
+    initial?.daysOfWeek ?? [defaultDay],
+  );
   const [kind, setKind] = useState<FitRoutineKind>(initial?.kind ?? "habit");
-  const [templateIndex, setTemplateIndex] = useState<number>(initial?.templateIndex ?? 0);
+  const [templateIndex, setTemplateIndex] = useState<number>(
+    initial?.templateIndex ?? 0,
+  );
   const [remind, setRemind] = useState(initial?.remind ?? false);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function toggleDay(d: number) {
-    setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
+    setDays((prev) =>
+      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
+    );
   }
 
   async function handleSave() {
@@ -162,15 +207,23 @@ function ItemEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-900/50" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-900/50"
+      onClick={onClose}
+    >
       <div
         role="dialog"
         aria-label={initial ? `Edit ${initial.title}` : "Add to your schedule"}
         className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto h-1.5 w-10 rounded-full bg-neutral-200" aria-hidden="true" />
-        <h2 className="font-display mt-3 text-3xl tracking-wide">{initial ? "Edit" : "Add to your schedule"}</h2>
+        <div
+          className="mx-auto h-1.5 w-10 rounded-full bg-neutral-200"
+          aria-hidden="true"
+        />
+        <h2 className="font-display mt-3 text-3xl tracking-wide">
+          {initial ? "Edit" : "Add to your schedule"}
+        </h2>
 
         <Field label="Name">
           <input
@@ -243,10 +296,15 @@ function ItemEditor({
                 onClick={() => setKind(k.value)}
                 aria-pressed={kind === k.value}
                 className={`font-label inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  kind === k.value ? "bg-brand-dark text-white" : "bg-neutral-100 text-neutral-600"
+                  kind === k.value
+                    ? "bg-brand-dark text-white"
+                    : "bg-neutral-100 text-neutral-600"
                 }`}
               >
-                <span className={`h-2 w-2 rounded-full ${k.color}`} aria-hidden="true" />
+                <span
+                  className={`h-2 w-2 rounded-full ${k.color}`}
+                  aria-hidden="true"
+                />
                 {k.label}
               </button>
             ))}
@@ -263,14 +321,18 @@ function ItemEditor({
                   onClick={() => setTemplateIndex(i)}
                   aria-pressed={templateIndex === i}
                   className={`font-label rounded-xl px-3 py-2 text-left text-sm font-semibold ${
-                    templateIndex === i ? "bg-brand text-white" : "bg-neutral-100 text-neutral-700"
+                    templateIndex === i
+                      ? "bg-brand text-white"
+                      : "bg-neutral-100 text-neutral-700"
                   }`}
                 >
                   {t.name}
                 </button>
               ))}
             </div>
-            <p className="font-body mt-1 text-xs text-neutral-500">Today's plan shows a Start button for this session.</p>
+            <p className="font-body mt-1 text-xs text-neutral-500">
+              Today's plan shows a Start button for this session.
+            </p>
           </Field>
         )}
 
@@ -284,21 +346,37 @@ function ItemEditor({
           />
         </Field>
 
-        <div className={`mt-4 flex items-center justify-between gap-3 rounded-xl bg-neutral-50 px-3 py-3 ${anytime ? "opacity-50" : ""}`}>
+        <div
+          className={`mt-4 flex items-center justify-between gap-3 rounded-xl bg-neutral-50 px-3 py-3 ${anytime ? "opacity-50" : ""}`}
+        >
           <span className="flex items-center gap-2">
             <BellIcon className="text-brand h-5 w-5" />
             <span>
-              <span className="font-label block text-base font-semibold">Push reminder</span>
-              <span className="font-body block text-xs text-neutral-500">{anytime ? "Needs a set time" : "Sent at this time"}</span>
+              <span className="font-label block text-base font-semibold">
+                Push reminder
+              </span>
+              <span className="font-body block text-xs text-neutral-500">
+                {anytime ? "Needs a set time" : "Sent at this time"}
+              </span>
             </span>
           </span>
-          <Toggle checked={!anytime && remind} onChange={(v) => !anytime && setRemind(v)} label="Push reminder" />
+          <Toggle
+            checked={!anytime && remind}
+            onChange={(v) => !anytime && setRemind(v)}
+            label="Push reminder"
+          />
         </div>
 
-        {error && <p className="font-body mt-3 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="font-body mt-3 text-sm text-red-600">{error}</p>
+        )}
 
         <div className="mt-5 flex gap-2">
-          <button type="button" onClick={onClose} className="font-label rounded-full bg-neutral-100 px-5 py-3.5 text-base font-semibold text-neutral-700">
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-label rounded-full bg-neutral-100 px-5 py-3.5 text-base font-semibold text-neutral-700"
+          >
             Cancel
           </button>
           <button
@@ -314,9 +392,15 @@ function ItemEditor({
         {onDelete &&
           (confirmingDelete ? (
             <div className="mt-3 rounded-xl bg-red-50 p-3">
-              <p className="font-body text-sm text-red-700">Delete "{initial?.title}" from every day it's on?</p>
+              <p className="font-body text-sm text-red-700">
+                Delete "{initial?.title}" from every day it's on?
+              </p>
               <div className="mt-2 flex gap-2">
-                <button type="button" onClick={() => setConfirmingDelete(false)} className="font-label flex-1 rounded-full bg-white px-3 py-2 text-sm font-semibold text-neutral-700">
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  className="font-label flex-1 rounded-full bg-white px-3 py-2 text-sm font-semibold text-neutral-700"
+                >
                   Keep it
                 </button>
                 <button
@@ -330,7 +414,11 @@ function ItemEditor({
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => setConfirmingDelete(true)} className="font-label mt-3 w-full py-2 text-base font-semibold text-red-600">
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="font-label mt-3 w-full py-2 text-base font-semibold text-red-600"
+            >
               Delete
             </button>
           ))}
@@ -346,6 +434,44 @@ export function FitScheduleScreen() {
   const [block, setBlock] = useState<FitBlock | null>(null);
   const [day, setDay] = useState(dayOfWeekISO(todayISO()));
   const [editing, setEditing] = useState<FitRoutineItem | "new" | null>(null);
+  // Select mode: tick several items, delete them in one go.
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmingBulk, setConfirmingBulk] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function exitSelect() {
+    setSelecting(false);
+    setSelected(new Set());
+    setConfirmingBulk(false);
+    setBulkError(null);
+  }
+
+  async function handleBulkDelete() {
+    setBulkBusy(true);
+    setBulkError(null);
+    try {
+      await deleteFitRoutineItems(userId, [...selected]);
+      exitSelect();
+      await reload();
+    } catch {
+      setBulkError(
+        "Couldn't delete those. Check your connection and try again.",
+      );
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   async function reload() {
     setItems(await getAllFitRoutineItems(userId));
@@ -361,10 +487,25 @@ export function FitScheduleScreen() {
     .sort((a, b) => {
       if (a.timeOfDay === null && b.timeOfDay !== null) return -1;
       if (b.timeOfDay === null && a.timeOfDay !== null) return 1;
-      return (a.timeOfDay ?? "").localeCompare(b.timeOfDay ?? "") || a.orderIndex - b.orderIndex;
+      return (
+        (a.timeOfDay ?? "").localeCompare(b.timeOfDay ?? "") ||
+        a.orderIndex - b.orderIndex
+      );
     });
   const unscheduled = (items ?? []).filter((i) => i.daysOfWeek.length === 0);
   const dayName = DAYS.find((d) => d.value === day)?.short ?? "";
+  // Everything, in time order, for Select mode -- an item can sit on several
+  // days, and deleting it removes it from all of them.
+  const allItems = [...(items ?? [])].sort((a, b) => {
+    if (a.daysOfWeek.length === 0 && b.daysOfWeek.length > 0) return 1;
+    if (b.daysOfWeek.length === 0 && a.daysOfWeek.length > 0) return -1;
+    if (a.timeOfDay === null && b.timeOfDay !== null) return -1;
+    if (b.timeOfDay === null && a.timeOfDay !== null) return 1;
+    return (
+      (a.timeOfDay ?? "").localeCompare(b.timeOfDay ?? "") ||
+      a.orderIndex - b.orderIndex
+    );
+  });
 
   return (
     <div className="mx-auto max-w-md px-4 pb-28">
@@ -375,75 +516,275 @@ export function FitScheduleScreen() {
         back={{ to: "/app/fit", label: "Program" }}
       />
 
-      <div className="mt-4 grid grid-cols-7 gap-1.5">
-        {DAYS.map((d) => (
+      {items !== null && items.length > 0 && (
+        <div className="mt-3 flex justify-end">
           <button
-            key={d.value}
             type="button"
-            onClick={() => setDay(d.value)}
-            aria-pressed={day === d.value}
-            className={`font-label rounded-xl py-2 text-sm font-bold ${
-              day === d.value ? "bg-brand-dark text-white" : "bg-white text-neutral-500 ring-1 ring-black/[0.06]"
-            }`}
+            onClick={() => (selecting ? exitSelect() : setSelecting(true))}
+            className="font-label text-brand min-h-10 rounded-full bg-white px-4 text-sm font-bold ring-1 ring-black/[0.08]"
           >
-            {d.short}
+            {selecting ? "Done" : "Select to delete"}
           </button>
-        ))}
-      </div>
+        </div>
+      )}
 
-      {items === null ? (
-        <p className="font-body mt-6 text-sm text-neutral-500">Loading your schedule…</p>
+      {selecting && items !== null ? (
+        <>
+          <p className="font-body mt-3 px-1 text-sm text-neutral-500">
+            Tick everything you want gone. Each item is removed from every day
+            it's on.
+          </p>
+          <div className="mt-2 flex gap-2 px-1">
+            <button
+              type="button"
+              onClick={() =>
+                setSelected(
+                  new Set(
+                    allItems
+                      .filter((i) => i.daysOfWeek.length === 0)
+                      .map((i) => i.id),
+                  ),
+                )
+              }
+              className="font-label text-brand text-sm font-bold"
+              disabled={!allItems.some((i) => i.daysOfWeek.length === 0)}
+            >
+              Select all unscheduled
+            </button>
+            {selected.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="font-label ml-auto text-sm font-bold text-neutral-500"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="mt-2 divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
+            {allItems.map((item) => {
+              const on = selected.has(item.id);
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="checkbox"
+                  aria-checked={on}
+                  onClick={() => toggleSelected(item.id)}
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-left ${on ? "bg-red-50" : "active:bg-neutral-50"}`}
+                >
+                  <span
+                    className={`flex h-6 w-6 flex-none items-center justify-center rounded-md border-2 ${
+                      on
+                        ? "border-red-600 bg-red-600 text-white"
+                        : "border-neutral-300"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {on && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
+                        <path
+                          d="M5 12l5 5 9-10"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="font-display w-[3.8rem] flex-none text-right text-base leading-none text-neutral-700">
+                    {item.timeOfDay ? (
+                      formatTime12h(item.timeOfDay)
+                    ) : (
+                      <span className="font-label text-sm text-neutral-400">
+                        Any
+                      </span>
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="font-label block truncate text-[1.05rem] leading-tight font-semibold">
+                      {item.title}
+                    </span>
+                    <span className="font-body block truncate text-sm text-neutral-500">
+                      {item.daysOfWeek.length === 0
+                        ? "Not on any day"
+                        : daysLabel(item.daysOfWeek)}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-20 border-t border-black/[0.06] bg-white/95 backdrop-blur">
+            <div className="mx-auto flex max-w-md items-center gap-2 px-4 py-3">
+              <button
+                type="button"
+                onClick={exitSelect}
+                className="font-label min-h-12 flex-none rounded-full bg-neutral-100 px-5 text-base font-bold text-neutral-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={selected.size === 0}
+                onClick={() => setConfirmingBulk(true)}
+                className="font-label min-h-12 flex-1 rounded-full bg-red-600 px-4 text-base font-bold text-white disabled:opacity-40"
+              >
+                {selected.size === 0 ? "Delete" : `Delete ${selected.size}`}
+              </button>
+            </div>
+          </div>
+
+          {confirmingBulk && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-900/60 px-4 pb-6 sm:items-center">
+              <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl">
+                <p className="font-display text-3xl leading-none">
+                  Delete {selected.size}{" "}
+                  {selected.size === 1 ? "item" : "items"}?
+                </p>
+                <ul className="font-body mt-3 max-h-48 list-disc space-y-0.5 overflow-y-auto pl-5 text-sm text-neutral-700">
+                  {allItems
+                    .filter((i) => selected.has(i.id))
+                    .map((i) => (
+                      <li key={i.id}>{i.title}</li>
+                    ))}
+                </ul>
+                <p className="font-body mt-3 text-sm text-neutral-500">
+                  They come off every day they're on, and their reminders stop.
+                  This can't be undone.
+                </p>
+                {bulkError && (
+                  <p className="font-body mt-2 text-sm text-red-600">
+                    {bulkError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleBulkDelete}
+                  disabled={bulkBusy}
+                  className="font-label mt-5 min-h-12 w-full rounded-full bg-red-600 text-base font-bold text-white disabled:opacity-60"
+                >
+                  {bulkBusy ? "Deleting…" : "Delete"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingBulk(false)}
+                  className="font-label mt-2 min-h-12 w-full rounded-full text-base font-bold text-neutral-600"
+                >
+                  Keep them
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <>
-          <div className="mt-4 divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
-            {dayItems.length === 0 && <p className="font-body px-4 py-4 text-sm text-neutral-500">Nothing on {dayName} yet.</p>}
-            {dayItems.map((item) => (
+          <div className="mt-4 grid grid-cols-7 gap-1.5">
+            {DAYS.map((d) => (
               <button
-                key={item.id}
+                key={d.value}
                 type="button"
-                onClick={() => setEditing(item)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-neutral-50"
+                onClick={() => setDay(d.value)}
+                aria-pressed={day === d.value}
+                className={`font-label rounded-xl py-2 text-sm font-bold ${
+                  day === d.value
+                    ? "bg-brand-dark text-white"
+                    : "bg-white text-neutral-500 ring-1 ring-black/[0.06]"
+                }`}
               >
-                <span className="font-display w-[4.2rem] flex-none text-right text-lg leading-none text-neutral-800">
-                  {item.timeOfDay ? formatTime12h(item.timeOfDay).replace(" ", " ") : <span className="font-label text-sm text-neutral-400">Any</span>}
-                </span>
-                <span className={`h-8 w-1 flex-none rounded-full ${KIND_COLOR[item.kind]}`} aria-hidden="true" />
-                <span className="min-w-0 flex-1">
-                  <span className="font-label block truncate text-[1.05rem] leading-tight font-semibold">{item.title}</span>
-                  <span className="font-body block truncate text-sm text-neutral-500">{daysLabel(item.daysOfWeek)}</span>
-                </span>
-                {item.remind && <BellIcon className="text-brand h-4 w-4 flex-none" />}
+                {d.short}
               </button>
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setEditing("new")}
-            className="font-label bg-brand mt-4 w-full rounded-full px-4 py-3.5 text-base font-bold text-white"
-          >
-            Add to {dayName}
-          </button>
-
-          {unscheduled.length > 0 && (
-            <section className="mt-7">
-              <h2 className="font-label mb-2 px-1 text-xl font-semibold">Not on any day</h2>
-              <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
-                {unscheduled.map((item) => (
+          {items === null ? (
+            <p className="font-body mt-6 text-sm text-neutral-500">
+              Loading your schedule…
+            </p>
+          ) : (
+            <>
+              <div className="mt-4 divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
+                {dayItems.length === 0 && (
+                  <p className="font-body px-4 py-4 text-sm text-neutral-500">
+                    Nothing on {dayName} yet.
+                  </p>
+                )}
+                {dayItems.map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => setEditing(item)}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-neutral-50"
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="font-label block truncate text-[1.05rem] font-semibold text-neutral-500">{item.title}</span>
-                      <span className="font-body block text-sm text-neutral-400">Tap to schedule or delete</span>
+                    <span className="font-display w-[4.2rem] flex-none text-right text-lg leading-none text-neutral-800">
+                      {item.timeOfDay ? (
+                        formatTime12h(item.timeOfDay).replace(" ", " ")
+                      ) : (
+                        <span className="font-label text-sm text-neutral-400">
+                          Any
+                        </span>
+                      )}
                     </span>
+                    <span
+                      className={`h-8 w-1 flex-none rounded-full ${KIND_COLOR[item.kind]}`}
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="font-label block truncate text-[1.05rem] leading-tight font-semibold">
+                        {item.title}
+                      </span>
+                      <span className="font-body block truncate text-sm text-neutral-500">
+                        {daysLabel(item.daysOfWeek)}
+                      </span>
+                    </span>
+                    {item.remind && (
+                      <BellIcon className="text-brand h-4 w-4 flex-none" />
+                    )}
                   </button>
                 ))}
               </div>
-            </section>
+
+              <button
+                type="button"
+                onClick={() => setEditing("new")}
+                className="font-label bg-brand mt-4 w-full rounded-full px-4 py-3.5 text-base font-bold text-white"
+              >
+                Add to {dayName}
+              </button>
+
+              {unscheduled.length > 0 && (
+                <section className="mt-7">
+                  <h2 className="font-label mb-2 px-1 text-xl font-semibold">
+                    Not on any day
+                  </h2>
+                  <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
+                    {unscheduled.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setEditing(item)}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-neutral-50"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="font-label block truncate text-[1.05rem] font-semibold text-neutral-500">
+                            {item.title}
+                          </span>
+                          <span className="font-body block text-sm text-neutral-400">
+                            Tap to schedule or delete
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </>
       )}
@@ -455,7 +796,11 @@ export function FitScheduleScreen() {
           defaultDay={day}
           onClose={() => setEditing(null)}
           onSave={async (input) => {
-            await saveFitRoutineItem(userId, input, editing === "new" ? undefined : editing.id);
+            await saveFitRoutineItem(
+              userId,
+              input,
+              editing === "new" ? undefined : editing.id,
+            );
             setEditing(null);
             await reload();
           }}

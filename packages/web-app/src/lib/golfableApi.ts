@@ -3329,6 +3329,13 @@ export async function deleteFitRoutineItem(userId: string, id: string): Promise<
   if (error) throw error;
 }
 
+// Bulk delete from the schedule editor's Select mode.
+export async function deleteFitRoutineItems(userId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from("fit_routine_items").delete().in("id", ids).eq("user_id", userId);
+  if (error) throw error;
+}
+
 // ---------------------------------------------------------------------------
 // Golfable Fit: badges, block goals, benchmarks, streaks (0067)
 // ---------------------------------------------------------------------------
