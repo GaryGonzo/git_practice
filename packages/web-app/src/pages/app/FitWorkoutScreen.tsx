@@ -23,6 +23,7 @@ import {
   type FitExerciseOption,
 } from "../../lib/golfableApi";
 import { ChevronLeft, Meter } from "../../components/ui";
+import { exerciseHelp, youtubeSearchUrl, youtubeWatchUrl } from "../../lib/exerciseVideos";
 import { CelebrationToast } from "../../components/CelebrationToast";
 import { ScreenSkeleton } from "../../components/FitPanelStates";
 
@@ -309,6 +310,65 @@ function BigStepper({
   );
 }
 
+// "Watch how": opens the exercise's YouTube tutorial in a new tab. An
+// exercise with no good video opens a written walkthrough instead; anything
+// not in the list opens a YouTube search for its name.
+function WatchHowButton({ name }: { name: string }) {
+  const help = exerciseHelp(name);
+  const [open, setOpen] = useState(false);
+  const cls =
+    "font-label inline-flex min-h-9 flex-none items-center gap-1.5 rounded-full bg-red-50 px-3 text-sm font-bold text-red-700 ring-1 ring-red-100";
+  const icon = (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+      <path d="M8 5.5v13l10.5-6.5z" />
+    </svg>
+  );
+  if (help?.explain) {
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)} className={cls} aria-label={`How to do ${name}`}>
+          {icon}
+          How to
+        </button>
+        {open && (
+          <Modal>
+            <div className="max-h-[80vh] overflow-y-auto text-left">
+              <p className="font-display text-3xl leading-none text-neutral-900">{name}</p>
+              <p className="font-body mt-2 text-sm leading-relaxed text-neutral-700">{help.explain.what}</p>
+              <p className="font-label mt-4 text-sm font-bold text-neutral-900">How to do it</p>
+              <ol className="font-body mt-1 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-neutral-700">
+                {help.explain.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+              <p className="font-label mt-4 text-sm font-bold text-neutral-900">Avoid</p>
+              <ul className="font-body mt-1 list-disc space-y-1 pl-5 text-sm leading-relaxed text-neutral-700">
+                {help.explain.avoid.map((a) => (
+                  <li key={a}>{a}</li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="font-label bg-brand mt-5 min-h-12 w-full rounded-full text-base font-bold text-white"
+              >
+                Got it
+              </button>
+            </div>
+          </Modal>
+        )}
+      </>
+    );
+  }
+  const href = help?.youtubeId ? youtubeWatchUrl(help.youtubeId) : youtubeSearchUrl(name);
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={cls} aria-label={`Watch how to do ${name} on YouTube`}>
+      {icon}
+      Watch
+    </a>
+  );
+}
+
 function SetRow({
   exercise,
   flavor,
@@ -350,11 +410,14 @@ function SetRow({
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           {showName && (
+            <div className="flex items-start justify-between gap-2">
             <button type="button" onClick={() => setShowCue((s) => !s)} className="block text-left">
               <span className={`font-label block text-[1.1rem] leading-tight font-semibold ${exercise.completed ? "text-neutral-400" : "text-neutral-900"}`}>
                 {exercise.name}
               </span>
             </button>
+            <WatchHowButton name={exercise.name} />
+            </div>
           )}
           {(target || prevText || (!showName && multiSet)) && (
             <p className="font-label text-sm font-semibold text-neutral-500">
@@ -569,8 +632,11 @@ function SectionBlock({
                 onSwap={(option) => onSwap(slot, option)}
               />
             ))}
-          {singleExercise && firstExercise?.cue && (
-            <p className="font-body border-b border-neutral-100 bg-neutral-50 px-4 py-2.5 text-sm leading-relaxed text-neutral-600">{firstExercise.cue}</p>
+          {singleExercise && firstExercise && (
+            <div className="flex items-start gap-3 border-b border-neutral-100 bg-neutral-50 px-4 py-2.5">
+              <p className="font-body min-w-0 flex-1 text-sm leading-relaxed text-neutral-600">{firstExercise.cue ?? firstExercise.name}</p>
+              <WatchHowButton name={firstExercise.name} />
+            </div>
           )}
           {section.sets.map((set) => (
             <div key={set.setNumber}>
