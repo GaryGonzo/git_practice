@@ -588,7 +588,7 @@ function WorkoutSlot({
   onOpen: (instanceId: string) => void;
 }) {
   const status = instance?.status ?? "not_started";
-  const statusLabel = status === "completed" ? "Done" : status === "in_progress" ? "In progress" : "Start";
+  const statusLabel = status === "completed" ? "Done" : status === "in_progress" ? "In progress" : "Open";
   const statusClass =
     status === "completed"
       ? "bg-brand/10 text-brand"
@@ -608,7 +608,7 @@ function WorkoutSlot({
         <p className="font-body text-sm text-neutral-500">Session {slotNumber}</p>
       </div>
       <span className={`font-label flex-none rounded-full px-3 py-1 text-sm font-bold ${statusClass}`}>
-        {starting ? "Starting…" : statusLabel}
+        {starting ? "Opening…" : statusLabel}
       </span>
     </button>
   );

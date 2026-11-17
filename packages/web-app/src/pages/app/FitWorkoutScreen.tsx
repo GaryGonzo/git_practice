@@ -6,6 +6,7 @@ import {
   updateExerciseLog,
   finishWorkout,
   abandonWorkout,
+  startWorkoutTimer,
   chooseExerciseOption,
   getDrillForDate,
   getMyScoreForDate,
@@ -85,7 +86,7 @@ function useWakeLock(active: boolean) {
 interface FinishSummary {
   setsDone: number;
   setsTotal: number;
-  minutes: number;
+  minutes: number | null;
   prs: FitBadge[];
   streak: number | null;
   weekDone: number | null;
@@ -98,7 +99,7 @@ function FinishSummarySheet({ summary, onContinue }: { summary: FinishSummary; o
     <Modal>
       <p className="text-4xl" aria-hidden="true">🏗️</p>
       <h2 className="font-display mt-1 text-[2.2rem] leading-none tracking-wide">Brick laid.</h2>
-      <p className="font-body mt-1 text-sm text-neutral-500">Another phase of the build in the books.</p>
+      <p className="font-body mt-1 text-sm text-neutral-500">Another workout in the books.</p>
       <div className="mt-4 grid grid-cols-3 gap-2">
         <div className="rounded-2xl bg-neutral-50 p-3">
           <p className="font-display text-brand text-3xl leading-none">{summary.setsDone}</p>
@@ -106,14 +107,14 @@ function FinishSummarySheet({ summary, onContinue }: { summary: FinishSummary; o
         </div>
         <div className="rounded-2xl bg-neutral-50 p-3">
           <p className="font-display text-brand text-3xl leading-none">{summary.streak ?? "—"}</p>
-          <p className="font-label text-xs font-semibold text-neutral-500">session streak</p>
+          <p className="font-label text-xs font-semibold text-neutral-500">workout streak</p>
         </div>
         <div className="rounded-2xl bg-neutral-50 p-3">
           <p className="font-display text-brand text-3xl leading-none">
             {summary.weekDone ?? "—"}
             {summary.weekGoal ? <span className="text-lg text-neutral-400">/{summary.weekGoal}</span> : null}
           </p>
-          <p className="font-label text-xs font-semibold text-neutral-500">this week</p>
+          <p className="font-label text-xs font-semibold text-neutral-500">lifts this week</p>
         </div>
       </div>
       {summary.prs.length > 0 && (
@@ -126,7 +127,9 @@ function FinishSummarySheet({ summary, onContinue }: { summary: FinishSummary; o
           ))}
         </ul>
       )}
-      <p className="font-label mt-3 text-sm font-semibold text-neutral-500">{summary.minutes} min · streak +1</p>
+      {summary.minutes !== null && (
+        <p className="font-label mt-3 text-sm font-semibold text-neutral-500">Workout time: {summary.minutes} min</p>
+      )}
       <button type="button" onClick={onContinue} className="font-label bg-brand mt-4 min-h-12 w-full rounded-full text-base font-bold text-white">
         Continue
       </button>
@@ -693,6 +696,26 @@ export function FitWorkoutScreen() {
     }
   });
   const [summary, setSummary] = useState<FinishSummary | null>(null);
+  const timerStartingRef = useRef(false);
+  // A workout opened just to look at (never started, nothing checked off)
+  // is removed on the way out, so peeking doesn't leave an "in progress"
+  // workout behind.
+  const peekRef = useRef<{ id: string; untouched: boolean } | null>(null);
+  useEffect(() => {
+    if (!session || !workoutLogId) return;
+    const untouched =
+      session.status === "in_progress" &&
+      !session.timerStartedAt &&
+      !session.sections.some((sec) => sec.sets.some((set) => set.exercises.some((e) => e.completed)));
+    peekRef.current = { id: workoutLogId, untouched };
+  }, [session, workoutLogId]);
+  useEffect(
+    () => () => {
+      const peek = peekRef.current;
+      if (peek?.untouched) void abandonWorkout(peek.id).catch(() => {});
+    },
+    []
+  );
 
   function toggleBeep() {
     setBeepOn((on) => {
@@ -766,7 +789,21 @@ export function FitWorkoutScreen() {
   }
 
   const readOnly = session.status === "completed";
-  const elapsedMin = Math.max(0, Math.floor((now - new Date(session.startedAt).getTime()) / 60000));
+  const timerStarted = !!session.timerStartedAt;
+  const elapsedMin = session.timerStartedAt ? Math.max(0, Math.floor((now - new Date(session.timerStartedAt).getTime()) / 60000)) : 0;
+  const elapsedSec = session.timerStartedAt ? Math.max(0, Math.floor((now - new Date(session.timerStartedAt).getTime()) / 1000)) : 0;
+
+  async function handleStartTimer() {
+    if (!workoutLogId || timerStartingRef.current) return;
+    timerStartingRef.current = true;
+    const stamp = new Date().toISOString();
+    setSession((prev) => (prev ? { ...prev, timerStartedAt: stamp, startedAt: stamp } : prev));
+    try {
+      await startWorkoutTimer(workoutLogId);
+    } catch {
+      timerStartingRef.current = false;
+    }
+  }
 
   function updateLocal(logIds: string[], patch: Partial<FitWorkoutExercise>) {
     const ids = new Set(logIds);
@@ -804,6 +841,7 @@ export function FitWorkoutScreen() {
         ? (exercise.targetWeightLbs ?? prev?.weightLbs ?? 0)
         : exercise.actualWeightLbs;
     updateLocal([exercise.logId], { completed, actualCount, actualWeightLbs });
+    if (completed && !session.timerStartedAt) void handleStartTimer();
 
     if (completed) {
       const rest = REST_SECONDS[flavor];
@@ -877,11 +915,11 @@ export function FitWorkoutScreen() {
       setSummary({
         setsDone: totals.done,
         setsTotal: totals.total,
-        minutes: elapsedMin,
+        minutes: timerStarted ? elapsedMin : null,
         prs,
         streak: streaks?.training.sessions ?? null,
-        weekDone: weekDone?.done ?? null,
-        weekGoal: block ? block.sessionsPerWeek + (weekDone?.yogaPerWeek ?? 0) : null,
+        weekDone: weekDone?.lifts ?? null,
+        weekGoal: block ? block.sessionsPerWeek : null,
         next,
       });
       if (prs.length > 0) setPrMessage(prs.length === 1 ? `New PR: ${prs[0].label}!` : `${prs.length} new PRs!`);
@@ -914,9 +952,28 @@ export function FitWorkoutScreen() {
         <p className="font-label text-base font-medium text-white/60">
           {readOnly
             ? `Done ${session.completedAt ? `${formatDay(session.completedAt)}, ${formatTime(session.completedAt)}` : ""}`
-            : `Started ${formatTime(session.startedAt)} · ${elapsedMin} min`}
+            : timerStarted
+              ? `Started ${formatTime(session.timerStartedAt!)}`
+              : "Not started yet"}
         </p>
         <h1 className="font-display mt-1 text-[2.6rem] leading-[0.95] tracking-wide">{session.templateName}</h1>
+        {!readOnly &&
+          (timerStarted ? (
+            <p className="font-display text-gold mt-2 text-4xl leading-none tabular-nums" role="timer" aria-label="Workout time">
+              {formatClock(elapsedSec)}
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleStartTimer}
+              className="font-label bg-gold text-brand-dark mt-3 inline-flex min-h-12 items-center gap-2 rounded-full px-6 text-lg font-bold"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
+                <path d="M8 5.5v13l10.5-6.5z" />
+              </svg>
+              Start workout
+            </button>
+          ))}
         {lastDoneAt && !readOnly && <p className="font-body mt-1 text-sm text-white/60">Last time: {formatDay(lastDoneAt)}</p>}
         <div className="mt-4">
           <div className="font-label mb-1.5 flex justify-between text-sm font-semibold text-white/60">
@@ -946,7 +1003,7 @@ export function FitWorkoutScreen() {
         ))}
       </div>
 
-      {!readOnly && (
+      {!readOnly && timerStarted && (
         <button
           type="button"
           onClick={() => setConfirmDiscard(true)}
@@ -999,6 +1056,15 @@ export function FitWorkoutScreen() {
             >
               {beepOn ? "🔔" : "🔕"}
             </button>
+            {!timerStarted ? (
+              <button
+                type="button"
+                onClick={handleStartTimer}
+                className="font-label bg-brand min-h-12 min-w-0 flex-1 rounded-full px-4 py-3 text-base font-bold text-white"
+              >
+                Start workout
+              </button>
+            ) : (
             <button
               type="button"
               onClick={handleFinish}
@@ -1007,6 +1073,7 @@ export function FitWorkoutScreen() {
             >
               {finishing ? "Saving…" : totals.done === totals.total ? "Finish workout" : `Finish (${totals.done}/${totals.total})`}
             </button>
+            )}
           </div>
         </div>
       )}

@@ -2396,6 +2396,8 @@ export interface FitWorkoutSession {
   templateName: string;
   status: "in_progress" | "completed";
   startedAt: string;
+  /** When "Start workout" was tapped; null while the workout is only being looked at. */
+  timerStartedAt: string | null;
   completedAt: string | null;
   sections: FitWorkoutSectionView[];
 }
@@ -2407,7 +2409,7 @@ export interface FitWorkoutSession {
 export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkoutSession | null> {
   const { data: logRow } = await supabase
     .from("fit_workout_logs")
-    .select("id, block_id, session_template_id, status, started_at, completed_at")
+    .select("id, block_id, session_template_id, status, started_at, timer_started_at, completed_at")
     .eq("id", workoutLogId)
     .maybeSingle();
   if (!logRow) return null;
@@ -2500,6 +2502,7 @@ export async function getWorkoutSession(workoutLogId: string): Promise<FitWorkou
     templateName: templateRow?.name ?? "Workout",
     status: logRow.status as FitWorkoutSession["status"],
     startedAt: logRow.started_at,
+    timerStartedAt: logRow.timer_started_at ?? null,
     completedAt: logRow.completed_at,
     sections,
   };
@@ -2543,6 +2546,19 @@ export async function finishWorkout(workoutLogId: string): Promise<FitBadge[]> {
     .eq("workout_log_id", workoutLogId)
     .eq("type", "lift_pr");
   return (data ?? []).map(toFitBadge);
+}
+
+// "Start workout": starts the clock. started_at moves to now as well, so
+// the workout's date and length are when it was actually done, not when it
+// was first opened to look at.
+export async function startWorkoutTimer(workoutLogId: string): Promise<string> {
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("fit_workout_logs")
+    .update({ timer_started_at: now, started_at: now })
+    .eq("id", workoutLogId);
+  if (error) throw error;
+  return now;
 }
 
 // Backs out of a workout started by mistake -- cascades to its exercise logs.

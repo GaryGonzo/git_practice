@@ -625,7 +625,7 @@ export function FitTodayScreen() {
       if (instance) {
         return (
           <Link to={`/app/fit/workout/${instance.id}`} className={`${cls} ${solid}`}>
-            Resume {template.name}
+            Open {template.name}
             <ChevronRight className="h-4 w-4" />
           </Link>
         );
@@ -633,7 +633,7 @@ export function FitTodayScreen() {
       if (!isToday) return <span className="font-body text-sm text-neutral-500">{template.name}</span>;
       return (
         <button type="button" disabled={starting} onClick={() => handleStart(template.id)} className={`${cls} ${solid} disabled:opacity-60`}>
-          {starting ? "Starting…" : `Start ${template.name}`}
+          {starting ? "Opening…" : `Open ${template.name}`}
           {!starting && <ChevronRight className="h-4 w-4" />}
         </button>
       );
