@@ -6,10 +6,7 @@ import { GolfableMark } from "../../components/GolfableMark";
 import {
   getDrillForDate,
   getMyScoreForDate,
-  getFitRoutineForDate,
-  getFitRoutineChecks,
   todayISO,
-  type FitRoutineItem,
 } from "../../lib/golfableApi";
 
 function ArrowIcon({ className }: { className?: string }) {
@@ -40,13 +37,6 @@ function BarbellIcon({ className }: { className?: string }) {
   );
 }
 
-function formatTime12h(time: string): string {
-  const [h, m] = time.split(":").map(Number);
-  const period = h >= 12 ? "PM" : "AM";
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
-}
-
 function pacificNowHHMM(): string {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: "America/Los_Angeles",
@@ -69,8 +59,6 @@ export function LauncherScreen() {
   const { profile } = useAuth();
   const [drill, setDrill] = useState<Drill | null>(null);
   const [played, setPlayed] = useState(false);
-  const [nextItem, setNextItem] = useState<FitRoutineItem | null>(null);
-  const [fitProgress, setFitProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -78,12 +66,6 @@ export function LauncherScreen() {
     getDrillForDate(today).then(async (found) => {
       setDrill(found?.drill ?? null);
       if (found) setPlayed((await getMyScoreForDate(profile.id, found.drill.id, today)) !== null);
-    });
-    Promise.all([getFitRoutineForDate(profile.id, today), getFitRoutineChecks(profile.id, today)]).then(([items, checks]) => {
-      if (items.length === 0) return;
-      const now = pacificNowHHMM();
-      setFitProgress({ done: items.filter((i) => checks.has(i.id)).length, total: items.length });
-      setNextItem(items.find((i) => !checks.has(i.id) && i.timeOfDay !== null && i.timeOfDay >= now) ?? null);
     });
   }, [profile]);
 
@@ -131,7 +113,7 @@ export function LauncherScreen() {
           </Link>
 
           <Link
-            to="/app/fit/today"
+            to="/app/fit"
             className="group bg-gold relative flex min-h-48 flex-1 flex-col justify-between overflow-hidden rounded-3xl p-6 text-brand-dark shadow-xl shadow-black/30 transition active:scale-[0.98]"
           >
             <BarbellIcon className="absolute -right-8 -bottom-10 h-48 w-48 text-brand-dark/[0.07]" />
@@ -142,22 +124,13 @@ export function LauncherScreen() {
                 </span>
                 <span className="font-label text-brand-dark/70 text-base font-semibold">Body</span>
               </span>
-              {fitProgress && (
-                <span className="font-label bg-brand-dark/10 rounded-full px-2.5 py-1 text-xs font-semibold">
-                  {fitProgress.done}/{fitProgress.total} today
-                </span>
-              )}
             </div>
             <div>
               <h2 className="font-display text-5xl leading-none tracking-wide">Golfable Fit</h2>
-              <p className="font-body text-brand-dark/80 mt-2 text-sm">
-                {nextItem && nextItem.timeOfDay
-                  ? `Up next: ${nextItem.title} · ${formatTime12h(nextItem.timeOfDay)}`
-                  : "Today's plan, training, check-in"}
-              </p>
+              <p className="font-body text-brand-dark/80 mt-2 text-sm">Core, glutes and shoulders</p>
             </div>
             <span className="font-label bg-brand-dark inline-flex items-center gap-1.5 self-start rounded-full px-4 py-2 text-sm font-bold text-white">
-              Today's plan
+              Generate today's routine
               <ArrowIcon className="h-4 w-4" />
             </span>
           </Link>
