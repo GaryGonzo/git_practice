@@ -24,17 +24,14 @@ function golfNav(hasFit: boolean): NavItem[] {
   // "coming soon" screen (RequireFitAccess) instead of Fit itself.
   items.push(
     hasFit
-      ? { to: "/app/fit/today", label: "Fit", end: false, icon: SwitchIcon }
+      ? { to: "/app/fit", label: "Fit", end: false, icon: SwitchIcon }
       : { to: "/app/fit", label: "Fit", end: false, icon: LockIcon },
   );
   return items;
 }
 
 const FIT_NAV: NavItem[] = [
-  { to: "/app/fit/today", label: "Today", end: true, icon: TodayIcon },
-  { to: "/app/fit", label: "Block", end: true, icon: DumbbellIcon },
-  { to: "/app/fit/checkin", label: "Progress", end: true, icon: ProgressIcon },
-  { to: "/app/fit/plan", label: "Walks", end: true, icon: WalkIcon },
+  { to: "/app/fit", label: "Workout", end: true, icon: DumbbellIcon },
   { to: "/app/golf", label: "Golfable", end: false, icon: SwitchIcon },
 ];
 

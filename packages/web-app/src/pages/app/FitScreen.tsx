@@ -1,874 +1,236 @@
-import { ScreenSkeleton } from "../../components/FitPanelStates";
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../lib/AuthProvider";
+import { todayISO } from "../../lib/golfableApi";
 import {
-  getFitProfile,
-  getFitNutritionPlan,
-  getActiveFitBlock,
-  getWorkoutInstancesThisWeek,
-  getActiveWorkoutInstance,
-  startWorkout,
-  getFitBodyLogHistory,
-  logFitBodyWeight,
-  getFitStepLogHistory,
-  logFitSteps,
-  endFitBlock,
-  getNextPlannedFitBlock,
-  beginFitBlock,
-  todayISO,
-  type FitProfile,
-  type FitNutritionPlan,
-  type FitBlock,
-  type FitBodyLogEntry,
-  type FitStepLogEntry,
-  type FitWorkoutInstance,
-  type FitPlannedBlock,
-} from "../../lib/golfableApi";
-import { HandicapTrendChart } from "../../components/HandicapTrendChart";
-import { PageHeader, ChevronRight } from "../../components/ui";
+  generateRoutine,
+  DURATION_OPTIONS,
+  GROUP_LABEL,
+  GROUP_ORDER,
+  type Routine,
+  type RoutineItem,
+} from "../../lib/fitGenerator";
+import { exerciseHelp, youtubeSearchUrl, youtubeWatchUrl } from "../../lib/exerciseVideos";
+import { PageHeader } from "../../components/ui";
 
-function ChevronDownIcon({ className, open }: { className?: string; open: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      className={`${className} transition-transform ${open ? "rotate-180" : ""}`}
-      aria-hidden="true"
-    >
-      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+// Golfable Fit, dumbed down on purpose: pick a length, tap one button,
+// do the routine. Today's routine (and what's ticked off) is kept on this
+// device so leaving the app mid-session doesn't lose it.
+
+const STORAGE_KEY = "golfable-fit-today";
+const LENGTH_KEY = "golfable-fit-length";
+
+interface Saved {
+  routine: Routine;
+  done: string[];
 }
 
-function ClipboardIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="6" y="4.5" width="12" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M9 4.5V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v.5" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M9 11h6M9 15h6M9 19h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function AppleIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M12 8.5c-3-3-8-1.5-8 4 0 5 3.5 9.5 6.5 9.5 1 0 1.5-.5 2.5-.5s1.5.5 2.5.5c2.6 0 5.7-3.7 6.4-7.8.2-1.4-.5-3-2-3.4-1.6-.5-2.9.4-3.9.4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M12 8.5c0-2 1-4 3-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ScaleIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M8 16c0-2.2 1.8-4 4-4s4 1.8 4 4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="9.5" r="1.2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function DumbbellIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path d="M3 12h2M19 12h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <rect x="5" y="9" width="3" height="6" rx="1" stroke="currentColor" strokeWidth="1.6" />
-      <rect x="16" y="9" width="3" height="6" rx="1" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M8 12h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function FootIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M9 21c-1.5 0-2.5-1-2.5-2.5 0-2 1.5-3 1.5-5.5S6.5 9 6.5 6.5 8 3 10 3s3 1.5 3 4c0 3 2 4.5 2 8 0 3.5-2.5 6-4.5 6H9Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M9.5 8.5c.5.8 1.5 1 2.2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PlayIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path d="M8 5.5v13l11-6.5-11-6.5Z" fill="currentColor" />
-    </svg>
-  );
-}
-
-// Always visible regardless of week boundaries or which card is collapsed
-// -- leaving mid-workout and coming back should never require hunting
-// through a collapsed section to find your way back in.
-function ResumeWorkoutBanner({ instance, templateName }: { instance: FitWorkoutInstance; templateName: string }) {
-  return (
-    <Link
-      to={`/app/fit/workout/${instance.id}`}
-      className="bg-gold/15 border-gold/40 mt-4 flex items-center gap-3 rounded-lg border p-4 active:opacity-80"
-    >
-      <div className="bg-gold flex h-11 w-11 flex-none items-center justify-center rounded-full text-white">
-        <PlayIcon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-label text-sm font-semibold text-neutral-800">Workout in progress</p>
-        <p className="font-body text-sm text-neutral-600">{templateName} &middot; tap to continue</p>
-      </div>
-    </Link>
-  );
-}
-
-function FlagIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path d="M6 3v18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M6 4h12l-3 4 3 4H6" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function RocketIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M12 3c2.5 1.5 4 4.5 4 8 0 2-1 4-1 4H9s-1-2-1-4c0-3.5 1.5-6.5 4-8Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="9" r="1.3" fill="currentColor" />
-      <path d="M9 15l-2 4M15 15l2 4M10 19h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-// Tap "End Current Program" to open this, then tap "Yes, End Program"
-// inside it to actually end it -- two deliberate taps so ending a block
-// early can't happen by a single accidental tap.
-function EndProgramModal({
-  blockName,
-  ending,
-  onConfirm,
-  onCancel,
-}: {
-  blockName: string;
-  ending: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 px-6">
-      <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-600">
-          <FlagIcon className="h-8 w-8" />
-        </div>
-        <h2 className="font-display mt-4 text-2xl tracking-wide">End {blockName}?</h2>
-        <p className="font-body mt-2 text-sm text-neutral-600">
-          This stops any workout in progress and moves {blockName} to your history. You'll need to begin a new program to
-          keep training.
-        </p>
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={ending}
-          className="font-label mt-6 w-full rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          {ending ? "Ending…" : "Yes, End Program"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={ending}
-          className="font-label mt-2 w-full rounded-md px-4 py-2.5 text-sm font-semibold text-neutral-500 disabled:opacity-60"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
-
-type CardAccent = "warmup" | "circuit" | "recover" | "finisher" | "steps";
-
-const ACCENT_ICON_BG: Record<CardAccent, string> = {
-  warmup: "bg-fit-warmup/10 text-fit-warmup",
-  circuit: "bg-fit-circuit/10 text-fit-circuit",
-  recover: "bg-fit-recover/10 text-fit-recover",
-  finisher: "bg-fit-finisher/10 text-fit-finisher",
-  steps: "bg-gold/15 text-gold",
-};
-
-// Every top-level Fit card starts collapsed -- this is a lot of personal
-// detail to load onto one screen at once, so nothing shows until asked for.
-// Each one carries its own color and icon so the screen doesn't read as a
-// flat stack of identical white cards.
-function CollapsibleCard({
-  title,
-  icon,
-  accent,
-  summary,
-  children,
-  defaultOpen = false,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  accent: CardAccent;
-  summary?: React.ReactNode;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="mt-3 rounded-2xl bg-white ring-1 ring-black/[0.06]">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-3 p-4 text-left">
-        <div className={`flex h-10 w-10 flex-none items-center justify-center rounded-xl ${ACCENT_ICON_BG[accent]}`}>{icon}</div>
-        <div className="min-w-0 flex-1">
-          <p className="font-label text-lg leading-tight font-semibold text-neutral-900">{title}</p>
-          {!open && summary && <div className="mt-1">{summary}</div>}
-        </div>
-        <ChevronDownIcon open={open} className="h-5 w-5 flex-none text-neutral-400" />
-      </button>
-      {open && <div className="px-4 pb-4">{children}</div>}
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string | null }) {
-  if (!value) return null;
-  return (
-    <div className="border-t border-neutral-100 py-2.5 first:border-t-0 first:pt-0">
-      <p className="font-label text-sm font-semibold text-neutral-500">{label}</p>
-      <p className="font-body mt-0.5 text-sm text-neutral-800">{value}</p>
-    </div>
-  );
-}
-
-function ConsultationCard({ profile }: { profile: FitProfile }) {
-  return (
-    <CollapsibleCard
-      title="About you"
-      icon={<ClipboardIcon className="h-4.5 w-4.5" />}
-      accent="warmup"
-      summary={<p className="font-body text-sm text-neutral-600">{profile.goals}</p>}
-    >
-      <InfoRow label="Goal" value={profile.goals} />
-      <InfoRow label="Current Fitness Level" value={profile.fitnessLevel} />
-      <InfoRow label="Injuries" value={profile.injuries} />
-      <InfoRow label="Swing Focus" value={profile.swingFocus} />
-      <InfoRow label="Tight Areas" value={profile.tightAreas} />
-      <InfoRow label="Exercise Preferences" value={profile.exercisePreferences} />
-    </CollapsibleCard>
-  );
-}
-
-function NutritionCard({ plan }: { plan: FitNutritionPlan }) {
-  return (
-    <CollapsibleCard
-      title="Nutrition"
-      icon={<AppleIcon className="h-4.5 w-4.5" />}
-      accent="circuit"
-      summary={
-        plan.dailyCalories !== null && (
-          <p className="font-display text-2xl">
-            {plan.dailyCalories}
-            <span className="text-sm font-normal text-neutral-500">
-              {" "}
-              cal/day{plan.proteinG !== null ? ` · ${plan.proteinG}g protein` : ""}
-            </span>
-          </p>
-        )
-      }
-    >
-      {plan.dailyCalories !== null && (
-        <p className="font-display text-3xl">
-          {plan.dailyCalories}
-          <span className="text-base font-normal text-neutral-500"> cal/day</span>
-        </p>
-      )}
-      {(plan.proteinG !== null || plan.carbsG !== null || plan.fatG !== null) && (
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          {[
-            { label: "Protein", grams: plan.proteinG },
-            { label: "Carbs", grams: plan.carbsG },
-            { label: "Fat", grams: plan.fatG },
-          ].map((m) => (
-            <div key={m.label} className="rounded-lg bg-neutral-50 px-2 py-2 text-center">
-              <p className="font-display text-xl">{m.grams !== null ? `${m.grams}g` : "—"}</p>
-              <p className="font-label text-sm font-semibold text-neutral-500">{m.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-      {plan.waterGoalOz !== null && (
-        <p className="font-body mt-2 text-sm text-neutral-600">Water: {plan.waterGoalOz} oz a day, done by 8pm.</p>
-      )}
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {plan.proteinLevel && (
-          <span className="font-label bg-brand/10 text-brand rounded-full px-2.5 py-1 text-xs font-semibold">
-            {plan.proteinLevel} Protein
-          </span>
-        )}
-        {plan.carbLevel && (
-          <span className="font-label rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600">
-            {plan.carbLevel.split(" -- ")[0]} Carb
-          </span>
-        )}
-        {plan.fatLevel && (
-          <span className="font-label rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600">
-            {plan.fatLevel} Fat
-          </span>
-        )}
-        {plan.produceLevel && (
-          <span className="font-label rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600">
-            {plan.produceLevel}
-          </span>
-        )}
-      </div>
-      {plan.mealsPerDay !== null && <p className="font-body mt-2 text-sm text-neutral-600">{plan.mealsPerDay} meals per day.</p>}
-      {plan.carbLevel?.includes(" -- ") && <p className="font-body mt-1 text-sm text-neutral-600">{plan.carbLevel.split(" -- ")[1]}.</p>}
-      {plan.rules.length > 0 && (
-        <ul className="font-body mt-2 list-inside list-disc space-y-1 text-sm text-neutral-600">
-          {plan.rules.map((rule) => (
-            <li key={rule}>{rule}</li>
-          ))}
-        </ul>
-      )}
-    </CollapsibleCard>
-  );
-}
-
-function WeightCard({ userId, goalWeightLossLbs }: { userId: string; goalWeightLossLbs: number | null }) {
-  const [history, setHistory] = useState<FitBodyLogEntry[]>([]);
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getFitBodyLogHistory(userId).then(setHistory);
-  }, [userId]);
-
-  const latest = history.length > 0 ? history[history.length - 1] : null;
-  const first = history.length > 0 ? history[0] : null;
-  const lost = first && latest ? first.weightLbs - latest.weightLbs : null;
-
-  async function handleSave(event: React.FormEvent) {
-    event.preventDefault();
-    const num = Number(value);
-    if (!Number.isFinite(num) || num <= 0) {
-      setError("Enter a valid weight.");
-      return;
-    }
-    setError(null);
-    setSaving(true);
-    try {
-      await logFitBodyWeight(userId, num);
-      setHistory(await getFitBodyLogHistory(userId));
-      setEditing(false);
-      setValue("");
-    } catch {
-      setError("Couldn't save that -- try again.");
-    }
-    setSaving(false);
+function loadSaved(): Saved | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as Saved;
+    return saved.routine?.date === todayISO() ? saved : null;
+  } catch {
+    return null;
   }
-
-  return (
-    <CollapsibleCard
-      title="Body weight"
-      icon={<ScaleIcon className="h-4.5 w-4.5" />}
-      accent="recover"
-      summary={latest && <p className="font-display text-2xl">{latest.weightLbs} lbs</p>}
-    >
-      {latest ? (
-        <div className="flex flex-wrap items-baseline gap-2">
-          <p className="font-display text-3xl">{latest.weightLbs} lbs</p>
-          {lost !== null && lost !== 0 && (
-            <span className={`font-label text-sm font-semibold ${lost > 0 ? "text-green-600" : "text-red-600"}`}>
-              {lost > 0 ? `-${lost}` : `+${Math.abs(lost)}`} lbs since your first entry
-            </span>
-          )}
-        </div>
-      ) : (
-        <p className="font-body text-sm text-neutral-500">Not logged yet.</p>
-      )}
-      {goalWeightLossLbs !== null && (
-        <p className="font-body mt-1 text-sm text-neutral-600">
-          Goal: lose {goalWeightLossLbs} lbs{lost !== null ? ` -- ${Math.max(goalWeightLossLbs - lost, 0)} to go` : ""}.
-        </p>
-      )}
-      {history.length > 2 && (
-        <HandicapTrendChart
-          points={history.map((h) => ({ value: h.weightLbs, recordedAt: h.recordedAt }))}
-          label="Body weight trend over time"
-        />
-      )}
-
-      {editing ? (
-        <form onSubmit={handleSave} className="mt-3 space-y-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="e.g. 198.4"
-            className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-          />
-          {error && <p className="font-body text-sm text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="font-label flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-600"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !value}
-              className="font-label bg-brand flex-1 rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <button type="button" onClick={() => setEditing(true)} className="font-label text-brand mt-3 text-sm font-semibold underline">
-          Log your weight
-        </button>
-      )}
-    </CollapsibleCard>
-  );
 }
 
-function StepsCard({ userId, stepGoal }: { userId: string; stepGoal: number | null }) {
-  const [history, setHistory] = useState<FitStepLogEntry[]>([]);
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getFitStepLogHistory(userId).then(setHistory);
-  }, [userId]);
-
-  const todayEntry = history.find((h) => h.loggedDate === todayISO()) ?? null;
-  const atGoal = todayEntry !== null && stepGoal !== null && todayEntry.steps >= stepGoal;
-
-  async function handleSave(event: React.FormEvent) {
-    event.preventDefault();
-    const num = Number(value);
-    if (!Number.isFinite(num) || num < 0) {
-      setError("Enter a valid step count.");
-      return;
-    }
-    setError(null);
-    setSaving(true);
-    try {
-      await logFitSteps(userId, Math.round(num));
-      setHistory(await getFitStepLogHistory(userId));
-      setEditing(false);
-      setValue("");
-    } catch {
-      setError("Couldn't save that -- try again.");
-    }
-    setSaving(false);
+function save(saved: Saved | null) {
+  try {
+    if (saved) localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    else localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Private mode or storage full -- the routine still works for this visit.
   }
+}
 
+function loadLength(): number {
+  try {
+    const n = Number(localStorage.getItem(LENGTH_KEY));
+    return DURATION_OPTIONS.includes(n) ? n : 20;
+  } catch {
+    return 20;
+  }
+}
+
+function SparkIcon({ className }: { className?: string }) {
   return (
-    <CollapsibleCard
-      title="Steps"
-      icon={<FootIcon className="h-4.5 w-4.5" />}
-      accent="steps"
-      summary={
-        todayEntry ? (
-          <p className="font-display text-2xl">{todayEntry.steps.toLocaleString()}</p>
-        ) : (
-          <p className="font-body text-sm text-neutral-500">Not logged today</p>
-        )
-      }
-    >
-      {todayEntry ? (
-        <div className="flex flex-wrap items-baseline gap-2">
-          <p className={`font-display text-3xl ${atGoal ? "text-gold" : ""}`}>{todayEntry.steps.toLocaleString()}</p>
-          <span className="font-body text-sm text-neutral-500">today</span>
-        </div>
-      ) : (
-        <p className="font-body text-sm text-neutral-500">Not logged yet today.</p>
-      )}
-      {stepGoal !== null && (
-        <p className="font-body mt-1 text-sm text-neutral-600">
-          Goal: {stepGoal.toLocaleString()} steps/day
-          {todayEntry
-            ? atGoal
-              ? " -- hit it!"
-              : ` -- ${(stepGoal - todayEntry.steps).toLocaleString()} to go`
-            : ""}
-          .
-        </p>
-      )}
-      {history.length > 2 && (
-        <HandicapTrendChart points={history.map((h) => ({ value: h.steps, recordedAt: h.loggedDate }))} label="Steps trend over time" />
-      )}
-
-      {editing ? (
-        <form onSubmit={handleSave} className="mt-3 space-y-2">
-          <input
-            type="number"
-            inputMode="numeric"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="e.g. 8400"
-            className="font-body w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-          />
-          {error && <p className="font-body text-sm text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="font-label flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-600"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !value}
-              className="font-label bg-brand flex-1 rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            setValue(todayEntry ? String(todayEntry.steps) : "");
-            setEditing(true);
-          }}
-          className="font-label text-brand mt-3 text-sm font-semibold underline"
-        >
-          {todayEntry ? "Update today's steps" : "Log today's steps"}
-        </button>
-      )}
-    </CollapsibleCard>
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
 
-// One slot in the week -- "Workout 2", subtitled with whichever session
-// template fills it. Not started yet has no instance at all; tapping it
-// starts one. In progress resumes it. Completed opens a read-only recap.
-function WorkoutSlot({
-  slotNumber,
-  templateName,
-  instance,
-  starting,
-  onStart,
-  onOpen,
-}: {
-  slotNumber: number;
-  templateName: string;
-  instance: FitWorkoutInstance | undefined;
-  starting: boolean;
-  onStart: () => void;
-  onOpen: (instanceId: string) => void;
-}) {
-  const status = instance?.status ?? "not_started";
-  const statusLabel = status === "completed" ? "Done" : status === "in_progress" ? "In progress" : "Open";
-  const statusClass =
-    status === "completed"
-      ? "bg-brand/10 text-brand"
-      : status === "in_progress"
-        ? "bg-gold/15 text-gold"
-        : "bg-brand text-white";
-
+function CheckIcon({ className }: { className?: string }) {
   return (
-    <button
-      type="button"
-      disabled={starting}
-      onClick={() => (instance ? onOpen(instance.id) : onStart())}
-      className="flex w-full items-center justify-between gap-3 rounded-xl bg-neutral-50 p-3.5 text-left ring-1 ring-black/[0.04] active:bg-neutral-100 disabled:opacity-60"
-    >
-      <div className="min-w-0">
-        <p className="font-label text-[1.05rem] leading-tight font-semibold">{templateName}</p>
-        <p className="font-body text-sm text-neutral-500">Session {slotNumber}</p>
-      </div>
-      <span className={`font-label flex-none rounded-full px-3 py-1 text-sm font-bold ${statusClass}`}>
-        {starting ? "Opening…" : statusLabel}
-      </span>
-    </button>
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
-// Long coaching notes start clamped to three lines -- the key rule is in the
-// first sentence; the rest is there when you want it.
-function CareNotes({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
+function LengthPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
     <div>
-      <p className={`font-body mt-1 text-sm leading-relaxed text-neutral-700 ${open ? "" : "line-clamp-3"}`}>{text}</p>
-      <button type="button" onClick={() => setOpen((o) => !o)} className="font-label text-brand mt-1 text-sm font-semibold">
-        {open ? "Show less" : "Read all"}
-      </button>
+      <p className="font-label text-sm font-semibold text-neutral-500">How long do you have?</p>
+      <div className="mt-2 grid grid-cols-5 gap-2">
+        {DURATION_OPTIONS.map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            className={`font-label rounded-xl py-2.5 text-center text-base font-bold ring-1 transition ${
+              n === value ? "bg-brand text-white ring-brand" : "bg-white text-neutral-700 ring-black/[0.08] active:bg-neutral-50"
+            }`}
+          >
+            {n}
+            <span className="block text-[0.7rem] font-semibold opacity-70">min</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
-function BlockCard({ userId, block, onEnded }: { userId: string; block: FitBlock; onEnded: () => void }) {
-  const navigate = useNavigate();
-  const [instances, setInstances] = useState<FitWorkoutInstance[]>([]);
-  const [startingSlot, setStartingSlot] = useState<number | null>(null);
-  const [confirmingEnd, setConfirmingEnd] = useState(false);
-  const [ending, setEnding] = useState(false);
-
-  useEffect(() => {
-    getWorkoutInstancesThisWeek(userId, block.id).then(setInstances);
-  }, [userId, block.id]);
-
-  const completedCount = instances.filter((i) => i.status === "completed").length;
-  const atGoal = completedCount >= block.sessionsPerWeek;
-
-  async function handleStart(slotNumber: number, templateId: string) {
-    setStartingSlot(slotNumber);
-    try {
-      const id = await startWorkout(userId, block.id, templateId);
-      navigate(`/app/fit/workout/${id}`);
-    } finally {
-      setStartingSlot(null);
-    }
-  }
-
-  async function handleConfirmEnd() {
-    setEnding(true);
-    try {
-      await endFitBlock(userId, block.id);
-      setConfirmingEnd(false);
-      onEnded();
-    } finally {
-      setEnding(false);
-    }
-  }
-
-  const slots = Array.from({ length: block.sessionsPerWeek }, (_, i) => {
-    const template = block.templates.length > 0 ? block.templates[i % block.templates.length] : null;
-    return { slotNumber: i + 1, template, instance: instances[i] };
-  });
+function ExerciseRow({ item, done, onToggle }: { item: RoutineItem; done: boolean; onToggle: () => void }) {
+  const help = exerciseHelp(item.name);
+  const watchUrl = help?.youtubeId ? youtubeWatchUrl(help.youtubeId) : youtubeSearchUrl(item.name);
 
   return (
-    <CollapsibleCard
-      defaultOpen
-      title="This week's training"
-      icon={<DumbbellIcon className="h-4.5 w-4.5" />}
-      accent="finisher"
-      summary={
-        <p className="font-body text-sm text-neutral-600">
-          {block.name} &middot; {completedCount}/{block.sessionsPerWeek} sessions this week
-        </p>
-      }
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-display text-2xl">{block.name}</p>
-          <p className="font-body text-sm text-neutral-500">
-            {block.weekCount} weeks &middot; {block.sessionsPerWeek}x per week
-          </p>
-        </div>
-        {block.stepGoal !== null && (
-          <div className="flex-none rounded-lg bg-neutral-50 px-3 py-2 text-center">
-            <p className="font-display text-lg">{block.stepGoal.toLocaleString()}</p>
-            <p className="font-label text-sm font-semibold text-neutral-500">Steps a day</p>
-          </div>
-        )}
-      </div>
-
-      {block.careNotes && (
-        <div className="border-gold/40 bg-gold/5 mt-3 rounded-lg border p-3">
-          <p className="font-label text-sm font-semibold text-neutral-500">Care notes</p>
-          <CareNotes text={block.careNotes} />
-        </div>
-      )}
-
-      <div className="mt-4">
-        <div className="flex items-center justify-between">
-          <p className="font-label text-sm font-semibold text-neutral-500">This week</p>
-          <p className={`font-label text-sm font-semibold ${atGoal ? "text-brand" : "text-neutral-500"}`}>
-            {completedCount}/{block.sessionsPerWeek}
-          </p>
-        </div>
-        <div className="mt-2 space-y-2">
-          {slots.map(({ slotNumber, template, instance }) =>
-            template ? (
-              <WorkoutSlot
-                key={slotNumber}
-                slotNumber={slotNumber}
-                templateName={template.name}
-                instance={instance}
-                starting={startingSlot === slotNumber}
-                onStart={() => handleStart(slotNumber, template.id)}
-                onOpen={(id) => navigate(`/app/fit/workout/${id}`)}
-              />
-            ) : null
-          )}
-        </div>
-      </div>
-
-      <Link to="/app/fit/history" className="font-label text-brand mt-4 block text-center text-sm font-semibold underline">
-        View Workout History
-      </Link>
-
-      <div className="mt-3 text-center">
-        <button
-          type="button"
-          onClick={() => setConfirmingEnd(true)}
-          className="font-label text-sm font-semibold text-red-600 underline"
-        >
-          End Current Program
-        </button>
-      </div>
-
-      {confirmingEnd && (
-        <EndProgramModal
-          blockName={block.name}
-          ending={ending}
-          onConfirm={handleConfirmEnd}
-          onCancel={() => setConfirmingEnd(false)}
-        />
-      )}
-    </CollapsibleCard>
-  );
-}
-
-function NoActiveBlockCard({
-  plannedBlock,
-  beginning,
-  onBegin,
-}: {
-  plannedBlock: FitPlannedBlock | null;
-  beginning: boolean;
-  onBegin: () => void;
-}) {
-  if (!plannedBlock) {
-    return (
-      <div className="mt-3 rounded-lg border border-dashed border-neutral-300 bg-white p-4 text-center">
-        <p className="font-body text-sm text-neutral-500">No active training block yet.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="border-brand/30 bg-brand/5 mt-3 rounded-lg border p-4 text-center">
-      <p className="font-body text-sm text-neutral-600">{plannedBlock.name} is ready whenever you are.</p>
+    <div className={`flex gap-3 border-t border-neutral-100 py-3.5 first:border-t-0 ${done ? "opacity-50" : ""}`}>
       <button
         type="button"
-        onClick={onBegin}
-        disabled={beginning}
-        className="font-label bg-brand mt-3 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        onClick={onToggle}
+        aria-label={done ? `Mark ${item.name} not done` : `Mark ${item.name} done`}
+        className={`mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full ring-2 transition ${
+          done ? "bg-brand ring-brand text-white" : "ring-neutral-300 text-transparent"
+        }`}
       >
-        <RocketIcon className="h-4 w-4" />
-        {beginning ? "Starting…" : `Begin New Program: ${plannedBlock.name}`}
+        <CheckIcon className="h-4 w-4" />
       </button>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className={`font-label text-[1.05rem] leading-tight font-semibold ${done ? "line-through" : ""}`}>{item.name}</p>
+          <p className="font-display flex-none text-lg leading-none whitespace-nowrap">
+            {item.sets} × {item.dose}
+          </p>
+        </div>
+        {item.variation && (
+          <span className="font-label bg-brand/10 text-brand mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold">
+            {item.variation}
+          </span>
+        )}
+        {item.note && <p className="font-label text-gold mt-1 text-sm font-semibold">{item.note}</p>}
+        <p className="font-body mt-1 text-sm leading-snug text-neutral-600">{item.cue}</p>
+        {item.caution && <p className="font-body mt-1 text-sm text-amber-700">{item.caution}</p>}
+        <a href={watchUrl} target="_blank" rel="noreferrer" className="font-label text-brand mt-1 inline-block text-sm font-semibold underline">
+          Watch how
+        </a>
+      </div>
     </div>
   );
 }
 
 export function FitScreen() {
-  const { session } = useAuth();
-  const userId = session!.user.id;
-  const [loading, setLoading] = useState(true);
-  const [fitProfile, setFitProfile] = useState<FitProfile | null>(null);
-  const [nutritionPlan, setNutritionPlan] = useState<FitNutritionPlan | null>(null);
-  const [block, setBlock] = useState<FitBlock | null>(null);
-  const [activeInstance, setActiveInstance] = useState<FitWorkoutInstance | null>(null);
-  const [plannedBlock, setPlannedBlock] = useState<FitPlannedBlock | null>(null);
-  const [beginning, setBeginning] = useState(false);
+  const [length, setLength] = useState(loadLength);
+  const [saved, setSaved] = useState<Saved | null>(loadSaved);
 
   useEffect(() => {
-    (async () => {
-      const [p, n, b] = await Promise.all([getFitProfile(userId), getFitNutritionPlan(userId), getActiveFitBlock(userId)]);
-      setFitProfile(p);
-      setNutritionPlan(n);
-      setBlock(b);
-      setLoading(false);
-      if (b) setActiveInstance(await getActiveWorkoutInstance(userId, b.id));
-      else setPlannedBlock(await getNextPlannedFitBlock(userId));
-    })();
-  }, [userId]);
-
-  async function handleEnded() {
-    setBlock(null);
-    setActiveInstance(null);
-    setPlannedBlock(await getNextPlannedFitBlock(userId));
-  }
-
-  async function handleBegin() {
-    if (!plannedBlock) return;
-    setBeginning(true);
     try {
-      await beginFitBlock(userId, plannedBlock.id);
-      const b = await getActiveFitBlock(userId);
-      setBlock(b);
-      setPlannedBlock(null);
-      if (b) setActiveInstance(await getActiveWorkoutInstance(userId, b.id));
-    } finally {
-      setBeginning(false);
+      localStorage.setItem(LENGTH_KEY, String(length));
+    } catch {
+      // ignore
     }
+  }, [length]);
+
+  function generate() {
+    const next: Saved = { routine: generateRoutine(length, todayISO()), done: [] };
+    setSaved(next);
+    save(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  if (loading) {
-    return <div className="mx-auto max-w-md px-4"><ScreenSkeleton /></div>;
+  function toggle(id: string) {
+    if (!saved) return;
+    const done = saved.done.includes(id) ? saved.done.filter((d) => d !== id) : [...saved.done, id];
+    const next = { ...saved, done };
+    setSaved(next);
+    save(next);
   }
 
-  const activeTemplateName = block?.templates.find((t) => t.id === activeInstance?.sessionTemplateId)?.name ?? "Workout";
+  function startOver() {
+    setSaved(null);
+    save(null);
+  }
+
+  const routine = saved?.routine ?? null;
+  const doneCount = saved?.done.length ?? 0;
+  const allDone = routine !== null && doneCount === routine.items.length;
 
   return (
     <div className="mx-auto max-w-md px-4 pb-28">
-      <PageHeader
-        kicker="Golfable Fit"
-        title="Your program"
-        sub={fitProfile?.goals ? `Goal: ${fitProfile.goals.replace(/\.$/, "")}.` : "Training built around your body and your swing."}
-      />
+      <PageHeader kicker="Golfable Fit" title={routine ? "Today's routine" : "Train today"} sub="Core, glutes and shoulders. Low impact, built for your swing." />
 
-      {activeInstance && <ResumeWorkoutBanner instance={activeInstance} templateName={activeTemplateName} />}
+      {!routine ? (
+        <div className="mt-6 rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
+          <LengthPicker value={length} onChange={setLength} />
+          <button
+            type="button"
+            onClick={generate}
+            className="font-label bg-brand mt-5 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-4 text-lg font-bold text-white shadow-lg shadow-black/10 active:scale-[0.99]"
+          >
+            <SparkIcon className="h-5 w-5" />
+            Generate today's routine
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="bg-brand-dark mt-5 flex items-center justify-between rounded-2xl px-5 py-4 text-white">
+            <div>
+              <p className="font-display text-3xl leading-none">{routine.minutes} min</p>
+              <p className="font-body mt-1 text-sm text-white/70">
+                {routine.items.length} exercises · about {routine.estimatedMinutes} min with rest
+              </p>
+            </div>
+            <div className="text-right">
+              <p className={`font-display text-3xl leading-none ${allDone ? "text-gold" : ""}`}>
+                {doneCount}/{routine.items.length}
+              </p>
+              <p className="font-body mt-1 text-sm text-white/70">{allDone ? "Done. Nice work." : "done"}</p>
+            </div>
+          </div>
+          <p className="font-body mt-3 text-sm text-neutral-500">Rest about 30 seconds between sets.</p>
 
-      <Link
-        to="/app/fit/schedule"
-        className="mt-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 ring-1 ring-black/[0.06] active:bg-neutral-50"
-      >
-        <span className="bg-brand/10 text-brand flex h-10 w-10 flex-none items-center justify-center rounded-xl">
-          <ClipboardIcon className="h-5 w-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="font-label block text-[1.05rem] leading-tight font-semibold">Your schedule</span>
-          <span className="font-body block text-sm text-neutral-500">Change times, days and reminders</span>
-        </span>
-        <ChevronRight className="h-4 w-4 flex-none text-neutral-300" />
-      </Link>
+          {GROUP_ORDER.map((group) => {
+            const items = routine.items.filter((i) => i.group === group);
+            if (items.length === 0) return null;
+            return (
+              <section key={group} className="mt-4">
+                <h2 className="font-label text-lg font-semibold text-neutral-800">{GROUP_LABEL[group]}</h2>
+                <div className="mt-1.5 rounded-2xl bg-white px-4 ring-1 ring-black/[0.06]">
+                  {items.map((item) => (
+                    <ExerciseRow key={item.id} item={item} done={saved!.done.includes(item.id)} onToggle={() => toggle(item.id)} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
 
-      <div className="mt-4">
-        {block ? (
-          <BlockCard userId={userId} block={block} onEnded={handleEnded} />
-        ) : (
-          <NoActiveBlockCard plannedBlock={plannedBlock} beginning={beginning} onBegin={handleBegin} />
-        )}
-        {nutritionPlan && <NutritionCard plan={nutritionPlan} />}
-        <WeightCard userId={userId} goalWeightLossLbs={fitProfile?.goalWeightLossLbs ?? null} />
-        <StepsCard userId={userId} stepGoal={block?.stepGoal ?? null} />
-        {fitProfile && <ConsultationCard profile={fitProfile} />}
-      </div>
+          <div className="mt-6 rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
+            <LengthPicker value={length} onChange={setLength} />
+            <button
+              type="button"
+              onClick={generate}
+              className="font-label bg-brand mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-base font-bold text-white"
+            >
+              <SparkIcon className="h-4 w-4" />
+              Generate a new routine
+            </button>
+            <button type="button" onClick={startOver} className="font-label mt-2 w-full py-2 text-sm font-semibold text-neutral-500">
+              Clear today's routine
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

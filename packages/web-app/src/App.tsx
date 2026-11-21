@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { MarketingHome } from "./pages/MarketingHome";
 import { AppShell } from "./components/AppNav";
 import { RequireAuth } from "./components/RequireAuth";
@@ -44,13 +44,6 @@ const NewChallengeScreen = lazy(() => import("./pages/app/NewChallengeScreen").t
 const ChallengeDetailScreen = lazy(() => import("./pages/app/ChallengeDetailScreen").then((m) => ({ default: m.ChallengeDetailScreen })));
 const AdminScreen = lazy(() => import("./pages/app/AdminScreen").then((m) => ({ default: m.AdminScreen })));
 const FitScreen = lazy(() => import("./pages/app/FitScreen").then((m) => ({ default: m.FitScreen })));
-const FitWorkoutScreen = lazy(() => import("./pages/app/FitWorkoutScreen").then((m) => ({ default: m.FitWorkoutScreen })));
-const FitHistoryScreen = lazy(() => import("./pages/app/FitHistoryScreen").then((m) => ({ default: m.FitHistoryScreen })));
-const FitPlanScreen = lazy(() => import("./pages/app/FitPlanScreen").then((m) => ({ default: m.FitPlanScreen })));
-const FitTodayScreen = lazy(() => import("./pages/app/FitTodayScreen").then((m) => ({ default: m.FitTodayScreen })));
-const FitNutritionScreen = lazy(() => import("./pages/app/FitNutritionScreen").then((m) => ({ default: m.FitNutritionScreen })));
-const FitCheckinScreen = lazy(() => import("./pages/app/FitCheckinScreen").then((m) => ({ default: m.FitCheckinScreen })));
-const FitScheduleScreen = lazy(() => import("./pages/app/FitScheduleScreen").then((m) => ({ default: m.FitScheduleScreen })));
 const StudioAdminScreen = lazy(() => import("./pages/app/StudioAdminScreen").then((m) => ({ default: m.StudioAdminScreen })));
 const SignupScreen = lazy(() => import("./pages/auth/SignupScreen").then((m) => ({ default: m.SignupScreen })));
 const ForgotPasswordScreen = lazy(() => import("./pages/auth/ForgotPasswordScreen").then((m) => ({ default: m.ForgotPasswordScreen })));
@@ -123,62 +116,9 @@ function App() {
             </RequireFitAccess>
           }
         />
-        <Route
-          path="fit/workout/:workoutLogId"
-          element={
-            <RequireFitAccess>
-              <FitWorkoutScreen />
-            </RequireFitAccess>
-          }
-        />
-        <Route
-          path="fit/history"
-          element={
-            <RequireFitAccess>
-              <FitHistoryScreen />
-            </RequireFitAccess>
-          }
-        />
-        <Route
-          path="fit/plan"
-          element={
-            <RequireFitAccess>
-              <FitPlanScreen />
-            </RequireFitAccess>
-          }
-        />
-        <Route
-          path="fit/today"
-          element={
-            <RequireFitAccess>
-              <FitTodayScreen />
-            </RequireFitAccess>
-          }
-        />
-        <Route
-          path="fit/schedule"
-          element={
-            <RequireFitAccess>
-              <FitScheduleScreen />
-            </RequireFitAccess>
-          }
-        />
-        <Route
-          path="fit/fuel"
-          element={
-            <RequireFitAccess>
-              <FitNutritionScreen />
-            </RequireFitAccess>
-          }
-        />
-        <Route
-          path="fit/checkin"
-          element={
-            <RequireFitAccess>
-              <FitCheckinScreen />
-            </RequireFitAccess>
-          }
-        />
+        {/* The old program screens are gone; any bookmark or notification
+            pointing at one lands on the routine generator. */}
+        <Route path="fit/*" element={<Navigate to="/app/fit" replace />} />
         <Route
           path="admin"
           element={
