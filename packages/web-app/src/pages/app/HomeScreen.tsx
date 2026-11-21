@@ -1,274 +1,276 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CATEGORY_INFO, TIER_INFO, formatScore } from "@golfable/shared";
-import type { Drill, HandicapTier } from "@golfable/shared";
-
-const TIER_TEXT: Record<HandicapTier, string> = {
-  scratch: "text-tier-scratch",
-  low: "text-tier-low",
-  mid: "text-tier-mid",
-  high: "text-tier-high",
-};
+import { CATEGORY_INFO, type Drill } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
-import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
 import { CategoryIcon } from "../../components/CategoryIcon";
-import { PageHeader, FairwayPanel, Section, Panel, Row, IconDot, ChevronRight } from "../../components/ui";
-import { GolfableScorePanel } from "../../components/GolfableScorePanel";
-import { NotificationBadge } from "../../components/NotificationBadge";
-import { ForumIcon, ProgressIcon } from "../../components/AppNav";
-import {
-  getBlendedScoreHistory,
-  getDrillForDate,
-  getForumNotificationCounts,
-  getGlobalLeaderboard,
-  getMyScoreForDate,
-  getSessionsThisWeek,
-  getStudioById,
-  getStudioLeaderboard,
-  todayISO,
-  type LeaderboardEntry,
-  type ScoreHistoryEntry,
-  type Studio,
-} from "../../lib/golfableApi";
+import { PageHeader, ChevronRight } from "../../components/ui";
+import { getAllDrills, getScoreHistory, getMyScoreForDate, todayISO } from "../../lib/golfableApi";
+import { AREA_OPTIONS, SESSION_LENGTHS, generateSession, type Area, type PracticeSession } from "../../lib/drillGenerator";
 
-const LEADERBOARD_LIMIT = 3;
+// Golfable, dumbed down on purpose: pick an area and a length, tap one
+// button, play the drills. Each drill opens the normal play screen, so
+// scores still feed the Golfable Score and weekly goal. Today's session is
+// kept on this device so leaving to play a drill doesn't lose it.
 
-const CATEGORY_BG: Record<string, string> = {
-  driver: "bg-driver",
-  irons: "bg-irons",
-  wedges: "bg-wedges",
-  putter: "bg-putter",
-};
+const SESSION_KEY = "golfable-practice-today";
+const PREFS_KEY = "golfable-practice-prefs";
 
-function FlagIcon({ className }: { className?: string }) {
+function loadSession(): PracticeSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as PracticeSession;
+    return s.date === todayISO() ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeSession(s: PracticeSession | null) {
+  try {
+    if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    else localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Private mode or storage full -- the session still works for this visit.
+  }
+}
+
+function loadPrefs(): { area: Area; minutes: number } {
+  try {
+    const p = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "{}");
+    return {
+      area: AREA_OPTIONS.some((a) => a.value === p.area) ? p.area : "mix",
+      minutes: SESSION_LENGTHS.includes(p.minutes) ? p.minutes : 45,
+    };
+  } catch {
+    return { area: "mix", minutes: 45 };
+  }
+}
+
+function daysAgoISO(days: number): string {
+  const d = new Date(`${todayISO()}T12:00:00`);
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+function SparkIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path d="M7 20V4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M7 4l9 3.5L7 11" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-      <ellipse cx="7" cy="20.5" rx="4" ry="1.2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
 
-function ToolsIcon({ className }: { className?: string }) {
+function CheckIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function ChooseIcon({ className }: { className?: string }) {
+function Chips<T extends string | number>({
+  label,
+  options,
+  value,
+  onChange,
+  cols,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+  cols: string;
+}) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
-      <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
-      <rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
-      <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
+    <div>
+      <p className="font-label text-sm font-semibold text-neutral-500">{label}</p>
+      <div className={`mt-2 grid gap-2 ${cols}`}>
+        {options.map((o) => (
+          <button
+            key={String(o.value)}
+            type="button"
+            onClick={() => onChange(o.value)}
+            className={`font-label rounded-xl py-2.5 text-center text-base font-bold ring-1 transition ${
+              o.value === value ? "bg-brand text-white ring-brand" : "bg-white text-neutral-700 ring-black/[0.08] active:bg-neutral-50"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
-function ChallengeIcon({ className }: { className?: string }) {
+function Picker({
+  area,
+  minutes,
+  onArea,
+  onMinutes,
+}: {
+  area: Area;
+  minutes: number;
+  onArea: (a: Area) => void;
+  onMinutes: (m: number) => void;
+}) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M7 4h10v4a5 5 0 0 1-5 5 5 5 0 0 1-5-5V4Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
+    <div className="space-y-4">
+      <Chips label="What are you working on?" options={AREA_OPTIONS} value={area} onChange={onArea} cols="grid-cols-5" />
+      <Chips
+        label="How long do you have?"
+        options={SESSION_LENGTHS.map((m) => ({ value: m, label: `${m} min` }))}
+        value={minutes}
+        onChange={onMinutes}
+        cols="grid-cols-3"
       />
-      <path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M12 13v3m-3 4h6m-3-4v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    </div>
   );
 }
 
 export function HomeScreen() {
-  const { profile } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [drill, setDrill] = useState<Drill | null>(null);
-  const [maxScore, setMaxScore] = useState(0);
-  const [score, setScore] = useState<number | null>(null);
-  const [sessionsThisWeek, setSessionsThisWeek] = useState(0);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [studio, setStudio] = useState<Studio | null>(null);
-  const [scoreHistory, setScoreHistory] = useState<ScoreHistoryEntry[]>([]);
-  const [forumUnread, setForumUnread] = useState(0);
+  const { session } = useAuth();
+  const userId = session!.user.id;
+  const [prefs, setPrefs] = useState(loadPrefs);
+  const [practice, setPractice] = useState<PracticeSession | null>(loadSession);
+  const [library, setLibrary] = useState<Drill[] | null>(null);
+  const [recent, setRecent] = useState<Set<string>>(new Set());
+  const [played, setPlayed] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profile) return;
-    getForumNotificationCounts().then((counts) =>
-      setForumUnread(Object.values(counts).reduce((sum, n) => sum + n, 0))
+    getAllDrills().then((rows) => setLibrary(rows.map((r) => r.drill)));
+    getScoreHistory(userId).then((history) => {
+      const cutoff = daysAgoISO(7);
+      setRecent(new Set(history.filter((h) => h.date >= cutoff).map((h) => h.drill.id)));
+    });
+  }, [userId]);
+
+  // A drill counts as done once a score for it is logged today.
+  useEffect(() => {
+    if (!practice) return;
+    const today = todayISO();
+    Promise.all(practice.drills.map(async (d) => ((await getMyScoreForDate(userId, d.drillId, today)) !== null ? d.drillId : null))).then(
+      (ids) => setPlayed(new Set(ids.filter((id): id is string => id !== null)))
     );
-  }, [profile]);
+  }, [practice, userId]);
 
-  useEffect(() => {
-    if (!profile) return;
-    (async () => {
-      setLoading(true);
-      const studioResult = profile.studio_id ? await getStudioById(profile.studio_id) : null;
-      setStudio(studioResult);
+  function updatePrefs(next: { area: Area; minutes: number }) {
+    setPrefs(next);
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  }
 
-      const found = await getDrillForDate(todayISO());
-      if (found) {
-        setDrill(found.drill);
-        setMaxScore(found.maxScore);
-        setScore(await getMyScoreForDate(profile.id, found.drill.id, todayISO()));
-        setLeaderboard(
-          studioResult
-            ? await getStudioLeaderboard(
-                studioResult.id,
-                found.drill.id,
-                todayISO(),
-                LEADERBOARD_LIMIT,
-                found.drill.scoreDirection
-              )
-            : await getGlobalLeaderboard(found.drill.id, todayISO(), LEADERBOARD_LIMIT, found.drill.scoreDirection)
-        );
-      } else {
-        setDrill(null);
-        setLeaderboard([]);
-      }
-      setSessionsThisWeek(await getSessionsThisWeek(profile.id));
-      setScoreHistory(await getBlendedScoreHistory(profile.id));
-      setLoading(false);
-    })();
-  }, [profile]);
+  function generate() {
+    if (!library || library.length === 0) {
+      setError("Couldn't load the drill library -- check your connection and try again.");
+      return;
+    }
+    setError(null);
+    const next = generateSession(library, prefs.minutes, prefs.area, todayISO(), recent);
+    setPractice(next);
+    storeSession(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
-  if (!profile) return null;
+  function clear() {
+    setPractice(null);
+    storeSession(null);
+  }
 
-  const hasFit = profile.fit_access;
-  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Los_Angeles", hour: "2-digit", hour12: false }).format(new Date()));
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const doneCount = practice ? practice.drills.filter((d) => played.has(d.drillId)).length : 0;
+  const allDone = practice !== null && practice.drills.length > 0 && doneCount === practice.drills.length;
+  const areaLabel = practice ? (AREA_OPTIONS.find((a) => a.value === practice.area)?.label ?? "Mix") : "";
 
   return (
     <div className="mx-auto max-w-md px-4 pb-28">
-      <PageHeader
-        kicker={studio ? `${greeting} · ${studio.name}` : greeting}
-        title={profile.first_name}
-        back={hasFit ? { to: "/app", label: "Home" } : undefined}
-        right={<WeeklyGoalRing completed={sessionsThisWeek} goal={profile.weekly_goal} size={60} />}
-      />
+      <PageHeader kicker="Golfable" title={practice ? "Today's session" : "Practice"} sub="Pick an area and a length. We'll build the session." />
 
-      <FairwayPanel className="mt-5">
-        {loading ? (
-          <div className="font-body p-6 text-white/60">Loading today's Golfable…</div>
-        ) : drill ? (
-          <Link to="/app/today" className="block p-5 active:opacity-90">
-            <div className="flex items-center gap-2">
-              <span className={`flex h-8 w-8 items-center justify-center rounded-full text-white ${CATEGORY_BG[drill.category]}`}>
-                <CategoryIcon category={drill.category} className="h-4 w-4" />
-              </span>
-              <span className="font-label text-base font-medium text-white/70">
-                Today's Golfable, {CATEGORY_INFO[drill.category].label}
-              </span>
-            </div>
-            <h2 className="font-display mt-4 text-[2.9rem] leading-[0.92] tracking-wide">{drill.name}</h2>
-            <div className="mt-5 flex items-center justify-between gap-3">
-              <p className="font-body text-sm text-white/70">
-                {score === null ? "Not played yet" : `You scored ${formatScore(score, maxScore, drill.scoreDirection)}`}
-              </p>
-              <span className="font-label bg-gold text-brand-dark inline-flex items-center gap-1 rounded-full px-5 py-2.5 text-base font-bold">
-                {score === null ? "Play" : "View"}
-                <ChevronRight className="h-4 w-4" />
-              </span>
-            </div>
-          </Link>
-        ) : (
-          <Link to="/app/library" className="block p-5 active:opacity-90">
-            <p className="font-label text-base font-medium text-white/70">No new Golfable today</p>
-            <h2 className="font-display mt-3 text-[2.6rem] leading-[0.92] tracking-wide">Pick your own</h2>
-            <p className="font-body mt-2 text-sm text-white/70">New Golfables drop Monday to Friday. Any drill in the library counts toward your week.</p>
-            <span className="font-label bg-gold text-brand-dark mt-5 inline-flex items-center gap-1 rounded-full px-5 py-2.5 text-base font-bold">
-              Open library
-              <ChevronRight className="h-4 w-4" />
-            </span>
-          </Link>
-        )}
-      </FairwayPanel>
-
-      <div className="mt-4 grid grid-cols-4 gap-2">
-        {[
-          { to: "/app/library", label: "Pick a drill", icon: <ChooseIcon className="h-6 w-6" /> },
-          { to: "/app/challenges", label: "Challenge", icon: <ChallengeIcon className="h-6 w-6" /> },
-          { to: "/app/round", label: "Track round", icon: <FlagIcon className="h-6 w-6" /> },
-          { to: "/app/tools", label: "Tools", icon: <ToolsIcon className="h-6 w-6" /> },
-        ].map((a) => (
-          <Link
-            key={a.to}
-            to={a.to}
-            className="flex flex-col items-center gap-1.5 rounded-2xl bg-white px-1 py-3 text-center ring-1 ring-black/[0.06] active:bg-neutral-50"
+      {!practice ? (
+        <div className="mt-6 rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
+          <Picker area={prefs.area} minutes={prefs.minutes} onArea={(area) => updatePrefs({ ...prefs, area })} onMinutes={(minutes) => updatePrefs({ ...prefs, minutes })} />
+          <button
+            type="button"
+            onClick={generate}
+            disabled={!library}
+            className="font-label bg-brand mt-5 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-4 text-lg font-bold text-white shadow-lg shadow-black/10 active:scale-[0.99] disabled:opacity-60"
           >
-            <span className="text-brand">{a.icon}</span>
-            <span className="font-label text-sm leading-tight font-semibold text-neutral-800">{a.label}</span>
-          </Link>
-        ))}
-      </div>
+            <SparkIcon className="h-5 w-5" />
+            {library ? "Generate today's session" : "Loading drills…"}
+          </button>
+          {error && <p className="font-body mt-2 text-sm text-red-600">{error}</p>}
+        </div>
+      ) : (
+        <>
+          <div className="bg-brand-dark mt-5 flex items-center justify-between rounded-2xl px-5 py-4 text-white">
+            <div>
+              <p className="font-display text-3xl leading-none">
+                {practice.minutes} min · {areaLabel}
+              </p>
+              <p className="font-body mt-1 text-sm text-white/70">
+                {practice.drills.length} {practice.drills.length === 1 ? "drill" : "drills"} · about {practice.estimatedMinutes} min
+              </p>
+            </div>
+            <div className="text-right">
+              <p className={`font-display text-3xl leading-none ${allDone ? "text-gold" : ""}`}>
+                {doneCount}/{practice.drills.length}
+              </p>
+              <p className="font-body mt-1 text-sm text-white/70">{allDone ? "Done. Nice work." : "played"}</p>
+            </div>
+          </div>
 
-      {!loading && drill && (
-        <Section
-          title={studio ? `${studio.name} today` : "Today's leaders"}
-          action={
-            <Link to={`/app/leaderboard/${drill.id}/${todayISO()}`} className="font-label text-brand text-base font-semibold">
-              Full board
-            </Link>
-          }
-        >
-          <Panel>
-            {leaderboard.length === 0 ? (
-              <Row title="No scores yet today" sub="Log yours first and take the top spot." />
-            ) : (
-              leaderboard.slice(0, 3).map((entry, i) => {
-                const isMe = entry.userId === profile.id;
-                return (
-                  <Row
-                    key={entry.userId}
-                    className={isMe ? "bg-brand/[0.04]" : ""}
-                    icon={
-                      <span
-                        className={`font-display flex h-8 w-8 items-center justify-center rounded-full text-lg ${
-                          i === 0 ? "bg-gold text-brand-dark" : "bg-neutral-100 text-neutral-500"
-                        }`}
-                      >
-                        {i + 1}
-                      </span>
-                    }
-                    title={
-                      <>
-                        {entry.firstName}
-                        {isMe && <span className="text-brand"> (you)</span>}
-                      </>
-                    }
-                    sub={<span className={TIER_TEXT[entry.tier]}>{TIER_INFO[entry.tier].label}</span>}
-                    trailing={<span className="font-display text-2xl">{entry.score}</span>}
-                  />
-                );
-              })
-            )}
-          </Panel>
-        </Section>
+          <div className="mt-4 space-y-2.5">
+            {practice.drills.map((d, i) => {
+              const done = played.has(d.drillId);
+              const info = CATEGORY_INFO[d.category];
+              return (
+                <Link
+                  key={d.drillId}
+                  to={`/app/play/${d.drillId}`}
+                  className={`flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06] active:bg-neutral-50 ${done ? "opacity-60" : ""}`}
+                >
+                  <span
+                    className="flex h-11 w-11 flex-none items-center justify-center rounded-xl text-white"
+                    style={{ backgroundColor: done ? "#1f4d36" : info.color }}
+                  >
+                    {done ? <CheckIcon className="h-5 w-5" /> : <CategoryIcon category={d.category} className="h-5 w-5" />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="font-label block text-sm font-semibold text-neutral-500">
+                      {i + 1}. {info.label} · ~{d.minutes} min
+                    </span>
+                    <span className={`font-label block text-[1.1rem] leading-tight font-semibold text-neutral-900 ${done ? "line-through" : ""}`}>{d.name}</span>
+                    <span className="font-body mt-0.5 block truncate text-sm text-neutral-500">{d.equipment.join(" · ")}</span>
+                  </span>
+                  <span className="flex flex-none items-center gap-0.5">
+                    <span className="font-label text-brand text-sm font-bold">{done ? "Played" : "Play"}</span>
+                    <ChevronRight className="text-brand h-4 w-4" />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+          <p className="font-body mt-3 text-sm text-neutral-500">Tap a drill to see the rules and log your score.</p>
+
+          <div className="mt-6 rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
+            <Picker area={prefs.area} minutes={prefs.minutes} onArea={(area) => updatePrefs({ ...prefs, area })} onMinutes={(minutes) => updatePrefs({ ...prefs, minutes })} />
+            <button
+              type="button"
+              onClick={generate}
+              className="font-label bg-brand mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-base font-bold text-white"
+            >
+              <SparkIcon className="h-4 w-4" />
+              Generate a new session
+            </button>
+            <button type="button" onClick={clear} className="font-label mt-2 w-full py-2 text-sm font-semibold text-neutral-500">
+              Clear today's session
+            </button>
+          </div>
+        </>
       )}
-
-      {!loading && (
-        <Section title="Your game">
-          <GolfableScorePanel history={scoreHistory} />
-        </Section>
-      )}
-
-      <Section title="More">
-        <Panel>
-          <Row to="/app/progress" icon={<IconDot><ProgressIcon className="h-5 w-5" /></IconDot>} title="Progress" sub="Your trend over time" />
-          <Row
-            to="/app/forum"
-            icon={<IconDot><ForumIcon className="h-5 w-5" /></IconDot>}
-            title="Forum"
-            sub="Talk shop with other players"
-            trailing={<NotificationBadge count={forumUnread} />}
-          />
-        </Panel>
-      </Section>
     </div>
   );
 }

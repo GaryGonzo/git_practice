@@ -21,13 +21,8 @@ const TermsScreen = lazy(() => import("./pages/TermsScreen").then((m) => ({ defa
 const TodayScreen = lazy(() => import("./pages/app/TodayScreen").then((m) => ({ default: m.TodayScreen })));
 const ProgressScreen = lazy(() => import("./pages/app/ProgressScreen").then((m) => ({ default: m.ProgressScreen })));
 const GolfableScoreDetailScreen = lazy(() => import("./pages/app/GolfableScoreDetailScreen").then((m) => ({ default: m.GolfableScoreDetailScreen })));
-const LibraryScreen = lazy(() => import("./pages/app/LibraryScreen").then((m) => ({ default: m.LibraryScreen })));
-const RoundScreen = lazy(() => import("./pages/app/RoundScreen").then((m) => ({ default: m.RoundScreen })));
-const RoundPlayScreen = lazy(() => import("./pages/app/RoundPlayScreen").then((m) => ({ default: m.RoundPlayScreen })));
 const ProfileScreen = lazy(() => import("./pages/app/ProfileScreen").then((m) => ({ default: m.ProfileScreen })));
 const MyBagScreen = lazy(() => import("./pages/app/MyBagScreen").then((m) => ({ default: m.MyBagScreen })));
-const LeaderboardScreen = lazy(() => import("./pages/app/LeaderboardScreen").then((m) => ({ default: m.LeaderboardScreen })));
-const LeaderboardHubScreen = lazy(() => import("./pages/app/LeaderboardHubScreen").then((m) => ({ default: m.LeaderboardHubScreen })));
 const ToolsScreen = lazy(() => import("./pages/app/ToolsScreen").then((m) => ({ default: m.ToolsScreen })));
 const MetronomeScreen = lazy(() => import("./pages/app/MetronomeScreen").then((m) => ({ default: m.MetronomeScreen })));
 const FairwayFinderScreen = lazy(() => import("./pages/app/FairwayFinderScreen").then((m) => ({ default: m.FairwayFinderScreen })));
@@ -35,13 +30,6 @@ const GreenReaderScreen = lazy(() => import("./pages/app/GreenReaderScreen").the
 const SwingTempoScreen = lazy(() => import("./pages/app/SwingTempoScreen").then((m) => ({ default: m.SwingTempoScreen })));
 const AlignmentCheckerScreen = lazy(() => import("./pages/app/AlignmentCheckerScreen").then((m) => ({ default: m.AlignmentCheckerScreen })));
 const GappingScreen = lazy(() => import("./pages/app/GappingScreen").then((m) => ({ default: m.GappingScreen })));
-const ForumScreen = lazy(() => import("./pages/app/ForumScreen").then((m) => ({ default: m.ForumScreen })));
-const ForumCategoryScreen = lazy(() => import("./pages/app/ForumCategoryScreen").then((m) => ({ default: m.ForumCategoryScreen })));
-const ForumNewThreadScreen = lazy(() => import("./pages/app/ForumNewThreadScreen").then((m) => ({ default: m.ForumNewThreadScreen })));
-const ForumThreadScreen = lazy(() => import("./pages/app/ForumThreadScreen").then((m) => ({ default: m.ForumThreadScreen })));
-const ChallengesScreen = lazy(() => import("./pages/app/ChallengesScreen").then((m) => ({ default: m.ChallengesScreen })));
-const NewChallengeScreen = lazy(() => import("./pages/app/NewChallengeScreen").then((m) => ({ default: m.NewChallengeScreen })));
-const ChallengeDetailScreen = lazy(() => import("./pages/app/ChallengeDetailScreen").then((m) => ({ default: m.ChallengeDetailScreen })));
 const AdminScreen = lazy(() => import("./pages/app/AdminScreen").then((m) => ({ default: m.AdminScreen })));
 const FitScreen = lazy(() => import("./pages/app/FitScreen").then((m) => ({ default: m.FitScreen })));
 const StudioAdminScreen = lazy(() => import("./pages/app/StudioAdminScreen").then((m) => ({ default: m.StudioAdminScreen })));
@@ -80,17 +68,10 @@ function App() {
       >
         <Route index element={<AppIndex />} />
         <Route path="golf" element={<HomeScreen />} />
-        <Route path="today" element={<TodayScreen />} />
         <Route path="progress" element={<ProgressScreen />} />
         <Route path="golfable-score" element={<GolfableScoreDetailScreen />} />
         <Route path="golfable-score/:category" element={<GolfableScoreDetailScreen />} />
-        <Route path="library" element={<LibraryScreen />} />
-        <Route path="library/:date" element={<TodayScreen />} />
-        <Route path="round" element={<RoundScreen />} />
-        <Route path="round/:roundId" element={<RoundPlayScreen />} />
         <Route path="play/:drillId" element={<TodayScreen />} />
-        <Route path="leaderboard" element={<LeaderboardHubScreen />} />
-        <Route path="leaderboard/:drillId/:date" element={<LeaderboardScreen />} />
         <Route path="tools" element={<ToolsScreen />} />
         <Route path="tools/metronome" element={<MetronomeScreen />} />
         <Route path="tools/fairway-finder" element={<FairwayFinderScreen />} />
@@ -98,13 +79,12 @@ function App() {
         <Route path="tools/swing-tempo" element={<SwingTempoScreen />} />
         <Route path="tools/alignment-checker" element={<AlignmentCheckerScreen />} />
         <Route path="tools/gapping" element={<GappingScreen />} />
-        <Route path="forum" element={<ForumScreen />} />
-        <Route path="forum/:categorySlug" element={<ForumCategoryScreen />} />
-        <Route path="forum/:categorySlug/new" element={<ForumNewThreadScreen />} />
-        <Route path="forum/:categorySlug/:threadId" element={<ForumThreadScreen />} />
-        <Route path="challenges" element={<ChallengesScreen />} />
-        <Route path="challenges/new" element={<NewChallengeScreen />} />
-        <Route path="challenges/:id" element={<ChallengeDetailScreen />} />
+        {/* Simplified Golfable: the daily drill, library, rounds, leaderboard,
+            forum and challenges are hidden (screens still in the repo, data
+            untouched). Old links land on the practice generator. */}
+        {["today", "library/*", "round/*", "leaderboard/*", "forum/*", "challenges/*"].map((path) => (
+          <Route key={path} path={path} element={<Navigate to="/app" replace />} />
+        ))}
         <Route path="profile" element={<ProfileScreen />} />
         <Route path="bag" element={<MyBagScreen />} />
         <Route path="studio-admin" element={<StudioAdminScreen />} />

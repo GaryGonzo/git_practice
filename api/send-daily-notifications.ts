@@ -180,11 +180,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     process.env.VAPID_PRIVATE_KEY!
   );
 
-  const categoryLabel = String(drill.category).charAt(0).toUpperCase() + String(drill.category).slice(1);
+  // The app no longer has a single daily drill -- this is now a nudge to
+  // open the practice generator (still sent on days a drill is scheduled).
   const payload = JSON.stringify({
-    title: "New Golfable is ready!",
-    body: `${categoryLabel} - ${drill.name}`,
-    url: "/app/today",
+    title: "Time to practice",
+    body: "Pick an area and a length -- Golfable builds today's session.",
+    url: "/app",
   });
 
   const staleSubscriptionIds: string[] = [];

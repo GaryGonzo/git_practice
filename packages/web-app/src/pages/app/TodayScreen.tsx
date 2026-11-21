@@ -163,11 +163,11 @@ export function TodayScreen() {
   const backLink = (!isToday || isChooseYourOwn) && (
     <div className="mx-auto max-w-md px-4 pt-4">
       <Link
-        to="/app/library"
+        to={profile?.fit_access ? "/app/golf" : "/app"}
         className="font-label inline-flex items-center gap-0.5 text-base font-semibold text-neutral-500"
       >
         <BackIcon className="h-4 w-4" />
-        Library
+        Today's session
       </Link>
     </div>
   );
@@ -206,8 +206,10 @@ export function TodayScreen() {
     );
   }
 
+  // Leaderboards are hidden in the simplified app, so no rank card.
   const rawRank = leaderboard.findIndex((entry) => entry.userId === profile.id) + 1;
-  const rank = rawRank > 0 && rawRank <= RANK_CARD_CUTOFF ? rawRank : 0;
+  const showRank = false;
+  const rank = showRank && rawRank > 0 && rawRank <= RANK_CARD_CUTOFF ? rawRank : 0;
   const rankScope = studio ? studio.name : TIER_INFO[profile.tier].label;
 
   return (
@@ -252,7 +254,7 @@ export function TodayScreen() {
         error={submitError}
         eyebrow={
           isChooseYourOwn
-            ? "Your pick"
+            ? "Today's session"
             : isToday
               ? "Today's Golfable"
               : submittedScore === null
