@@ -1,5 +1,6 @@
 import type { SkillCategory, HandicapTier } from "./brand.js";
 import type { ScoreDirection } from "./scoring.js";
+import type { Aid, BandTargets, DrillKind, DrillLevel, Needs, Scene, Spot } from "./library.js";
 
 export interface DrillTargets extends Record<HandicapTier, string> {}
 
@@ -24,4 +25,20 @@ export interface Drill {
   videoUrl?: string;
   /** The yardage this drill calls for, if it's yardage-based. Most drills don't set this. */
   targetYardage?: number;
+  /** Golfable v2 session fields. Absent on v1-only rows. */
+  status?: "active" | "archived";
+  areas?: SkillCategory[];
+  spots?: Spot[];
+  needs?: Needs;
+  aids?: Aid[];
+  minutes?: number;
+  /** False for rep drills (checked off, not scored) -- kept out of the Golfable Score. */
+  scored?: boolean;
+  repsLabel?: string;
+  steps?: string[];
+  scoreLabel?: string;
+  bandTargets?: BandTargets;
+  scene?: Scene;
+  kind?: DrillKind;
+  level?: DrillLevel;
 }

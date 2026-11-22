@@ -1,5 +1,5 @@
 import { trainingStreak, dayStreak, reachedMilestones, yogaPlannedDays, sessionsDone, type TrainingStreak, type DayStreak } from "./fitStreaks";
-import type { BagClub, BagEntry, Drill, HandicapTier, ScoreDirection, SkillCategory } from "@golfable/shared";
+import type { BagClub, BagEntry, Drill, HandicapBand, HandicapTier, ScoreDirection, SkillCategory } from "@golfable/shared";
 import { BAG_CLUBS, SKILL_CATEGORIES, isBetterScore } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
 
@@ -19,6 +19,21 @@ interface DrillRow {
   score_direction: ScoreDirection;
   video_url: string | null;
   target_yardage: number | null;
+  // Golfable v2 (migration 0071)
+  status?: "active" | "archived";
+  areas?: SkillCategory[];
+  spots?: Drill["spots"];
+  needs?: Drill["needs"];
+  aids?: Drill["aids"];
+  minutes?: number;
+  scored?: boolean;
+  reps_label?: string | null;
+  steps?: string[];
+  score_label?: string | null;
+  band_targets?: Drill["bandTargets"] | null;
+  scene?: Drill["scene"] | null;
+  kind?: Drill["kind"];
+  level?: Drill["level"];
 }
 
 function toDrill(row: DrillRow): Drill {
@@ -37,6 +52,20 @@ function toDrill(row: DrillRow): Drill {
     scoreDirection: row.score_direction,
     videoUrl: row.video_url ?? undefined,
     targetYardage: row.target_yardage ?? undefined,
+    status: row.status,
+    areas: row.areas,
+    spots: row.spots,
+    needs: row.needs,
+    aids: row.aids,
+    minutes: row.minutes,
+    scored: row.scored,
+    repsLabel: row.reps_label ?? undefined,
+    steps: row.steps,
+    scoreLabel: row.score_label ?? undefined,
+    bandTargets: row.band_targets ?? undefined,
+    scene: row.scene ?? undefined,
+    kind: row.kind,
+    level: row.level,
   };
 }
 
@@ -398,8 +427,10 @@ export const GOLFABLE_SCORE_WINDOW = 10;
 // keeps the most recent GOLFABLE_SCORE_WINDOW attempts in that category.
 // Exported so the score-detail page can list exactly the attempts that
 // produced the number, without redefining "which ones count" a second time.
+// Rep drills (scored === false) are checked off, not scored, so they count
+// toward the weekly goal but never toward the Golfable Score.
 export function recentCategoryAttempts(history: ScoreHistoryEntry[], category: SkillCategory): ScoreHistoryEntry[] {
-  return history.filter((h) => h.drill.category === category).slice(0, GOLFABLE_SCORE_WINDOW);
+  return history.filter((h) => h.drill.category === category && h.drill.scored !== false).slice(0, GOLFABLE_SCORE_WINDOW);
 }
 
 export interface GolfableScores {
@@ -3571,3 +3602,17 @@ export async function getFitStreaks(userId: string): Promise<FitStreaks> {
   return { training, ...streaks, newBadges };
 }
 export type { TrainingStreak, DayStreak } from "./fitStreaks";
+
+
+/** Golfable v2: every active drill in the library, for the session builder. */
+export async function getActiveDrills(): Promise<Drill[]> {
+  const { data } = await supabase.from("drills").select("*").eq("status", "active").order("sort_order", { ascending: true });
+  if (!data) return [];
+  return (data as DrillRow[]).map(toDrill);
+}
+
+/** The one remembered session answer. */
+export async function saveHandicapBand(userId: string, band: HandicapBand): Promise<void> {
+  const { error } = await supabase.from("profiles").update({ handicap_band: band }).eq("id", userId);
+  if (error) throw error;
+}

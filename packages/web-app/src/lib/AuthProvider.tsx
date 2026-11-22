@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import type { HandicapTier } from "@golfable/shared";
+import type { HandicapBand, HandicapTier } from "@golfable/shared";
 import { supabase } from "./supabaseClient";
 
 export interface Profile {
@@ -17,6 +17,7 @@ export interface Profile {
   studio_id: string | null;
   share_scores_publicly: boolean;
   individual_tier: string | null;
+  handicap_band: HandicapBand | null;
   subscription_status: string | null;
   fit_access: boolean;
 }
