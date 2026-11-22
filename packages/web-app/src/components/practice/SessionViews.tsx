@@ -87,7 +87,7 @@ export function PlanView({
       </header>
 
       <div className="bg-brand-dark mt-4 flex items-center gap-3 overflow-hidden rounded-2xl py-3 pr-4 pl-2 text-white">
-        <Dimples pose="think" className="h-20 w-16 flex-none" />
+        <Dimples pose="think" onDark className="h-20 w-16 flex-none" />
         <div className="min-w-0 flex-1">
           <p className="font-display text-3xl leading-none">
             {drillSteps} drills · ~{plan.estimatedMinutes} min

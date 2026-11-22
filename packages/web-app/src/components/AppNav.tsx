@@ -14,10 +14,9 @@ type NavItem = { to: string; label: string; end: boolean; icon: (props: { classN
 // jumps straight to the other section's home.
 function golfNav(hasFit: boolean): NavItem[] {
   const items: NavItem[] = [
-    { to: hasFit ? "/app/golf" : "/app", label: "Home", end: true, icon: HomeIcon },
-    { to: "/app/library", label: "Library", end: false, icon: LibraryIcon },
-    { to: "/app/round", label: "Round", end: false, icon: RoundIcon },
-    { to: "/app/leaderboard", label: "Leaders", end: false, icon: LeaderboardIcon },
+    { to: hasFit ? "/app/golf" : "/app", label: "Practice", end: true, icon: HomeIcon },
+    { to: "/app/progress", label: "Progress", end: false, icon: ProgressIcon },
+    { to: "/app/tools", label: "Tools", end: false, icon: ToolsIcon },
     { to: "/app/profile", label: "Profile", end: false, icon: ProfileIcon },
   ];
   // Everyone sees the Fit tab; without access it shows a lock and opens the
@@ -34,6 +33,16 @@ const FIT_NAV: NavItem[] = [
   { to: "/app/fit", label: "Workout", end: true, icon: DumbbellIcon },
   { to: "/app/golf", label: "Golfable", end: false, icon: SwitchIcon },
 ];
+
+export function ToolsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M5 7h9M18 7h1M5 17h1M10 17h9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="16" cy="7" r="2" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="8" cy="17" r="2" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
 
 export function SwitchIcon({ className }: { className?: string }) {
   return (

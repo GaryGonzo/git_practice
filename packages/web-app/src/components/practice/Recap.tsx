@@ -47,9 +47,9 @@ function esc(s: string): string {
 async function buildShareImage(rows: RecapRow[], minutes: number, summary: string): Promise<Blob> {
   const { renderToStaticMarkup } = await import("react-dom/server");
   // Dimples without his animation styles -- a still frame for the image.
-  const mascot = renderToStaticMarkup(<Dimples pose="celebrate" />)
+  const mascot = renderToStaticMarkup(<Dimples pose="celebrate" onDark />)
     .replace(/<style>[\s\S]*?<\/style>/, "")
-    .replace("<svg ", '<svg x="660" y="70" width="360" height="450" ');
+    .replace("<svg ", '<svg x="740" y="70" width="300" height="380" ');
 
   const done = rows.filter((r) => !r.skipped);
   const scored = done.filter((r) => r.scored);
@@ -190,7 +190,7 @@ export function Recap({
             <h1 className="font-display text-[3rem] leading-[0.9] tracking-wide">Nice work.</h1>
             <p className="font-body mt-1 text-sm text-white/70">{summary}</p>
           </div>
-          <Dimples pose="celebrate" className="-mr-2 h-32 w-28 flex-none" />
+          <Dimples pose="celebrate" onDark className="-mr-2 h-32 w-28 flex-none" />
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {[

@@ -87,11 +87,11 @@ export const DRILL_LIBRARY: LibraryDrill[] = [
     kind: "skill",
     equipment: ["Driver or fairway wood", "6 balls"],
     steps: [
-      "Hit 6 drives in this order: short, medium, long, short, medium, long.",
-      "Short is a three-quarter swing, medium is smooth, long is full.",
-      "A drive counts if it clearly goes farther than the one before it in the set.",
+      "Pick three landing markers: short, medium and long.",
+      "Hit 6 drives in order: short, medium, long, then again. Short is a three-quarter swing, long is full.",
+      "A drive counts if it finishes within about 20 yards of its marker.",
     ],
-    score: { label: "Drives in the right order", max: 6, targets: t([5, 4, 3, 2, 2]) },
+    score: { label: "Drives on distance", max: 6, targets: t([5, 4, 3, 2, 2]) },
     scene: shots(
       "range",
       "swing",
@@ -1435,8 +1435,8 @@ export const DRILL_LIBRARY: LibraryDrill[] = [
       set: "garage",
       pose: "hinge",
       items: [
-        { k: "stick", x: 20, y: 46, x2: 80, y2: 46, label: "Toe line" },
-        { k: "stick", x: 20, y: 36, x2: 80, y2: 36, label: "Target line" },
+        { k: "stick", x: 6, y: 46, x2: 52, y2: 46, label: "Toe line" },
+        { k: "stick", x: 6, y: 34, x2: 52, y2: 34, label: "Target line" },
       ],
     },
   },

@@ -1,3 +1,4 @@
+import { createContext, useContext } from "react";
 import type { Pose } from "@golfable/shared";
 
 // Dimples: Golfable's mascot. A golf ball in a Golfable-green cap with a
@@ -6,6 +7,10 @@ import type { Pose } from "@golfable/shared";
 // and identical everywhere (drill scenes, recap, share image).
 
 const INK = "#14201b";
+// Arms, legs and shoes: dark on light backgrounds, light on dark ones.
+// Passed by context (not a CSS variable) so it works in every browser and
+// in the exported share image.
+const LimbColor = createContext("#14201b");
 const CAP = "#1f4d36";
 const GOLD = "#c6a64b";
 const DIMPLE = "#e4e8e2";
@@ -44,65 +49,172 @@ const STYLE = `
 `;
 
 function Hand({ x, y }: { x: number; y: number }) {
-  return <circle cx={x} cy={y} r={5.2} fill="#fff" stroke={INK} strokeWidth={2.4} />;
+  const LIMB = useContext(LimbColor);
+  return (
+    <circle cx={x} cy={y} r={5.2} fill="#fff" stroke={LIMB} strokeWidth={2.4} />
+  );
 }
 
-function Arm({ from, to, via }: { from: [number, number]; to: [number, number]; via?: [number, number] }) {
-  const d = via ? `M${from[0]} ${from[1]} Q${via[0]} ${via[1]} ${to[0]} ${to[1]}` : `M${from[0]} ${from[1]} L${to[0]} ${to[1]}`;
-  return <path d={d} fill="none" stroke={INK} strokeWidth={4.6} strokeLinecap="round" />;
+function Arm({
+  from,
+  to,
+  via,
+}: {
+  from: [number, number];
+  to: [number, number];
+  via?: [number, number];
+}) {
+  const LIMB = useContext(LimbColor);
+  const d = via
+    ? `M${from[0]} ${from[1]} Q${via[0]} ${via[1]} ${to[0]} ${to[1]}`
+    : `M${from[0]} ${from[1]} L${to[0]} ${to[1]}`;
+  return (
+    <path
+      d={d}
+      fill="none"
+      stroke={LIMB}
+      strokeWidth={4.6}
+      strokeLinecap="round"
+    />
+  );
 }
 
 /** Club hanging from the hands at (60,104): putter blade or iron head. */
 function Club({ kind }: { kind: "putter" | "iron" }) {
   return (
     <g>
-      <line x1={60} y1={104} x2={60} y2={126} stroke={SHAFT} strokeWidth={2.6} strokeLinecap="round" />
+      <line
+        x1={60}
+        y1={104}
+        x2={60}
+        y2={126}
+        stroke={SHAFT}
+        strokeWidth={2.6}
+        strokeLinecap="round"
+      />
       <rect x={57.6} y={100} width={4.8} height={10} rx={2} fill={INK} />
       {kind === "putter" ? (
         <rect x={51} y={124} width={18} height={6} rx={2} fill={INK} />
       ) : (
-        <path d="M58 123 L71 126 L70 132 L57 129 Z" fill="#5f6766" stroke={INK} strokeWidth={1.4} strokeLinejoin="round" />
+        <path
+          d="M58 123 L71 126 L70 132 L57 129 Z"
+          fill="#5f6766"
+          stroke={INK}
+          strokeWidth={1.4}
+          strokeLinejoin="round"
+        />
       )}
     </g>
   );
 }
 
 function Legs({ pose }: { pose: Pose }) {
+  const LIMB = useContext(LimbColor);
   if (pose === "balance") {
     return (
       <g>
-        <path d="M54 95 L52 124" stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none" />
-        <path d="M66 95 L79 109 L70 116" stroke={INK} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <ellipse cx={49} cy={127} rx={9.5} ry={4.6} fill={INK} />
-        <ellipse cx={72} cy={118} rx={7.5} ry={4} fill={INK} transform="rotate(-20 72 118)" />
+        <path
+          d="M54 95 L52 124"
+          stroke={LIMB}
+          strokeWidth={5}
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M66 95 L79 109 L70 116"
+          stroke={LIMB}
+          strokeWidth={5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <ellipse cx={49} cy={127} rx={9.5} ry={4.6} fill={LIMB} />
+        <ellipse
+          cx={72}
+          cy={118}
+          rx={7.5}
+          ry={4}
+          fill={LIMB}
+          transform="rotate(-20 72 118)"
+        />
       </g>
     );
   }
   if (pose === "finish") {
     return (
       <g>
-        <path d="M54 95 L49 124" stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none" />
-        <path d="M67 95 L74 112 L71 123" stroke={INK} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <ellipse cx={46} cy={127} rx={9.5} ry={4.6} fill={INK} />
-        <ellipse cx={72} cy={125} rx={4.6} ry={6.5} fill={INK} transform="rotate(25 72 125)" />
+        <path
+          d="M54 95 L49 124"
+          stroke={LIMB}
+          strokeWidth={5}
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M67 95 L74 112 L71 123"
+          stroke={LIMB}
+          strokeWidth={5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <ellipse cx={46} cy={127} rx={9.5} ry={4.6} fill={LIMB} />
+        <ellipse
+          cx={72}
+          cy={125}
+          rx={4.6}
+          ry={6.5}
+          fill={LIMB}
+          transform="rotate(25 72 125)"
+        />
       </g>
     );
   }
   return (
     <g>
-      <path d="M53 95 L50 124" stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none" />
-      <path d="M67 95 L70 124" stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none" />
-      <ellipse cx={46} cy={127} rx={9.5} ry={4.6} fill={INK} />
-      <ellipse cx={74} cy={127} rx={9.5} ry={4.6} fill={INK} />
-      <path d="M41 125.5 h7 M69 125.5 h7" stroke="#fff" strokeWidth={1.6} strokeLinecap="round" />
+      <path
+        d="M53 95 L50 124"
+        stroke={LIMB}
+        strokeWidth={5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M67 95 L70 124"
+        stroke={LIMB}
+        strokeWidth={5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <ellipse cx={46} cy={127} rx={9.5} ry={4.6} fill={LIMB} />
+      <ellipse cx={74} cy={127} rx={9.5} ry={4.6} fill={LIMB} />
+      <path
+        d="M41 125.5 h7 M69 125.5 h7"
+        stroke="#fff"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
     </g>
   );
 }
 
 function BallBody() {
   const dots: [number, number][] = [
-    [38, 50], [46, 44], [74, 44], [82, 50], [32, 62], [88, 62], [34, 76], [86, 76],
-    [42, 86], [78, 86], [52, 91], [68, 91], [60, 92], [40, 66], [80, 66],
+    [38, 50],
+    [46, 44],
+    [74, 44],
+    [82, 50],
+    [32, 62],
+    [88, 62],
+    [34, 76],
+    [86, 76],
+    [42, 86],
+    [78, 86],
+    [52, 91],
+    [68, 91],
+    [60, 92],
+    [40, 66],
+    [80, 66],
   ];
   return (
     <g>
@@ -110,7 +222,14 @@ function BallBody() {
       {dots.map(([x, y]) => (
         <circle key={`${x}-${y}`} cx={x} cy={y} r={2.6} fill={DIMPLE} />
       ))}
-      <path d="M36 82 Q60 102 84 82" fill="none" stroke={DIMPLE} strokeWidth={3} strokeLinecap="round" opacity={0.7} />
+      <path
+        d="M36 82 Q60 102 84 82"
+        fill="none"
+        stroke={DIMPLE}
+        strokeWidth={3}
+        strokeLinecap="round"
+        opacity={0.7}
+      />
     </g>
   );
 }
@@ -120,13 +239,41 @@ function Face({ happy }: { happy?: boolean }) {
     <g>
       {happy ? (
         <>
-          <path d="M45 62 Q50 56 55 62" fill="none" stroke={INK} strokeWidth={2.8} strokeLinecap="round" />
-          <path d="M65 62 Q70 56 75 62" fill="none" stroke={INK} strokeWidth={2.8} strokeLinecap="round" />
+          <path
+            d="M45 62 Q50 56 55 62"
+            fill="none"
+            stroke={INK}
+            strokeWidth={2.8}
+            strokeLinecap="round"
+          />
+          <path
+            d="M65 62 Q70 56 75 62"
+            fill="none"
+            stroke={INK}
+            strokeWidth={2.8}
+            strokeLinecap="round"
+          />
         </>
       ) : (
         <>
-          <ellipse cx={50} cy={61} rx={5.6} ry={6.8} fill="#fff" stroke={INK} strokeWidth={2.2} />
-          <ellipse cx={70} cy={61} rx={5.6} ry={6.8} fill="#fff" stroke={INK} strokeWidth={2.2} />
+          <ellipse
+            cx={50}
+            cy={61}
+            rx={5.6}
+            ry={6.8}
+            fill="#fff"
+            stroke={INK}
+            strokeWidth={2.2}
+          />
+          <ellipse
+            cx={70}
+            cy={61}
+            rx={5.6}
+            ry={6.8}
+            fill="#fff"
+            stroke={INK}
+            strokeWidth={2.2}
+          />
           <circle cx={51.2} cy={62.4} r={3.2} fill={INK} />
           <circle cx={71.2} cy={62.4} r={3.2} fill={INK} />
           <circle cx={52.3} cy={61} r={1.1} fill="#fff" />
@@ -138,7 +285,13 @@ function Face({ happy }: { happy?: boolean }) {
       {happy ? (
         <path d="M51 73 Q60 84 69 73 Z" fill={INK} />
       ) : (
-        <path d="M53 74 Q60 80 67 74" fill="none" stroke={INK} strokeWidth={2.6} strokeLinecap="round" />
+        <path
+          d="M53 74 Q60 80 67 74"
+          fill="none"
+          stroke={INK}
+          strokeWidth={2.6}
+          strokeLinecap="round"
+        />
       )}
     </g>
   );
@@ -147,9 +300,21 @@ function Face({ happy }: { happy?: boolean }) {
 function Cap() {
   return (
     <g>
-      <path d="M29 52 C29 22 91 22 91 52 Z" fill={CAP} stroke={INK} strokeWidth={2.4} strokeLinejoin="round" />
+      <path
+        d="M29 52 C29 22 91 22 91 52 Z"
+        fill={CAP}
+        stroke={INK}
+        strokeWidth={2.4}
+        strokeLinejoin="round"
+      />
       <path d="M29.5 49 H90.5 V53 H29.5 Z" fill={GOLD} />
-      <path d="M86 50 C98 49 110 51 112 56 C104 58 94 57 86 55 Z" fill={CAP} stroke={INK} strokeWidth={2.2} strokeLinejoin="round" />
+      <path
+        d="M86 50 C98 49 110 51 112 56 C104 58 94 57 86 55 Z"
+        fill={CAP}
+        stroke={INK}
+        strokeWidth={2.2}
+        strokeLinejoin="round"
+      />
       <circle cx={60} cy={27.5} r={2.8} fill={GOLD} />
       <path d="M60 30 V48" stroke="#2c6347" strokeWidth={1.4} />
     </g>
@@ -166,12 +331,20 @@ function Arms({ pose }: { pose: Pose }) {
     case "swing":
     case "grip":
     case "arms": {
-      const cls = { putt: "dmp-pendulum", chip: "dmp-chip", swing: "dmp-swing", grip: "dmp-squeeze", arms: "dmp-pendulum" }[pose];
+      const cls = {
+        putt: "dmp-pendulum",
+        chip: "dmp-chip",
+        swing: "dmp-swing",
+        grip: "dmp-squeeze",
+        arms: "dmp-pendulum",
+      }[pose];
       return (
         <g className={cls}>
           <Arm from={[32, 74]} to={[57, 102]} via={[38, 98]} />
           <Arm from={[88, 74]} to={[63, 102]} via={[82, 98]} />
-          {pose !== "arms" && <Club kind={pose === "putt" ? "putter" : "iron"} />}
+          {pose !== "arms" && (
+            <Club kind={pose === "putt" ? "putter" : "iron"} />
+          )}
           <Hand x={57.5} y={102} />
           <Hand x={62.5} y={103} />
         </g>
@@ -221,10 +394,37 @@ function Arms({ pose }: { pose: Pose }) {
           <Hand x={30} y={104} />
           <Hand x={66} y={86} />
           <g className="dmp-think">
-            <circle cx={98} cy={34} r={3} fill="#fff" stroke={INK} strokeWidth={1.6} />
-            <circle cx={106} cy={24} r={4.5} fill="#fff" stroke={INK} strokeWidth={1.6} />
-            <ellipse cx={104} cy={10} rx={14} ry={9} fill="#fff" stroke={INK} strokeWidth={1.8} />
-            <path d="M97 10 h1 M104 10 h1 M111 10 h1" stroke={INK} strokeWidth={2.6} strokeLinecap="round" />
+            <circle
+              cx={98}
+              cy={34}
+              r={3}
+              fill="#fff"
+              stroke={INK}
+              strokeWidth={1.6}
+            />
+            <circle
+              cx={106}
+              cy={24}
+              r={4.5}
+              fill="#fff"
+              stroke={INK}
+              strokeWidth={1.6}
+            />
+            <ellipse
+              cx={104}
+              cy={10}
+              rx={14}
+              ry={9}
+              fill="#fff"
+              stroke={INK}
+              strokeWidth={1.8}
+            />
+            <path
+              d="M97 10 h1 M104 10 h1 M111 10 h1"
+              stroke={INK}
+              strokeWidth={2.6}
+              strokeLinecap="round"
+            />
           </g>
         </g>
       );
@@ -232,8 +432,22 @@ function Arms({ pose }: { pose: Pose }) {
       // Hands high over the lead shoulder, club wrapped behind the head.
       return (
         <g>
-          <line x1={28} y1={42} x2={98} y2={14} stroke={SHAFT} strokeWidth={2.6} strokeLinecap="round" />
-          <path d="M96 9 L106 12 L103 19 L95 17 Z" fill="#5f6766" stroke={INK} strokeWidth={1.4} strokeLinejoin="round" />
+          <line
+            x1={28}
+            y1={42}
+            x2={98}
+            y2={14}
+            stroke={SHAFT}
+            strokeWidth={2.6}
+            strokeLinecap="round"
+          />
+          <path
+            d="M96 9 L106 12 L103 19 L95 17 Z"
+            fill="#5f6766"
+            stroke={INK}
+            strokeWidth={1.4}
+            strokeLinejoin="round"
+          />
           <Arm from={SHOULDER_L} to={[26, 44]} via={[30, 60]} />
           <Arm from={SHOULDER_R} to={[30, 40]} via={[60, 40]} />
           <Hand x={26} y={44} />
@@ -252,30 +466,62 @@ function Arms({ pose }: { pose: Pose }) {
   }
 }
 
-export function Dimples({ pose = "putt", className, title = "Dimples, the Golfable mascot" }: { pose?: Pose; className?: string; title?: string }) {
+export function Dimples({
+  pose = "putt",
+  className,
+  title = "Dimples, the Golfable mascot",
+  onDark = false,
+}: {
+  pose?: Pose;
+  className?: string;
+  title?: string;
+  /** Light arms and legs so they show up on dark backgrounds. */
+  onDark?: boolean;
+}) {
   const happy = pose === "celebrate" || pose === "finish";
-  const outer = pose === "hinge" ? "dmp-hinge" : pose === "balance" ? "dmp-wobble" : pose === "celebrate" ? "dmp-jump" : pose === "hips" ? "" : "dmp-bob";
+  const outer =
+    pose === "hinge"
+      ? "dmp-hinge"
+      : pose === "balance"
+        ? "dmp-wobble"
+        : pose === "celebrate"
+          ? "dmp-jump"
+          : pose === "hips"
+            ? ""
+            : "dmp-bob";
   // Arms that wrap in front of the body draw on top of it; arms that reach
   // out or overhead draw behind so the ball's outline stays clean.
-  const armsInFront = pose !== "swing" && pose !== "finish" && pose !== "hips" && pose !== "balance" && pose !== "celebrate" && pose !== "hinge";
+  const armsInFront =
+    pose !== "swing" &&
+    pose !== "finish" &&
+    pose !== "hips" &&
+    pose !== "balance" &&
+    pose !== "hinge";
   return (
-    <svg viewBox="0 0 120 150" className={`dmp ${className ?? ""}`} role="img" aria-label={title}>
+    <svg
+      viewBox="0 0 120 150"
+      className={`dmp ${className ?? ""}`}
+      role="img"
+      aria-label={title}
+    >
       <style>{STYLE}</style>
-      <g className={outer}>
-        <ellipse cx={60} cy={132} rx={34} ry={4} fill="#000" opacity={0.08} />
-        <g className={pose === "hips" ? "dmp-hips" : ""}>
-          <Legs pose={pose} />
-        </g>
-        {!armsInFront && <Arms pose={pose} />}
-        <g className={pose === "turn" ? "dmp-turn" : ""}>
-          <BallBody />
-          <g className={pose === "turn" ? "dmp-face-turn" : ""}>
-            <Face happy={happy} />
+      <LimbColor.Provider value={onDark ? "#efe9da" : INK}>
+        <g className={outer}>
+          <ellipse cx={60} cy={132} rx={34} ry={4} fill="#000" opacity={0.08} />
+          <g className={pose === "hips" ? "dmp-hips" : ""}>
+            <Legs pose={pose} />
           </g>
-          <Cap />
+          {!armsInFront && <Arms pose={pose} />}
+          <g className={pose === "turn" ? "dmp-turn" : ""}>
+            <BallBody />
+            <g className={pose === "turn" ? "dmp-face-turn" : ""}>
+              <Face happy={happy} />
+            </g>
+            <Cap />
+          </g>
+          {armsInFront && <Arms pose={pose} />}
         </g>
-        {armsInFront && <Arms pose={pose} />}
-      </g>
+      </LimbColor.Provider>
     </svg>
   );
 }

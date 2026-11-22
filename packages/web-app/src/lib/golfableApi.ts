@@ -367,6 +367,7 @@ export interface ProfileUpdate {
   first_name?: string;
   last_name?: string;
   tier?: HandicapTier;
+  handicap_band?: HandicapBand;
   weekly_goal?: number;
   has_seen_walkthrough?: boolean;
   share_scores_publicly?: boolean;

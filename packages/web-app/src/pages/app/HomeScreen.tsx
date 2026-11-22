@@ -240,7 +240,7 @@ export function HomeScreen() {
 
       <div className="bg-brand-dark relative mt-6 overflow-hidden rounded-3xl p-5 text-white">
         <div className="flex items-center gap-2">
-          <Dimples pose="putt" className="-my-2 h-36 w-28 flex-none" />
+          <Dimples pose="putt" onDark className="-my-2 h-36 w-28 flex-none" />
           <div>
             <p className="font-display text-[2rem] leading-none tracking-wide">Ready when you are.</p>
             <p className="font-body mt-1 text-sm text-white/70">Takes about 20 seconds to set up.</p>
