@@ -317,11 +317,11 @@ export const DRILL_LIBRARY: LibraryDrill[] = [
       "range",
       "swing",
       [
-        { k: "flag", x: 50, y: 38, label: "50" },
-        { k: "flag", x: 50, y: 26, label: "80" },
-        { k: "flag", x: 50, y: 14, label: "100" },
+        { k: "flag", x: 38, y: 36, label: "50" },
+        { k: "flag", x: 52, y: 24, label: "80" },
+        { k: "flag", x: 64, y: 12, label: "100" },
       ],
-      [[50, 38], [50, 26], [50, 14]]
+      [[38, 36], [52, 24], [64, 12]]
     ),
   },
   {
@@ -375,12 +375,12 @@ export const DRILL_LIBRARY: LibraryDrill[] = [
       "range",
       "chip",
       [
-        { k: "flag", x: 50, y: 44, label: "20" },
-        { k: "flag", x: 50, y: 32, label: "40" },
-        { k: "flag", x: 50, y: 20, label: "60" },
-        { k: "flag", x: 50, y: 8, label: "80" },
+        { k: "flag", x: 34, y: 42, label: "20" },
+        { k: "flag", x: 46, y: 30, label: "40" },
+        { k: "flag", x: 58, y: 19, label: "60" },
+        { k: "flag", x: 70, y: 8, label: "80" },
       ],
-      [[50, 44], [50, 32], [50, 20], [50, 8]]
+      [[34, 42], [46, 30], [58, 19], [70, 8]]
     ),
   },
   {
@@ -1019,7 +1019,7 @@ export const DRILL_LIBRARY: LibraryDrill[] = [
       "Step away and set up again.",
     ],
     reps: "10 setups",
-    scene: { set: "room", pose: "putt", items: [{ k: "mirror", x: 50, y: 38, label: "Mirror" }] },
+    scene: { set: "room", pose: "putt", items: [{ k: "mirror", x: 32, y: 40, label: "Mirror" }] },
   },
 
   // ====================================================================
@@ -1412,7 +1412,7 @@ export const DRILL_LIBRARY: LibraryDrill[] = [
       "A swing counts if it doesn't touch. Count out of 10.",
     ],
     score: { label: "Clean swings", max: 10, targets: t([9, 8, 7, 6, 5]) },
-    scene: swingScene("swing", [{ k: "stick", x: 64, y: 58, x2: 82, y2: 30 }]),
+    scene: swingScene("swing", [{ k: "stick", x: 14, y: 58, x2: 32, y2: 26, label: "Stick" }]),
   },
   {
     id: "stick-setup",
@@ -1577,15 +1577,6 @@ export const DRILL_LIBRARY: LibraryDrill[] = [
       "A shot counts if the launch monitor shows a carry within 5 yards of the number.",
     ],
     score: { label: "On-number carries", max: 9, targets: t([6, 5, 4, 3, 2]) },
-    scene: shots(
-      "net",
-      "swing",
-      [
-        { k: "mark", x: 50, y: 40, label: "60" },
-        { k: "mark", x: 50, y: 26, label: "100" },
-        { k: "mark", x: 50, y: 12, label: "140" },
-      ],
-      [[50, 40], [50, 26], [50, 12]]
-    ),
+    scene: shots("net", "swing", [{ k: "mark", x: 4, y: 42, label: "Carry 60 · 100 · 140" }], [[40, 18], [52, 12], [62, 22]]),
   },
 ];
