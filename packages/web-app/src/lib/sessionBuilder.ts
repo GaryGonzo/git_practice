@@ -365,3 +365,40 @@ export function drillFromLibrary(d: LibraryDrill): Drill {
 export function maxScoreOf(d: Drill, fallback: number): number {
   return d.scored === false ? 1 : fallback;
 }
+
+/**
+ * Drills that could replace the one at `stepIndex`: same area, fits the
+ * same answers, works at the same spot (or anywhere), and isn't already in
+ * the plan. Used by the "Swap" button (no bunker, too windy, etc.).
+ */
+export function swapOptions(library: Drill[], plan: PracticePlan, stepIndex: number): Drill[] {
+  const step = plan.steps[stepIndex];
+  if (!step || step.type !== "drill") return [];
+  const a = plan.answers;
+  const spots = availableSpots(a);
+  const have = haveGear(a);
+  const inPlan = new Set(plan.steps.flatMap((s) => (s.type === "drill" ? [s.drillId] : [])));
+  const current = library.find((d) => d.id === step.drillId);
+  return library.filter(
+    (d) =>
+      !inPlan.has(d.id) &&
+      fits(d, spots, have, a.aids, a.band) &&
+      (step.area === "warmup" ? d.kind === "warmup" : d.kind !== "warmup" && (d.areas ?? [d.category]).includes(step.area)) &&
+      (d.spots ?? []).some((s) => s === step.spot || s === "body") &&
+      d.id !== current?.id
+  );
+}
+
+/** The target for a scored drill at this handicap, and how to say it. */
+export function targetFor(d: Drill, band: HandicapBand): { value: number; text: string } | null {
+  if (d.scored === false || !d.bandTargets) return null;
+  const value = d.bandTargets[band];
+  const lower = d.scoreDirection === "lower";
+  return { value, text: lower ? `${value} or fewer` : `${value}` };
+}
+
+export function hitTarget(d: Drill, band: HandicapBand, score: number): boolean {
+  const t = targetFor(d, band);
+  if (!t) return false;
+  return d.scoreDirection === "lower" ? score <= t.value : score >= t.value;
+}
