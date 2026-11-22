@@ -5,7 +5,6 @@
     "packages/*"
   ],
   "scripts": {
-    "cards:render": "npm run render --workspace=@golfable/card-generator",
     "web:dev": "npm run dev --workspace=@golfable/web-app"
   },
   "dependencies": {

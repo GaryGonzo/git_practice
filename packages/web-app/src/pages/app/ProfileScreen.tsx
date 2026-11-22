@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  HANDICAP_TIERS,
+  BAND_LABEL,
+  HANDICAP_BANDS,
   TIER_INFO,
   SKILL_CATEGORIES,
   CATEGORY_INFO,
+  type HandicapBand,
   type HandicapTier,
   type SkillCategory,
 } from "@golfable/shared";
+
+// Handicap bands (asked once in the practice flow) and the older 4-tier
+// field, kept in step so screens still reading the tier stay sensible.
+const BAND_TO_TIER: Record<HandicapBand, HandicapTier> = { "0-5": "scratch", "6-10": "low", "11-15": "mid", "16-20": "high", "21+": "high" };
+const TIER_TO_BAND: Record<HandicapTier, HandicapBand> = { scratch: "0-5", low: "6-10", mid: "11-15", high: "21+" };
 import { useAuth, type Profile } from "../../lib/AuthProvider";
 import {
   updateProfile,
@@ -553,7 +560,7 @@ export function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(profile?.first_name ?? "");
   const [lastName, setLastName] = useState(profile?.last_name ?? "");
-  const [tier, setTier] = useState<HandicapTier>(profile?.tier ?? "mid");
+  const [band, setBand] = useState<HandicapBand>(profile?.handicap_band ?? TIER_TO_BAND[profile?.tier ?? "mid"]);
   const [weeklyGoal, setWeeklyGoal] = useState(profile?.weekly_goal ?? 4);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -573,7 +580,7 @@ export function ProfileScreen() {
   function startEditing() {
     setFirstName(profile!.first_name);
     setLastName(profile!.last_name);
-    setTier(profile!.tier);
+    setBand(profile!.handicap_band ?? TIER_TO_BAND[profile!.tier]);
     setWeeklyGoal(profile!.weekly_goal);
     setError(null);
     setEditing(true);
@@ -592,7 +599,13 @@ export function ProfileScreen() {
 
     setSaving(true);
     try {
-      await updateProfile(profile!.id, { first_name: trimmedFirst, last_name: trimmedLast, tier, weekly_goal: weeklyGoal });
+      await updateProfile(profile!.id, {
+        first_name: trimmedFirst,
+        last_name: trimmedLast,
+        handicap_band: band,
+        tier: BAND_TO_TIER[band],
+        weekly_goal: weeklyGoal,
+      });
       await refreshProfile();
       setEditing(false);
     } catch (err) {
@@ -650,19 +663,20 @@ export function ProfileScreen() {
 
           <div>
             <label className="font-label text-base font-semibold text-neutral-700">
-              Handicap tier
+              Handicap
             </label>
-            <div className="mt-1 grid grid-cols-2 gap-2">
-              {HANDICAP_TIERS.map((t) => (
+            <p className="font-body text-sm text-neutral-500">Sets the targets in your practice sessions.</p>
+            <div className="mt-1 grid grid-cols-5 gap-2">
+              {HANDICAP_BANDS.map((b) => (
                 <button
-                  key={t}
+                  key={b}
                   type="button"
-                  onClick={() => setTier(t)}
-                  className={`font-label rounded-md border px-3 py-2 text-sm font-semibold ${
-                    tier === t ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
+                  onClick={() => setBand(b)}
+                  className={`font-label rounded-md border px-1 py-2 text-sm font-semibold ${
+                    band === b ? "bg-brand border-brand text-white" : "border-neutral-300 text-neutral-600"
                   }`}
                 >
-                  {TIER_INFO[t].label}
+                  {BAND_LABEL[b]}
                 </button>
               ))}
             </div>

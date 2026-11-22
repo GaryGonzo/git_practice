@@ -1,13 +1,6 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import type { Drill } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
 import { GolfableMark } from "../../components/GolfableMark";
-import {
-  getDrillForDate,
-  getMyScoreForDate,
-  todayISO,
-} from "../../lib/golfableApi";
 
 function ArrowIcon({ className }: { className?: string }) {
   return (
@@ -57,17 +50,6 @@ function greeting(): string {
 // showing the one thing waiting behind it, so picking one is a glance.
 export function LauncherScreen() {
   const { profile } = useAuth();
-  const [drill, setDrill] = useState<Drill | null>(null);
-  const [played, setPlayed] = useState(false);
-
-  useEffect(() => {
-    if (!profile) return;
-    const today = todayISO();
-    getDrillForDate(today).then(async (found) => {
-      setDrill(found?.drill ?? null);
-      if (found) setPlayed((await getMyScoreForDate(profile.id, found.drill.id, today)) !== null);
-    });
-  }, [profile]);
 
   if (!profile) return null;
 
@@ -103,11 +85,11 @@ export function LauncherScreen() {
             <div>
               <h2 className="font-display text-5xl leading-none tracking-wide">Golfable</h2>
               <p className="font-body mt-2 text-sm text-white/80">
-                {drill ? `${played ? "Done today" : "Today"}: ${drill.name}` : "Drills, rounds, leaderboard"}
+                Practice anywhere: home, range or green
               </p>
             </div>
             <span className="font-label inline-flex items-center gap-1.5 self-start rounded-full bg-white px-4 py-2 text-sm font-bold text-brand">
-              {drill && !played ? "Play today's Golfable" : "Open"}
+              Generate today's session
               <ArrowIcon className="h-4 w-4" />
             </span>
           </Link>

@@ -1,274 +1,264 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { CATEGORY_INFO, TIER_INFO, formatScore } from "@golfable/shared";
-import type { Drill, HandicapTier } from "@golfable/shared";
-
-const TIER_TEXT: Record<HandicapTier, string> = {
-  scratch: "text-tier-scratch",
-  low: "text-tier-low",
-  mid: "text-tier-mid",
-  high: "text-tier-high",
-};
+import { useEffect, useMemo, useState } from "react";
+import { DRILL_LIBRARY, isBetterScore, type Drill, type HandicapBand } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
-import { WeeklyGoalRing } from "../../components/WeeklyGoalRing";
-import { CategoryIcon } from "../../components/CategoryIcon";
-import { PageHeader, FairwayPanel, Section, Panel, Row, IconDot, ChevronRight } from "../../components/ui";
-import { GolfableScorePanel } from "../../components/GolfableScorePanel";
-import { NotificationBadge } from "../../components/NotificationBadge";
-import { ForumIcon, ProgressIcon } from "../../components/AppNav";
-import {
-  getBlendedScoreHistory,
-  getDrillForDate,
-  getForumNotificationCounts,
-  getGlobalLeaderboard,
-  getMyScoreForDate,
-  getSessionsThisWeek,
-  getStudioById,
-  getStudioLeaderboard,
-  todayISO,
-  type LeaderboardEntry,
-  type ScoreHistoryEntry,
-  type Studio,
-} from "../../lib/golfableApi";
+import { getActiveDrills, getPersonalBest, getScoreHistory, saveHandicapBand, submitScore, todayISO } from "../../lib/golfableApi";
+import { buildPlan, drillFromLibrary, hitTarget, swapOptions, type PracticePlan, type SessionAnswers } from "../../lib/sessionBuilder";
+import { Dimples } from "../../components/Dimples";
+import { QuestionFlow } from "../../components/practice/QuestionFlow";
+import { DrillStep, MoveStep, PlanView, type StepResult } from "../../components/practice/SessionViews";
+import { Recap } from "../../components/practice/Recap";
 
-const LEADERBOARD_LIMIT = 3;
+// Golfable home: one button, a few quick questions, a practice plan you can
+// do anywhere. Today's session lives on this device so leaving the app (or
+// walking to the putting green) never loses your place.
 
-const CATEGORY_BG: Record<string, string> = {
-  driver: "bg-driver",
-  irons: "bg-irons",
-  wedges: "bg-wedges",
-  putter: "bg-putter",
-};
+type Stage = "home" | "questions" | "building" | "plan" | "play" | "recap";
 
-function FlagIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path d="M7 20V4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M7 4l9 3.5L7 11" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-      <ellipse cx="7" cy="20.5" rx="4" ry="1.2" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  );
+interface SavedSession {
+  plan: PracticePlan;
+  results: Record<number, StepResult>;
+  stage: Stage;
+  index: number;
 }
 
-function ToolsIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+const KEY = "golfable-v2-session";
+
+function load(): SavedSession | null {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) ?? "null") as SavedSession | null;
+    return s && s.plan?.date === todayISO() ? s : null;
+  } catch {
+    return null;
+  }
 }
 
-function ChooseIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
-      <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
-      <rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" opacity="0.4" />
-      <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  );
+function store(s: SavedSession | null) {
+  try {
+    if (s) localStorage.setItem(KEY, JSON.stringify(s));
+    else localStorage.removeItem(KEY);
+  } catch {
+    // Private mode: the session still works for this visit.
+  }
 }
 
-function ChallengeIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M7 4h10v4a5 5 0 0 1-5 5 5 5 0 0 1-5-5V4Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M12 13v3m-3 4h6m-3-4v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+function daysAgoISO(days: number): string {
+  const d = new Date(`${todayISO()}T12:00:00`);
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
 }
 
 export function HomeScreen() {
-  const { profile } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [drill, setDrill] = useState<Drill | null>(null);
-  const [maxScore, setMaxScore] = useState(0);
-  const [score, setScore] = useState<number | null>(null);
-  const [sessionsThisWeek, setSessionsThisWeek] = useState(0);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [studio, setStudio] = useState<Studio | null>(null);
-  const [scoreHistory, setScoreHistory] = useState<ScoreHistoryEntry[]>([]);
-  const [forumUnread, setForumUnread] = useState(0);
+  const { session, profile, refreshProfile } = useAuth();
+  const userId = session!.user.id;
+  const saved = useMemo(load, []);
+  const [stage, setStage] = useState<Stage>(saved ? (saved.stage === "building" || saved.stage === "questions" ? "plan" : saved.stage) : "home");
+  const [plan, setPlan] = useState<PracticePlan | null>(saved?.plan ?? null);
+  const [results, setResults] = useState<Record<number, StepResult>>(saved?.results ?? {});
+  const [index, setIndex] = useState(saved?.index ?? 0);
+  const [drills, setDrills] = useState<Drill[] | null>(null);
+  const [recent, setRecent] = useState<Set<string>>(new Set());
+  const [band, setBand] = useState<HandicapBand | null>(profile?.handicap_band ?? null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profile) return;
-    getForumNotificationCounts().then((counts) =>
-      setForumUnread(Object.values(counts).reduce((sum, n) => sum + n, 0))
+    getActiveDrills().then((rows) => {
+      // Until the v2 library is loaded into the database, use the copy that
+      // ships with the app so sessions still work.
+      const v2 = rows.filter((d) => (d.spots ?? []).length > 0);
+      setDrills(v2.length > 0 ? v2 : DRILL_LIBRARY.map(drillFromLibrary));
+    });
+    getScoreHistory(userId).then((history) => {
+      const cutoff = daysAgoISO(7);
+      setRecent(new Set(history.filter((h) => h.date >= cutoff).map((h) => h.drill.id)));
+    });
+  }, [userId]);
+
+  useEffect(() => {
+    if (profile?.handicap_band) setBand(profile.handicap_band);
+  }, [profile?.handicap_band]);
+
+  // Keep today's session on the device as it changes.
+  useEffect(() => {
+    if (plan && stage !== "home") store({ plan, results, stage, index });
+  }, [plan, results, stage, index]);
+
+  const library = useMemo(() => new Map((drills ?? []).map((d) => [d.id, d])), [drills]);
+  const drillIndexes = plan ? plan.steps.flatMap((s, i) => (s.type === "drill" ? [i] : [])) : [];
+
+  async function handleAnswers(answers: SessionAnswers, newBand: HandicapBand | null) {
+    if (!drills) return;
+    setStage("building");
+    if (newBand) {
+      setBand(newBand);
+      saveHandicapBand(userId, newBand)
+        .then(refreshProfile)
+        .catch(() => {});
+    }
+    const next = buildPlan(drills, answers, todayISO(), recent);
+    // A beat for Dimples to "think" -- it reads as the plan being built.
+    await new Promise((r) => setTimeout(r, 1100));
+    setPlan(next);
+    setResults({});
+    setIndex(next.steps.findIndex((s) => s.type === "drill"));
+    setStage("plan");
+  }
+
+  function advance() {
+    if (!plan) return;
+    setError(null);
+    if (index + 1 >= plan.steps.length) {
+      setStage("recap");
+      return;
+    }
+    setIndex(index + 1);
+    window.scrollTo({ top: 0 });
+  }
+
+  async function logScore(score: number) {
+    if (!plan || !band) return;
+    const step = plan.steps[index];
+    if (step.type !== "drill") return;
+    const drill = library.get(step.drillId);
+    if (!drill) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const previous = drill.scored === false ? null : await getPersonalBest(userId, drill.id, drill.scoreDirection);
+      await submitScore(userId, drill.id, score, todayISO());
+      setResults((r) => ({
+        ...r,
+        [index]: {
+          score,
+          hitTarget: hitTarget(drill, band, score),
+          personalBest: previous !== null && isBetterScore(score, previous, drill.scoreDirection),
+        },
+      }));
+    } catch {
+      setError("Couldn't save that. Check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function skip() {
+    setResults((r) => ({ ...r, [index]: { skipped: true } }));
+    advance();
+  }
+
+  function swap() {
+    if (!plan || !drills) return;
+    const options = swapOptions(drills, plan, index);
+    if (options.length === 0) return;
+    const pick = options[Math.floor(Math.random() * options.length)];
+    const steps = plan.steps.map((s, i) => (i === index && s.type === "drill" ? { ...s, drillId: pick.id, minutes: pick.minutes ?? s.minutes } : s));
+    setPlan({ ...plan, steps });
+  }
+
+  function reset() {
+    store(null);
+    setPlan(null);
+    setResults({});
+    setIndex(0);
+    setStage("home");
+  }
+
+  if (stage === "questions") {
+    if (!drills) return <Loading />;
+    return <QuestionFlow library={drills} savedBand={band} onCancel={() => setStage(plan ? "plan" : "home")} onDone={handleAnswers} />;
+  }
+
+  if (stage === "building") {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center px-4 text-center">
+        <Dimples pose="think" className="h-52 w-44" />
+        <p className="font-display mt-4 text-3xl tracking-wide">Building your session…</p>
+      </div>
     );
-  }, [profile]);
+  }
 
-  useEffect(() => {
-    if (!profile) return;
-    (async () => {
-      setLoading(true);
-      const studioResult = profile.studio_id ? await getStudioById(profile.studio_id) : null;
-      setStudio(studioResult);
+  if (plan && band && drills && stage === "plan") {
+    return (
+      <PlanView
+        plan={plan}
+        library={library}
+        results={results}
+        onOpen={(i) => {
+          setIndex(i);
+          setStage("play");
+        }}
+        onStart={() => {
+          const firstOpen = plan.steps.findIndex((s, i) => s.type === "drill" && results[i] === undefined);
+          setIndex(firstOpen === -1 ? 0 : firstOpen);
+          setStage(firstOpen === -1 ? "recap" : "play");
+        }}
+        onRestart={() => setStage("questions")}
+      />
+    );
+  }
 
-      const found = await getDrillForDate(todayISO());
-      if (found) {
-        setDrill(found.drill);
-        setMaxScore(found.maxScore);
-        setScore(await getMyScoreForDate(profile.id, found.drill.id, todayISO()));
-        setLeaderboard(
-          studioResult
-            ? await getStudioLeaderboard(
-                studioResult.id,
-                found.drill.id,
-                todayISO(),
-                LEADERBOARD_LIMIT,
-                found.drill.scoreDirection
-              )
-            : await getGlobalLeaderboard(found.drill.id, todayISO(), LEADERBOARD_LIMIT, found.drill.scoreDirection)
-        );
-      } else {
-        setDrill(null);
-        setLeaderboard([]);
-      }
-      setSessionsThisWeek(await getSessionsThisWeek(profile.id));
-      setScoreHistory(await getBlendedScoreHistory(profile.id));
-      setLoading(false);
-    })();
-  }, [profile]);
+  if (plan && band && drills && stage === "play") {
+    const step = plan.steps[index];
+    if (step?.type === "move") {
+      return <MoveStep step={step} onContinue={advance} onBack={() => setStage("plan")} />;
+    }
+    const drill = step ? library.get(step.drillId) : undefined;
+    if (step && drill) {
+      return (
+        <DrillStep
+          key={`${index}-${drill.id}`}
+          drill={drill}
+          step={step}
+          index={drillIndexes.indexOf(index) + 1}
+          total={drillIndexes.length}
+          band={band}
+          result={results[index]}
+          saving={saving}
+          error={error}
+          canSwap={swapOptions(drills, plan, index).length > 0}
+          onLog={logScore}
+          onSkip={skip}
+          onSwap={swap}
+          onNext={advance}
+          onBack={() => setStage("plan")}
+        />
+      );
+    }
+  }
 
-  if (!profile) return null;
-
-  const hasFit = profile.fit_access;
-  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Los_Angeles", hour: "2-digit", hour12: false }).format(new Date()));
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  if (plan && band && drills && stage === "recap") {
+    return <Recap plan={plan} library={library} results={results} band={band} onDone={reset} />;
+  }
 
   return (
     <div className="mx-auto max-w-md px-4 pb-28">
-      <PageHeader
-        kicker={studio ? `${greeting} · ${studio.name}` : greeting}
-        title={profile.first_name}
-        back={hasFit ? { to: "/app", label: "Home" } : undefined}
-        right={<WeeklyGoalRing completed={sessionsThisWeek} goal={profile.weekly_goal} size={60} />}
-      />
+      <header className="pt-5">
+        <p className="font-label text-base font-medium text-neutral-500">Golfable</p>
+        <h1 className="font-display text-[2.6rem] leading-[0.95] tracking-wide text-neutral-900">Practice anywhere</h1>
+        <p className="font-body mt-1.5 text-sm text-neutral-500">Home, office, range or green. A few quick questions and you've got a plan.</p>
+      </header>
 
-      <FairwayPanel className="mt-5">
-        {loading ? (
-          <div className="font-body p-6 text-white/60">Loading today's Golfable…</div>
-        ) : drill ? (
-          <Link to="/app/today" className="block p-5 active:opacity-90">
-            <div className="flex items-center gap-2">
-              <span className={`flex h-8 w-8 items-center justify-center rounded-full text-white ${CATEGORY_BG[drill.category]}`}>
-                <CategoryIcon category={drill.category} className="h-4 w-4" />
-              </span>
-              <span className="font-label text-base font-medium text-white/70">
-                Today's Golfable, {CATEGORY_INFO[drill.category].label}
-              </span>
-            </div>
-            <h2 className="font-display mt-4 text-[2.9rem] leading-[0.92] tracking-wide">{drill.name}</h2>
-            <div className="mt-5 flex items-center justify-between gap-3">
-              <p className="font-body text-sm text-white/70">
-                {score === null ? "Not played yet" : `You scored ${formatScore(score, maxScore, drill.scoreDirection)}`}
-              </p>
-              <span className="font-label bg-gold text-brand-dark inline-flex items-center gap-1 rounded-full px-5 py-2.5 text-base font-bold">
-                {score === null ? "Play" : "View"}
-                <ChevronRight className="h-4 w-4" />
-              </span>
-            </div>
-          </Link>
-        ) : (
-          <Link to="/app/library" className="block p-5 active:opacity-90">
-            <p className="font-label text-base font-medium text-white/70">No new Golfable today</p>
-            <h2 className="font-display mt-3 text-[2.6rem] leading-[0.92] tracking-wide">Pick your own</h2>
-            <p className="font-body mt-2 text-sm text-white/70">New Golfables drop Monday to Friday. Any drill in the library counts toward your week.</p>
-            <span className="font-label bg-gold text-brand-dark mt-5 inline-flex items-center gap-1 rounded-full px-5 py-2.5 text-base font-bold">
-              Open library
-              <ChevronRight className="h-4 w-4" />
-            </span>
-          </Link>
-        )}
-      </FairwayPanel>
-
-      <div className="mt-4 grid grid-cols-4 gap-2">
-        {[
-          { to: "/app/library", label: "Pick a drill", icon: <ChooseIcon className="h-6 w-6" /> },
-          { to: "/app/challenges", label: "Challenge", icon: <ChallengeIcon className="h-6 w-6" /> },
-          { to: "/app/round", label: "Track round", icon: <FlagIcon className="h-6 w-6" /> },
-          { to: "/app/tools", label: "Tools", icon: <ToolsIcon className="h-6 w-6" /> },
-        ].map((a) => (
-          <Link
-            key={a.to}
-            to={a.to}
-            className="flex flex-col items-center gap-1.5 rounded-2xl bg-white px-1 py-3 text-center ring-1 ring-black/[0.06] active:bg-neutral-50"
-          >
-            <span className="text-brand">{a.icon}</span>
-            <span className="font-label text-sm leading-tight font-semibold text-neutral-800">{a.label}</span>
-          </Link>
-        ))}
-      </div>
-
-      {!loading && drill && (
-        <Section
-          title={studio ? `${studio.name} today` : "Today's leaders"}
-          action={
-            <Link to={`/app/leaderboard/${drill.id}/${todayISO()}`} className="font-label text-brand text-base font-semibold">
-              Full board
-            </Link>
-          }
+      <div className="bg-brand-dark relative mt-6 overflow-hidden rounded-3xl p-5 text-white">
+        <div className="flex items-center gap-2">
+          <Dimples pose="putt" onDark className="-my-2 h-36 w-28 flex-none" />
+          <div>
+            <p className="font-display text-[2rem] leading-none tracking-wide">Ready when you are.</p>
+            <p className="font-body mt-1 text-sm text-white/70">Takes about 20 seconds to set up.</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setStage("questions")}
+          disabled={!drills}
+          className="font-label bg-gold text-brand-dark mt-4 w-full rounded-xl px-4 py-4 text-lg font-bold shadow-lg shadow-black/20 active:scale-[0.99] disabled:opacity-60"
         >
-          <Panel>
-            {leaderboard.length === 0 ? (
-              <Row title="No scores yet today" sub="Log yours first and take the top spot." />
-            ) : (
-              leaderboard.slice(0, 3).map((entry, i) => {
-                const isMe = entry.userId === profile.id;
-                return (
-                  <Row
-                    key={entry.userId}
-                    className={isMe ? "bg-brand/[0.04]" : ""}
-                    icon={
-                      <span
-                        className={`font-display flex h-8 w-8 items-center justify-center rounded-full text-lg ${
-                          i === 0 ? "bg-gold text-brand-dark" : "bg-neutral-100 text-neutral-500"
-                        }`}
-                      >
-                        {i + 1}
-                      </span>
-                    }
-                    title={
-                      <>
-                        {entry.firstName}
-                        {isMe && <span className="text-brand"> (you)</span>}
-                      </>
-                    }
-                    sub={<span className={TIER_TEXT[entry.tier]}>{TIER_INFO[entry.tier].label}</span>}
-                    trailing={<span className="font-display text-2xl">{entry.score}</span>}
-                  />
-                );
-              })
-            )}
-          </Panel>
-        </Section>
-      )}
-
-      {!loading && (
-        <Section title="Your game">
-          <GolfableScorePanel history={scoreHistory} />
-        </Section>
-      )}
-
-      <Section title="More">
-        <Panel>
-          <Row to="/app/progress" icon={<IconDot><ProgressIcon className="h-5 w-5" /></IconDot>} title="Progress" sub="Your trend over time" />
-          <Row
-            to="/app/forum"
-            icon={<IconDot><ForumIcon className="h-5 w-5" /></IconDot>}
-            title="Forum"
-            sub="Talk shop with other players"
-            trailing={<NotificationBadge count={forumUnread} />}
-          />
-        </Panel>
-      </Section>
+          {drills ? "Generate today's session" : "Loading drills…"}
+        </button>
+      </div>
     </div>
   );
+}
+
+function Loading() {
+  return <div className="font-body p-6 text-center text-neutral-400">Loading…</div>;
 }

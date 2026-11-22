@@ -1,14 +1,11 @@
 Golfable
 ========
 
-Daily golf skill challenge platform. Monorepo with three packages:
+Practice-anywhere golf training. Monorepo with two packages:
 
-  packages/shared          Brand system + Drill schema (TypeScript types),
-                            shared by both packages below.
-
-  packages/card-generator  Renders the 3-card format (Setup, Rules & Scoring,
-                            Targets) for a drill from a JSON data file to
-                            310x388px PNGs, ready to post to TikTok.
+  packages/shared          Brand system, Drill schema and the drill library
+                            (packages/shared/src/drillLibrary.ts), shared by
+                            the web app and the database seed.
 
   packages/web-app         React + Tailwind skeleton for the planned paid
                             web app (Supabase auth/DB, Stripe billing,
@@ -18,26 +15,12 @@ Setup
 -----
   npm install
 
-Card generator
---------------
-  Add a drill: copy packages/card-generator/drills/_template.json to
-  <slug>.json and fill in setup/rules/targets copy.
-
-  Render all drills in packages/card-generator/drills/ to PNGs:
-    npm run cards:render
-
-  Output goes to packages/card-generator/output/<drill-id>/{1-setup,
-  2-rules-scoring,3-targets}.png (gitignored). Brand fonts (Bebas Neue,
-  Barlow Condensed, Barlow) are self-hosted under
-  packages/card-generator/assets/fonts so rendering doesn't depend on an
-  external font CDN at screenshot time.
-
-  Scores are logged in the web app as a single number from 0 up to the
-  drill's max_score (Supabase enforces score >= 0). If a drill's scoring
-  rules include point deductions (e.g. "-1 point if..."), a round can net
-  below zero on paper -- add a scoring bullet like "0 is the lowest you
-  can log -- if your round nets below zero, record a 0" so players know
-  to floor it. See up-and-down.json / pitch-and-chip.json for examples.
+Drill library
+-------------
+  Drills live in packages/shared/src/drillLibrary.ts (steps, targets per
+  handicap band, where they can be done, and the animated scene). After
+  editing, regenerate the seed and apply it as a migration:
+    npx tsx supabase/seed/build-drill-seed.ts > supabase/migrations/<next>_drill_library.sql
 
 Web app
 -------
