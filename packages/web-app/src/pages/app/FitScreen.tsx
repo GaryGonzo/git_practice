@@ -13,7 +13,8 @@ import {
   type RoutineItem,
 } from "../../lib/fitGenerator";
 import { exerciseHelp, youtubeSearchUrl, youtubeWatchUrl } from "../../lib/exerciseVideos";
-import { PageHeader } from "../../components/ui";
+import { ChevronLeft, ChevronRight, PageHeader } from "../../components/ui";
+import { Dimples } from "../../components/Dimples";
 import { FitTimer } from "../../components/FitTimer";
 import { holdInfo } from "../../lib/fitTimer";
 
@@ -239,7 +240,9 @@ function ConsistencyCard({ logs }: { logs: FitRoutineLog[] | null }) {
 }
 
 export function FitScreen() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  // Fit opens on the welcome screen (consistency); the routine is one tap in.
+  const [view, setView] = useState<"welcome" | "routine">("welcome");
   const userId = session?.user.id ?? null;
   const [logs, setLogs] = useState<FitRoutineLog[] | null>(null);
   const [saveError, setSaveError] = useState(false);
@@ -317,9 +320,58 @@ export function FitScreen() {
       });
   }, [allDone, saved, userId, retry]);
 
+  if (view === "welcome") {
+    const c = logs ? consistency(logs.map((l) => l.completed_on), todayISO()) : null;
+    const left = c ? Math.max(0, WEEKLY_GOAL - c.thisWeek) : null;
+    const status =
+      left === null
+        ? ""
+        : left === 0
+          ? "Weekly goal hit. Keep it rolling."
+          : `${left} more ${left === 1 ? "workout" : "workouts"} to hit this week's goal.`;
+    const cta = !routine ? "Today's routine" : allDone ? "See today's routine" : "Continue today's routine";
+    const name = profile?.first_name?.trim();
+    return (
+      <div className="mx-auto max-w-md px-4 pb-28">
+        <PageHeader kicker="Golfable Fit" title={name ? `Welcome back, ${name}` : "Welcome back"} sub={status || "Core, glutes and shoulders, built for your swing."} />
+        <ConsistencyCard logs={logs} />
+        <div className="bg-brand-dark mt-4 flex items-center gap-3 overflow-hidden rounded-2xl py-3 pr-4 pl-2 text-white">
+          <Dimples pose={allDone ? "celebrate" : "balance"} onDark className="h-24 w-20 flex-none" />
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-[1.7rem] leading-none tracking-wide">
+              {allDone ? "Today's done." : routine ? "Pick up where you left off." : "Ready to train?"}
+            </p>
+            <p className="font-body mt-1 text-sm text-white/70">
+              {allDone ? "Saved to your history." : routine ? `${doneCount} of ${routine.items.length} exercises done` : "15 to 60 minutes. Low impact."}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setView("routine");
+            window.scrollTo({ top: 0 });
+          }}
+          className="font-label bg-brand mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-4 text-lg font-bold text-white shadow-lg shadow-black/10 active:scale-[0.99]"
+        >
+          {cta}
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-md px-4 pb-28">
-      <PageHeader kicker="Golfable Fit" title={routine ? "Today's routine" : "Train today"} sub="Core, glutes and shoulders. Low impact, built for your swing." />
+      <button
+        type="button"
+        onClick={() => setView("welcome")}
+        className="font-label -ml-1 flex items-center gap-0.5 pt-4 text-base font-semibold text-neutral-500"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Fit home
+      </button>
+      <PageHeader title={routine ? "Today's routine" : "Train today"} sub="Core, glutes and shoulders. Low impact, built for your swing." />
 
       {!routine ? (
         <div className="mt-6 rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
@@ -334,7 +386,6 @@ export function FitScreen() {
           </button>
         </div>
       ) : null}
-      {!routine && <ConsistencyCard logs={logs} />}
       {routine && (
         <>
           <div className="bg-brand-dark mt-5 flex items-center justify-between rounded-2xl px-5 py-4 text-white">
@@ -403,7 +454,6 @@ export function FitScreen() {
               Clear today's routine
             </button>
           </div>
-          <ConsistencyCard logs={logs} />
         </>
       )}
       {(() => {
