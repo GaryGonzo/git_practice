@@ -16,9 +16,24 @@ import {
 } from "../../lib/sessionBuilder";
 import { ChevronLeft } from "../ui";
 
-// A few quick questions, one per screen. Single-choice questions move on
-// as soon as you tap; multi-choice ones get a Next button. Follow-ups only
-// appear when they change the plan.
+// A few quick questions, one per screen. Single-choice questions light up
+// your pick for a beat, then move on; multi-choice ones get a Next button.
+// Follow-ups only appear when they change the plan. Back is always there.
+
+/** How long a single-choice pick stays lit before moving on. */
+const PICK_HOLD_MS = 650;
+
+/** Everything that might be at the facility, for the "what else" question. */
+const EXTRAS_AT: Record<string, { value: Extra; label: string }[]> = {
+  range: [
+    { value: "green", label: "A practice putting green" },
+    { value: "chip", label: "A chipping area or bunker" },
+  ],
+  green: [
+    { value: "range", label: "A driving range" },
+    { value: "chip", label: "A chipping area or bunker" },
+  ],
+};
 
 const AREA_LABEL: Record<SkillCategory, string> = { driver: "Driver", irons: "Irons", wedges: "Wedges", putter: "Putting" };
 
@@ -71,8 +86,16 @@ export function QuestionFlow({
   const [aids, setAids] = useState<(Aid | "other")[]>([]);
   const [band, setBand] = useState<HandicapBand | null>(savedBand);
   const [step, setStep] = useState(0);
+  // The option just tapped on a single-choice question, while it holds.
+  const [picked, setPicked] = useState<string | null>(null);
+  const holdTimer = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (holdTimer.current) window.clearTimeout(holdTimer.current);
+  }, []);
 
-  const extraOpts = place ? extraOptions(place, areas) : [];
+  // Ask "what else is here" when it could matter; offer everything that
+  // might be there and let them pick all that apply.
+  const extraOpts = place && extraOptions(place, areas).length > 0 ? (EXTRAS_AT[place] ?? []) : [];
   const aidOpts = useMemo(
     () => (place ? relevantAids(library, { areas, place, gear: gear ?? "clubs_balls", extras }) : []),
     [library, areas, place, gear, extras]
@@ -113,9 +136,31 @@ export function QuestionFlow({
   }
 
   function back() {
+    if (holdTimer.current) window.clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+    setPicked(null);
     direction.current = -1;
     if (step === 0) onCancel();
     else setStep(step - 1);
+  }
+
+  // Single choice: light it up, hold a beat so you can see it, then go.
+  // The latest next/finish is read at the end of the hold so it sees the
+  // answer just given.
+  const nextRef = useRef(next);
+  nextRef.current = next;
+  const finishRef = useRef(finish);
+  finishRef.current = finish;
+  function pick(id: string, apply: () => void, then: "next" | ((f: typeof finish) => void) = "next") {
+    if (picked) return;
+    apply();
+    setPicked(id);
+    holdTimer.current = window.setTimeout(() => {
+      holdTimer.current = null;
+      setPicked(null);
+      if (then === "next") nextRef.current();
+      else then(finishRef.current);
+    }, PICK_HOLD_MS);
   }
 
   // Skip the aids question when nothing here would use an aid. Runs after
@@ -161,10 +206,7 @@ export function QuestionFlow({
           key={o.value}
           label={o.label}
           selected={time === o.value}
-          onClick={() => {
-            setTime(o.value);
-            next();
-          }}
+          onClick={() => pick(String(o.value), () => setTime(o.value))}
         />
       ));
       break;
@@ -176,25 +218,26 @@ export function QuestionFlow({
           label={o.label}
           sub={o.sub || undefined}
           selected={place === o.value}
-          onClick={() => {
-            setPlace(o.value);
-            setExtras([]);
-            setAids([]);
-            next();
-          }}
+          onClick={() =>
+            pick(o.value, () => {
+              setPlace(o.value);
+              setExtras([]);
+              setAids([]);
+            })
+          }
         />
       ));
       break;
     case "extras":
       title = place === "range" ? "What else is at the range?" : "What else is at the course?";
-      sub = "We'll send you there for the parts that need it.";
+      sub = "Pick all that apply. We'll send you there for the parts that need it.";
       multi = true;
       body = (
         <>
           {extraOpts.map((o) => (
             <Option key={o.value} label={o.label} selected={extras.includes(o.value)} onClick={() => setExtras(toggle(extras, o.value))} />
           ))}
-          <Option label={place === "range" ? "Just the range" : "Just the green"} selected={extras.length === 0} onClick={() => setExtras([])} />
+          <Option label="Nothing else" selected={extras.length === 0} onClick={() => setExtras([])} />
         </>
       );
       break;
@@ -205,11 +248,12 @@ export function QuestionFlow({
           key={o.value}
           label={o.label}
           selected={gear === o.value}
-          onClick={() => {
-            setGear(o.value);
-            setAids([]);
-            next();
-          }}
+          onClick={() =>
+            pick(o.value, () => {
+              setGear(o.value);
+              setAids([]);
+            })
+          }
         />
       ));
       break;
@@ -235,10 +279,7 @@ export function QuestionFlow({
           key={b}
           label={BAND_LABEL[b]}
           selected={band === b}
-          onClick={() => {
-            setBand(b);
-            finish({ band: b });
-          }}
+          onClick={() => pick(b, () => setBand(b), (fin) => fin({ band: b }))}
         />
       ));
       break;
@@ -250,7 +291,11 @@ export function QuestionFlow({
   return (
     <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md flex-col px-4 pt-4 pb-28">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={back} className="font-label -ml-1 flex items-center gap-0.5 text-base font-semibold text-neutral-500">
+        <button
+          type="button"
+          onClick={back}
+          className="font-label -ml-1 flex flex-none items-center gap-1 rounded-full bg-white py-2 pr-4 pl-3 text-base font-bold text-neutral-800 ring-1 ring-black/[0.1] active:bg-neutral-100"
+        >
           <ChevronLeft className="h-4 w-4" />
           {step === 0 ? "Cancel" : "Back"}
         </button>

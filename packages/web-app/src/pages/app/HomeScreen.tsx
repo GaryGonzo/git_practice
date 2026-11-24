@@ -47,6 +47,26 @@ function daysAgoISO(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// The handicap band is asked once. It lives on the account; this copy on
+// the phone means a failed save never makes us ask again.
+const BAND_KEY = "golfable.handicapBand";
+const BANDS: HandicapBand[] = ["0-5", "6-10", "11-15", "16-20", "21+"];
+function localBand(): HandicapBand | null {
+  try {
+    const v = localStorage.getItem(BAND_KEY);
+    return BANDS.includes(v as HandicapBand) ? (v as HandicapBand) : null;
+  } catch {
+    return null;
+  }
+}
+function rememberBand(b: HandicapBand) {
+  try {
+    localStorage.setItem(BAND_KEY, b);
+  } catch {
+    // Private mode: the account copy still works.
+  }
+}
+
 export function HomeScreen() {
   const { session, profile, refreshProfile } = useAuth();
   const userId = session!.user.id;
@@ -57,7 +77,7 @@ export function HomeScreen() {
   const [index, setIndex] = useState(saved?.index ?? 0);
   const [drills, setDrills] = useState<Drill[] | null>(null);
   const [recent, setRecent] = useState<Set<string>>(new Set());
-  const [band, setBand] = useState<HandicapBand | null>(profile?.handicap_band ?? null);
+  const [band, setBand] = useState<HandicapBand | null>(profile?.handicap_band ?? localBand());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,7 +95,16 @@ export function HomeScreen() {
   }, [userId]);
 
   useEffect(() => {
-    if (profile?.handicap_band) setBand(profile.handicap_band);
+    if (profile?.handicap_band) {
+      setBand(profile.handicap_band);
+      rememberBand(profile.handicap_band);
+    } else {
+      // Answered on this phone but never reached the account (or saved
+      // before the account could store it): push it up now.
+      const local = localBand();
+      if (local && profile) saveHandicapBand(userId, local).then(refreshProfile).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.handicap_band]);
 
   // Keep today's session on the device as it changes.
@@ -91,9 +120,10 @@ export function HomeScreen() {
     setStage("building");
     if (newBand) {
       setBand(newBand);
+      rememberBand(newBand);
       saveHandicapBand(userId, newBand)
         .then(refreshProfile)
-        .catch(() => {});
+        .catch((e) => console.warn("Couldn't save handicap band", e));
     }
     const next = buildPlan(drills, answers, todayISO(), recent);
     // A beat for Dimples to "think" -- it reads as the plan being built.
