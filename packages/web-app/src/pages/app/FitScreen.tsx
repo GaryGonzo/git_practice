@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { todayISO } from "../../lib/golfableApi";
 import {
+  canSwap,
   generateRoutine,
+  swapExercise,
   DURATION_OPTIONS,
   GROUP_LABEL,
   GROUP_ORDER,
@@ -91,7 +93,18 @@ function LengthPicker({ value, onChange }: { value: number; onChange: (n: number
   );
 }
 
-function ExerciseRow({ item, done, onToggle }: { item: RoutineItem; done: boolean; onToggle: () => void }) {
+function ExerciseRow({
+  item,
+  done,
+  onToggle,
+  onSwap,
+}: {
+  item: RoutineItem;
+  done: boolean;
+  onToggle: () => void;
+  /** Absent when there's nothing left in this group to swap in. */
+  onSwap?: () => void;
+}) {
   const help = exerciseHelp(item.name);
   const watchUrl = help?.youtubeId ? youtubeWatchUrl(help.youtubeId) : youtubeSearchUrl(item.name);
 
@@ -122,9 +135,19 @@ function ExerciseRow({ item, done, onToggle }: { item: RoutineItem; done: boolea
         {item.note && <p className="font-label text-gold mt-1 text-sm font-semibold">{item.note}</p>}
         <p className="font-body mt-1 text-sm leading-snug text-neutral-600">{item.cue}</p>
         {item.caution && <p className="font-body mt-1 text-sm text-amber-700">{item.caution}</p>}
-        <a href={watchUrl} target="_blank" rel="noreferrer" className="font-label text-brand mt-1 inline-block text-sm font-semibold underline">
-          Watch how
-        </a>
+        <div className="mt-1 flex items-center gap-4">
+          <a href={watchUrl} target="_blank" rel="noreferrer" className="font-label text-brand text-sm font-semibold underline">
+            Watch how
+          </a>
+          {onSwap && !done && (
+            <button type="button" onClick={onSwap} className="font-label flex items-center gap-1 text-sm font-semibold text-neutral-500">
+              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+                <path d="M4 7h11l-3-3M16 13H5l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Swap
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -153,6 +176,13 @@ export function FitScreen() {
     if (!saved) return;
     const done = saved.done.includes(id) ? saved.done.filter((d) => d !== id) : [...saved.done, id];
     const next = { ...saved, done };
+    setSaved(next);
+    save(next);
+  }
+
+  function swap(id: string) {
+    if (!saved) return;
+    const next = { routine: swapExercise(saved.routine, id), done: saved.done.filter((d) => d !== id) };
     setSaved(next);
     save(next);
   }
@@ -208,7 +238,13 @@ export function FitScreen() {
                 <h2 className="font-label text-lg font-semibold text-neutral-800">{GROUP_LABEL[group]}</h2>
                 <div className="mt-1.5 rounded-2xl bg-white px-4 ring-1 ring-black/[0.06]">
                   {items.map((item) => (
-                    <ExerciseRow key={item.id} item={item} done={saved!.done.includes(item.id)} onToggle={() => toggle(item.id)} />
+                    <ExerciseRow
+                      key={item.id}
+                      item={item}
+                      done={saved!.done.includes(item.id)}
+                      onToggle={() => toggle(item.id)}
+                      onSwap={canSwap(routine, item.id) ? () => swap(item.id) : undefined}
+                    />
                   ))}
                 </div>
               </section>

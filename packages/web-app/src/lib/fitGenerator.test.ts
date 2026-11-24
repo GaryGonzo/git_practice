@@ -34,3 +34,29 @@ test("different presses give different routines", () => {
   const b = generateRoutine(30, "2026-11-21", seeded(2)).items.map((i) => i.name).join();
   assert.notEqual(a, b);
 });
+
+test("never two from the same family (e.g. glute bridge + single-leg glute bridge)", async () => {
+  const { familyOf } = await import("./fitGenerator.ts");
+  for (const minutes of DURATION_OPTIONS) {
+    for (let seed = 1; seed <= 60; seed++) {
+      const fams = generateRoutine(minutes, "x", seeded(seed)).items.map((i) => familyOf(i.name));
+      assert.equal(new Set(fams).size, fams.length, `${minutes} min seed ${seed}: ${fams.join(", ")}`);
+    }
+  }
+});
+
+test("swap replaces one exercise with a new one from the same group and keeps the rest", async () => {
+  const { swapExercise, familyOf } = await import("./fitGenerator.ts");
+  for (let seed = 1; seed <= 40; seed++) {
+    const r = generateRoutine(30, "x", seeded(seed));
+    const target = r.items[0];
+    const s = swapExercise(r, target.id, seeded(seed + 100));
+    assert.equal(s.items.length, r.items.length);
+    assert.ok(!s.items.some((i) => i.id === target.id));
+    const added = s.items.find((i) => !r.items.some((o) => o.id === i.id))!;
+    assert.equal(added.group, target.group);
+    assert.notEqual(familyOf(added.name), familyOf(target.name));
+    const fams = s.items.map((i) => familyOf(i.name));
+    assert.equal(new Set(fams).size, fams.length);
+  }
+});
