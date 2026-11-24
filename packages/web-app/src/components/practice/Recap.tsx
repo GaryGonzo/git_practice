@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Drill, HandicapBand } from "@golfable/shared";
-import { Dimples } from "../Dimples";
+import { Dimples, DimplesFrame } from "../Dimples";
 import { targetFor, type PracticePlan } from "../../lib/sessionBuilder";
 import type { StepResult } from "./SessionViews";
 import { planSummary } from "./SessionViews";
@@ -47,9 +47,7 @@ function esc(s: string): string {
 async function buildShareImage(rows: RecapRow[], minutes: number, summary: string): Promise<Blob> {
   const { renderToStaticMarkup } = await import("react-dom/server");
   // Dimples without his animation styles -- a still frame for the image.
-  const mascot = renderToStaticMarkup(<Dimples pose="celebrate" onDark />)
-    .replace(/<style>[\s\S]*?<\/style>/, "")
-    .replace("<svg ", '<svg x="740" y="70" width="300" height="380" ');
+  const mascot = renderToStaticMarkup(<DimplesFrame pose="celebrate" time={0.5} onDark />).replace("<svg ", '<svg x="720" y="60" width="300" height="380" ');
 
   const done = rows.filter((r) => !r.skipped);
   const scored = done.filter((r) => r.scored);
@@ -155,30 +153,55 @@ export function Recap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function fileFor(): File | null {
+    return image ? new File([image.blob], "golfable-session.png", { type: "image/png" }) : null;
+  }
+
   async function share(app: string) {
-    if (!image) return;
+    const file = fileFor();
+    if (!file) return;
     setShareError(null);
-    const file = new File([image.blob], "golfable-session.png", { type: "image/png" });
-    const text = `Just finished a Golfable session: ${done.length} drills${scored.length ? `, ${hits}/${scored.length} targets hit` : ""}. golfable.co`;
     if (navigator.canShare?.({ files: [file] })) {
       setHint(`Pick ${app} in the share menu.`);
       try {
-        await navigator.share({ files: [file], text });
+        await navigator.share({ files: [file] });
       } catch {
         // Closing the share sheet isn't an error.
       }
       return;
     }
-    save();
-    setHint(`Image saved. Open ${app} and post it from your photos.`);
+    download();
+    setHint(`Image downloaded. Open ${app} and post it from your photos.`);
   }
 
-  function save() {
+  // On phones, "Save" opens the share menu with just the image, where
+  // "Save Image" puts it straight in Photos. (A plain download on iPhone
+  // goes to Files behind a confusing "Download?" prompt.) Desktop downloads.
+  async function save() {
+    const file = fileFor();
+    if (!file) return;
+    setShareError(null);
+    if (navigator.canShare?.({ files: [file] })) {
+      setHint("Tap \u201cSave Image\u201d to add it to your Photos.");
+      try {
+        await navigator.share({ files: [file] });
+      } catch {
+        // Closed the menu.
+      }
+      return;
+    }
+    download();
+    setHint("Image downloaded.");
+  }
+
+  function download() {
     if (!image) return;
     const a = document.createElement("a");
     a.href = image.url;
     a.download = "golfable-session.png";
+    document.body.appendChild(a);
     a.click();
+    a.remove();
   }
 
   return (
@@ -236,8 +259,13 @@ export function Recap({
             <ShareButton label="TikTok" color="#111111" disabled={!image} onClick={() => share("TikTok")} />
             <ShareButton label="Facebook" color="#1877f2" disabled={!image} onClick={() => share("Facebook")} />
           </div>
-          <button type="button" onClick={save} disabled={!image} className="font-label mt-2 w-full py-2 text-sm font-semibold text-neutral-600 underline disabled:opacity-50">
-            Save image
+          <button
+            type="button"
+            onClick={save}
+            disabled={!image}
+            className="font-label mt-2 w-full rounded-xl bg-neutral-100 px-4 py-3 text-sm font-bold text-neutral-800 active:bg-neutral-200 disabled:opacity-50"
+          >
+            Save to Photos
           </button>
           {hint && <p className="font-body text-center text-sm text-neutral-500">{hint}</p>}
           {shareError && <p className="font-body text-center text-sm text-red-600">{shareError}</p>}

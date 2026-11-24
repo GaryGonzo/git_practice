@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Scene, SceneItem, SceneShot } from "@golfable/shared";
-import { Dimples } from "./Dimples";
+import { Dimples, poseTiming } from "./Dimples";
 
-// The animated "course map" for a drill: a top-down picture of the setup,
-// balls rolling (putts) or flying (full shots) to their targets one after
-// another, then Dimples walks in doing the move. Body-only drills skip the
-// map and put Dimples center stage. Everything is SVG + SMIL/CSS, so it's
+// The animated "course map" for a drill: a top-down picture of the setup
+// with Dimples in the corner making the stroke. Each ball rolls (putts) or
+// flies (full shots) on his impact, drops in the cup or puffs where it
+// lands, and the scene replays. Body-only drills skip the map and put
+// Dimples center stage. Everything is SVG + SMIL/CSS, so it's
 // tiny, crisp at any size and needs no video.
 
 const W = 340;
@@ -15,8 +16,6 @@ const py = (y: number) => 9 + y * 3.2;
 
 const INK = "#14201b";
 const SHOT_SECONDS = 1.1;
-const SHOT_GAP = 0.35;
-const LEAD_IN = 0.6;
 
 function Background({ set }: { set: Scene["set"] }) {
   switch (set) {
@@ -225,25 +224,35 @@ function shotPath(s: SceneShot): string {
   return `M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`;
 }
 
-function Shot({ shot, index }: { shot: SceneShot; index: number }) {
-  const begin = LEAD_IN + index * (SHOT_SECONDS + SHOT_GAP);
+function Shot({ shot, begin, sinks }: { shot: SceneShot; begin: number; sinks: boolean }) {
   const d = shotPath(shot);
   const dur = `${SHOT_SECONDS}s`;
+  const land = begin + SHOT_SECONDS;
+  const [tx, ty] = [px(shot.to[0]), py(shot.to[1])];
   return (
     <g>
       <path d={d} fill="none" stroke="#fff" strokeWidth={2} strokeDasharray="3 5" opacity={0}>
         <set attributeName="opacity" to="0.75" begin={`${begin}s`} fill="freeze" />
       </path>
       {shot.air && (
-        <circle r={4} fill="#000" opacity={0}>
-          <set attributeName="opacity" to="0.18" begin={`${begin}s`} fill="freeze" />
-          <animateMotion dur={dur} begin={`${begin}s`} fill="freeze" path={d} keyTimes="0;1" keySplines="0.3 0 0.4 1" calcMode="spline" />
-        </circle>
+        <>
+          <circle r={4} fill="#000" opacity={0}>
+            <set attributeName="opacity" to="0.18" begin={`${begin}s`} fill="freeze" />
+            <animateMotion dur={dur} begin={`${begin}s`} fill="freeze" path={d} keyTimes="0;1" keySplines="0.3 0 0.4 1" calcMode="spline" />
+          </circle>
+          {/* A puff where it lands. */}
+          <circle cx={tx} cy={ty} r={3} fill="none" stroke="#fff" strokeWidth={2} opacity={0}>
+            <animate attributeName="r" from="3" to="14" dur="0.5s" begin={`${land}s`} fill="freeze" />
+            <animate attributeName="opacity" values="0.9;0" dur="0.5s" begin={`${land}s`} fill="freeze" />
+          </circle>
+        </>
       )}
-      <g opacity={index === 0 ? 1 : 0}>
-        {index > 0 && <set attributeName="opacity" to="1" begin={`${begin}s`} fill="freeze" />}
+      <g opacity={0}>
+        <set attributeName="opacity" to="1" begin={`${Math.max(0, begin - 0.8)}s`} fill="freeze" />
         <circle r={shot.air ? 4.6 : 4.4} fill="#fff" stroke={INK} strokeWidth={1.6} cx={0} cy={0}>
           {shot.air && <animate attributeName="r" values="4.6;8;4.6" dur={dur} begin={`${begin}s`} fill="freeze" />}
+          {/* Drops in the cup. */}
+          {sinks && <animate attributeName="r" to="0" dur="0.18s" begin={`${land - 0.05}s`} fill="freeze" />}
         </circle>
         <animateMotion dur={dur} begin={`${begin}s`} fill="freeze" path={d} keyTimes="0;1" keySplines={shot.air ? "0.3 0 0.4 1" : "0.15 0.6 0.35 1"} calcMode="spline" />
         {/* Sit at the start until it's this ball's turn. */}
@@ -253,40 +262,54 @@ function Shot({ shot, index }: { shot: SceneShot; index: number }) {
   );
 }
 
-/** How long the map animation runs before Dimples arrives. */
+/** When each ball leaves: on Dimples' impact, one per stroke. */
+function shotBegins(scene: Scene): number[] {
+  const { dur, impact } = poseTiming(scene.pose);
+  return (scene.shots ?? []).map((_, i) => impact + i * dur);
+}
+
+/** How long one pass of the scene runs before it replays. */
 export function sceneDuration(scene: Scene): number {
-  const n = scene.shots?.length ?? 0;
-  return n === 0 ? 0.3 : LEAD_IN + n * (SHOT_SECONDS + SHOT_GAP);
+  const begins = shotBegins(scene);
+  return begins.length ? begins[begins.length - 1] + SHOT_SECONDS + 1.4 : 0;
 }
 
 export function DrillScene({ scene, className }: { scene: Scene; className?: string }) {
   const [run, setRun] = useState(0);
-  // No ball flight to show: Dimples takes center stage instead of walking in.
+  // No ball flight to show: Dimples takes center stage.
   const isBody = scene.set === "body" || (scene.shots ?? []).length === 0;
   // With props on the floor (a wall, a stick, a mirror), Dimples stands to
   // the side so they stay visible.
   const hasProps = (scene.items ?? []).length > 0;
-  const arrive = sceneDuration(scene);
+  const begins = shotBegins(scene);
+  const loop = sceneDuration(scene);
+
+  // Shot scenes replay on their own so the balls keep flying in step with
+  // the stroke.
+  useEffect(() => {
+    if (isBody || !loop) return;
+    const id = window.setTimeout(() => setRun((r) => r + 1), loop * 1000);
+    return () => window.clearTimeout(id);
+  }, [run, isBody, loop]);
+
+  const sinks = (shot: SceneShot) =>
+    (scene.items ?? []).some((it) => (it.k === "cup" || it.k === "mug") && Math.abs(it.x - shot.to[0]) < 2 && Math.abs(it.y - shot.to[1]) < 2);
 
   return (
     <div className={`relative overflow-hidden rounded-2xl ring-1 ring-black/[0.06] ${className ?? ""}`}>
-      <style>{`
-        @keyframes dmp-enter { from { transform: translateX(130%) rotate(8deg); } 70% { transform: translateX(-6%) rotate(-3deg); } to { transform: translateX(0) rotate(0); } }
-        @media (prefers-reduced-motion: reduce) { .dmp-enter { animation: none !important; } }
-      `}</style>
       <svg key={run} viewBox={`0 0 ${W} ${H}`} className="block w-full" role="img" aria-label="Drill setup">
         <Background set={scene.set} />
+        {isBody && !hasProps && <ellipse cx={W / 2} cy={190} rx={92} ry={12} fill="#d9c9a0" opacity={0.6} />}
         {(scene.items ?? []).map((item, i) => (
           <Item key={i} item={item} />
         ))}
-        {!isBody && (scene.shots ?? []).map((shot, i) => <Shot key={i} shot={shot} index={i} />)}
+        {!isBody && (scene.shots ?? []).map((shot, i) => <Shot key={i} shot={shot} begin={begins[i]} sinks={sinks(shot)} />)}
       </svg>
       <div
         key={`d${run}`}
-        className={`dmp-enter pointer-events-none absolute ${
+        className={`pointer-events-none absolute ${
           isBody ? (hasProps ? "right-[6%] bottom-1 h-[84%] w-[42%]" : "inset-x-0 bottom-1 mx-auto h-[88%] w-[46%]") : "right-1 bottom-0 h-[52%] w-[24%]"
         }`}
-        style={isBody ? undefined : { animation: `dmp-enter .7s cubic-bezier(.3,.9,.4,1) ${arrive}s both` }}
       >
         <Dimples pose={scene.pose} className="h-full w-full" />
       </div>

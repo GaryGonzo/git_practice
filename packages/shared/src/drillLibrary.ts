@@ -848,14 +848,14 @@ export const DRILL_LIBRARY: LibraryDrill[] = [
     spots: ["body"],
     needs: "none",
     minutes: 4,
-    kind: "test",
+    kind: "skill",
     equipment: ["Nothing"],
     steps: [
       "Make a slow-motion swing with no club.",
-      "Hold your finish: weight on your lead leg, belt buckle facing the target, back toe up.",
-      "Time how long you hold it. Best of 3 tries.",
+      "Hold your finish for a slow 5 count: weight on your lead leg, belt buckle facing the target, back toe up.",
+      "Reset and repeat.",
     ],
-    score: { label: "Seconds held", max: 60, targets: t([30, 25, 20, 15, 10]) },
+    reps: "5 swings",
     scene: body("finish"),
   },
   {
