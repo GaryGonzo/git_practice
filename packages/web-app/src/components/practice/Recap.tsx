@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { Drill, HandicapBand } from "@golfable/shared";
 import { Dimples, DimplesFrame } from "../Dimples";
 import { targetFor, type PracticePlan } from "../../lib/sessionBuilder";
+import { beatsChallenge, type Badge, type Challenge } from "../../lib/golfableInsights";
+import { BadgeMedal } from "./Insights";
 import type { StepResult } from "./SessionViews";
 import { planSummary } from "./SessionViews";
 
@@ -120,12 +122,18 @@ export function Recap({
   library,
   results,
   band,
+  newBadges = [],
+  challenge = null,
   onDone,
 }: {
   plan: PracticePlan;
   library: Map<string, Drill>;
   results: Record<number, StepResult>;
   band: HandicapBand;
+  /** Badges this session just earned. */
+  newBadges?: Badge[];
+  /** Set when the session was a friend's challenge. */
+  challenge?: Challenge | null;
   onDone: () => void;
 }) {
   const rows = rowsFor(plan, library, results, band);
@@ -204,8 +212,43 @@ export function Recap({
     a.remove();
   }
 
+  const challengeDrill = challenge ? library.get(challenge.drillId) : undefined;
+  const challengeScore = challenge ? plan.steps.map((s, i) => (s.type === "drill" && s.drillId === challenge.drillId ? results[i]?.score : undefined)).find((x) => x !== undefined) : undefined;
+  const wonChallenge = challenge && challengeDrill && challengeScore !== undefined ? beatsChallenge(challengeDrill, challengeScore, challenge.score) : null;
+
   return (
     <div className="mx-auto max-w-md px-4 pb-28">
+      {wonChallenge !== null && (
+        <div className={`mt-5 rounded-2xl px-4 py-3 ${wonChallenge ? "bg-gold/25" : "bg-neutral-100"}`}>
+          <p className="font-display text-[1.7rem] leading-none tracking-wide">
+            {wonChallenge ? `You beat ${challenge!.from}!` : `${challenge!.from} wins this one.`}
+          </p>
+          <p className="font-body mt-1 text-sm text-neutral-600">
+            {challengeDrill!.name}: you {challengeScore}, {challenge!.from} {challenge!.score}.
+          </p>
+        </div>
+      )}
+
+      {newBadges.length > 0 && (
+        <section className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+          <div className="flex items-center gap-3">
+            <Dimples pose="dance" className="-my-2 h-24 w-20 flex-none" />
+            <div>
+              <p className="font-label text-gold text-sm font-bold">{newBadges.length === 1 ? "New badge" : `${newBadges.length} new badges`}</p>
+              <p className="font-display text-[1.8rem] leading-[0.95] tracking-wide">{newBadges.map((b) => b.name).join(" · ")}</p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {newBadges.map((b) => (
+              <div key={b.id} className="flex items-center gap-2">
+                <BadgeMedal badge={b} size={48} fresh />
+                <p className="font-body max-w-[9rem] text-xs text-neutral-600">{b.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="bg-brand-dark relative mt-5 overflow-hidden rounded-3xl px-5 pt-5 pb-6 text-white">
         <div className="flex items-end justify-between">
           <div>

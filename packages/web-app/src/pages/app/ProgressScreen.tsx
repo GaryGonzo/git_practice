@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { allTrends } from "../../lib/golfableInsights";
+import { Sparkline } from "../../components/practice/Insights";
 import { Link } from "react-router-dom";
 import { CATEGORY_INFO, SKILL_CATEGORIES, formatScore, scoreGoodness, type SkillCategory } from "@golfable/shared";
 import { useAuth } from "../../lib/AuthProvider";
@@ -172,6 +174,8 @@ export function ProgressScreen() {
         })}
       </div>
 
+      <DrillTrends history={history} />
+
       <h2 className="font-label mt-8 mb-2 text-sm font-semibold text-neutral-500">
         Recent scores
       </h2>
@@ -232,5 +236,44 @@ export function ProgressScreen() {
         </div>
       )}
     </div>
+  );
+}
+
+function DrillTrends({ history }: { history: ScoreHistoryEntry[] }) {
+  const [all, setAll] = useState(false);
+  const trends = allTrends(history);
+  if (trends.length === 0) return null;
+  const shown = all ? trends : trends.slice(0, 5);
+  return (
+    <>
+      <h2 className="font-label mt-8 mb-2 text-sm font-semibold text-neutral-500">Drill trends</h2>
+      <div className="space-y-2">
+        {shown.map(({ drill, trend, plays }) => {
+          const lower = drill.scoreDirection === "lower";
+          return (
+            <div key={drill.id} className="flex items-center gap-3 rounded-2xl bg-white p-3.5 ring-1 ring-black/[0.06]">
+              <div className="min-w-0 flex-1">
+                <p className="font-label truncate text-sm font-semibold">{drill.name}</p>
+                <p className="font-body text-sm text-neutral-500">
+                  {plays} played · best {trend.best}
+                  {trend.change !== 0 && (
+                    <span className={trend.change > 0 ? "text-brand font-semibold" : ""}>
+                      {" "}
+                      · {trend.first} → {trend.last}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <Sparkline trend={trend} lower={lower} />
+            </div>
+          );
+        })}
+      </div>
+      {trends.length > 5 && (
+        <button type="button" onClick={() => setAll(!all)} className="font-label text-brand mt-3 block w-full text-center text-sm font-semibold">
+          {all ? "Show fewer" : `All ${trends.length} drills`}
+        </button>
+      )}
+    </>
   );
 }

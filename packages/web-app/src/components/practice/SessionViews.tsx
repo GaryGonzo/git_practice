@@ -6,6 +6,9 @@ import { Dimples } from "../Dimples";
 import { CategoryIcon } from "../CategoryIcon";
 import { ChevronLeft, ChevronRight } from "../ui";
 import { PLACE_OPTIONS, TIME_OPTIONS, targetFor, type PracticePlan, type SessionStep } from "../../lib/sessionBuilder";
+import { beatsChallenge, type Challenge, type Trend } from "../../lib/golfableInsights";
+import { Sparkline } from "./Insights";
+import type { Pose } from "@golfable/shared";
 
 export interface StepResult {
   /** Score for scored drills, 1 for rep drills. Absent when skipped. */
@@ -215,6 +218,9 @@ export function DrillStep({
   onSwap,
   onNext,
   onBack,
+  trend = null,
+  challenge = null,
+  onChallenge,
 }: {
   drill: Drill;
   step: Extract<SessionStep, { type: "drill" }>;
@@ -230,12 +236,31 @@ export function DrillStep({
   onSwap: () => void;
   onNext: () => void;
   onBack: () => void;
+  /** Your scores on this drill before today, oldest first. */
+  trend?: Trend | null;
+  /** A friend's score to beat on this drill. */
+  challenge?: Challenge | null;
+  /** Send this score to a friend as a challenge. */
+  onChallenge?: (score: number) => void;
 }) {
   const target = targetFor(drill, band);
   const max = drill.scored === false ? 1 : (drill.bandTargets ? Math.max(...Object.values(drill.bandTargets)) * 3 : 99);
   const [value, setValue] = useState<number>(target?.value ?? 0);
   const logged = result?.score !== undefined;
   const onGreenWithCarpetDrill = step.spot === "green" && (drill.spots ?? []).includes("floor");
+  const scored = drill.scored !== false;
+  const beat = logged && challenge && scored ? beatsChallenge(drill, result!.score!, challenge.score) : null;
+
+  // Dimples reacts to how it went.
+  let reaction: { pose: Pose; line: string } | null = null;
+  if (logged) {
+    if (!scored) reaction = { pose: "celebrate", line: "Checked off. Nice." };
+    else if (result!.personalBest) reaction = { pose: "dance", line: "New personal best!" };
+    else if (beat) reaction = { pose: "celebrate", line: `You beat ${challenge!.from}!` };
+    else if (beat === false) reaction = { pose: "shrug", line: `${challenge!.from} still leads.${result!.hitTarget ? " Target hit, though." : " Run it back?"}` };
+    else if (result!.hitTarget) reaction = { pose: "celebrate", line: "Target hit." };
+    else reaction = { pose: "shrug", line: "Not this time. Logged, keep at it." };
+  }
 
   return (
     <div className="mx-auto max-w-md px-4 pt-4 pb-28">
@@ -278,14 +303,42 @@ export function DrillStep({
         <p className="font-body bg-gold/10 mt-3 rounded-lg px-3 py-2 text-sm text-neutral-700">On a real green, use a hole instead of the mug, and tees instead of coins.</p>
       )}
 
+      {challenge && scored && (
+        <div className="bg-brand-dark mt-5 flex items-center gap-3 rounded-2xl px-4 py-3 text-white">
+          <span className="font-display text-gold text-4xl leading-none">{challenge.score}</span>
+          <p className="font-body text-sm leading-snug text-white/85">
+            <span className="font-semibold text-white">{challenge.from}'s score to beat.</span> {drill.scoreDirection === "lower" ? "Go lower." : "Go higher."}
+          </p>
+        </div>
+      )}
+
+      {trend && scored && !logged && (
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-black/[0.06]">
+          <div>
+            <p className="font-label text-sm font-semibold text-neutral-500">{trend.scores.length === 1 ? "Last time" : `Your last ${trend.scores.length}`}</p>
+            <p className="font-body text-sm text-neutral-700">
+              Best <span className="font-semibold text-neutral-900">{trend.best}</span>
+              {trend.scores.length > 1 && trend.change !== 0 && (
+                <span className={trend.change > 0 ? "text-brand" : "text-neutral-500"}> · {trend.change > 0 ? "trending up" : "trending down"}</span>
+              )}
+            </p>
+          </div>
+          {trend.scores.length > 1 ? <Sparkline trend={trend} lower={drill.scoreDirection === "lower"} /> : <span className="font-display text-3xl">{trend.last}</span>}
+        </div>
+      )}
+
       <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+        {reaction && (
+          <div className="-mt-1 mb-2 flex items-center gap-3">
+            <Dimples key={reaction.pose} pose={reaction.pose} className="h-24 w-20 flex-none" />
+            <p className={`font-display text-[1.7rem] leading-[0.95] tracking-wide ${reaction.pose === "shrug" ? "text-neutral-700" : "text-brand"}`}>{reaction.line}</p>
+          </div>
+        )}
         {drill.scored === false ? (
           <>
             <p className="font-label text-sm font-semibold text-neutral-500">Do</p>
             <p className="font-display text-3xl">{drill.repsLabel ?? "Your reps"}</p>
-            {logged ? (
-              <p className="font-label text-brand mt-3 text-base font-bold">Checked off. Nice.</p>
-            ) : (
+            {logged ? null : (
               <button
                 type="button"
                 disabled={saving}
@@ -307,12 +360,17 @@ export function DrillStep({
               )}
             </div>
             {logged ? (
-              <div className="mt-2">
+              <div className="mt-2 flex items-end justify-between gap-3">
                 <p className="font-display text-5xl leading-none">{result!.score}</p>
-                <p className={`font-label mt-1 text-base font-bold ${result!.hitTarget ? "text-brand" : "text-neutral-500"}`}>
-                  {result!.personalBest ? "New personal best! " : ""}
-                  {result!.hitTarget ? "Target hit." : "Logged. Keep at it."}
-                </p>
+                {onChallenge && (
+                  <button
+                    type="button"
+                    onClick={() => onChallenge(result!.score!)}
+                    className="font-label bg-gold/20 text-brand-dark rounded-full px-3.5 py-2 text-sm font-bold active:bg-gold/30"
+                  >
+                    {beat === false ? "Challenge back" : "Challenge a friend"}
+                  </button>
+                )}
               </div>
             ) : (
               <>

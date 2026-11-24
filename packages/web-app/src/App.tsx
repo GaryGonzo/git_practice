@@ -8,6 +8,7 @@ import { RequireFitAccess } from "./components/RequireFitAccess";
 import { HomeScreen } from "./pages/app/HomeScreen";
 import { LauncherScreen } from "./pages/app/LauncherScreen";
 import { useAuth } from "./lib/AuthProvider";
+import { loadPendingChallenge } from "./lib/golfableInsights";
 import { LoginScreen } from "./pages/auth/LoginScreen";
 import { NotFoundScreen } from "./pages/NotFoundScreen";
 
@@ -17,6 +18,7 @@ import { NotFoundScreen } from "./pages/NotFoundScreen";
 const StudiosScreen = lazy(() => import("./pages/StudiosScreen").then((m) => ({ default: m.StudiosScreen })));
 const JoinChallengeScreen = lazy(() => import("./pages/JoinChallengeScreen").then((m) => ({ default: m.JoinChallengeScreen })));
 const StudioInviteScreen = lazy(() => import("./pages/StudioInviteScreen").then((m) => ({ default: m.StudioInviteScreen })));
+const ChallengeInviteScreen = lazy(() => import("./pages/ChallengeInviteScreen").then((m) => ({ default: m.ChallengeInviteScreen })));
 const TermsScreen = lazy(() => import("./pages/TermsScreen").then((m) => ({ default: m.TermsScreen })));
 const TodayScreen = lazy(() => import("./pages/app/TodayScreen").then((m) => ({ default: m.TodayScreen })));
 const ProgressScreen = lazy(() => import("./pages/app/ProgressScreen").then((m) => ({ default: m.ProgressScreen })));
@@ -42,6 +44,8 @@ const ResetPasswordScreen = lazy(() => import("./pages/auth/ResetPasswordScreen"
 function AppIndex() {
   const { profile } = useAuth();
   if (!profile) return <div className="p-6 text-center font-body text-neutral-500">Loading…</div>;
+  // A friend's challenge waiting: go straight to Golfable practice.
+  if (loadPendingChallenge()) return <Navigate to="/app/golf" replace />;
   return profile.fit_access ? <LauncherScreen /> : <HomeScreen />;
 }
 
@@ -53,6 +57,7 @@ function App() {
       <Route path="/studios" element={<StudiosScreen />} />
       <Route path="/join/:code" element={<JoinChallengeScreen />} />
       <Route path="/my-studio/:slug" element={<StudioInviteScreen />} />
+      <Route path="/challenge" element={<ChallengeInviteScreen />} />
       <Route path="/terms" element={<TermsScreen />} />
       <Route path="/signup" element={<SignupScreen />} />
       <Route path="/login" element={<LoginScreen />} />
