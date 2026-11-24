@@ -12,6 +12,8 @@ import {
 } from "../../lib/fitGenerator";
 import { exerciseHelp, youtubeSearchUrl, youtubeWatchUrl } from "../../lib/exerciseVideos";
 import { PageHeader } from "../../components/ui";
+import { FitTimer } from "../../components/FitTimer";
+import { holdInfo } from "../../lib/fitTimer";
 
 // Golfable Fit, dumbed down on purpose: pick a length, tap one button,
 // do the routine. Today's routine (and what's ticked off) is kept on this
@@ -98,10 +100,13 @@ function ExerciseRow({
   done,
   onToggle,
   onSwap,
+  onTimer,
 }: {
   item: RoutineItem;
   done: boolean;
   onToggle: () => void;
+  /** Timed exercises only: opens the guided timer. */
+  onTimer?: () => void;
   /** Absent when there's nothing left in this group to swap in. */
   onSwap?: () => void;
 }) {
@@ -135,6 +140,19 @@ function ExerciseRow({
         {item.note && <p className="font-label text-gold mt-1 text-sm font-semibold">{item.note}</p>}
         <p className="font-body mt-1 text-sm leading-snug text-neutral-600">{item.cue}</p>
         {item.caution && <p className="font-body mt-1 text-sm text-amber-700">{item.caution}</p>}
+        {onTimer && !done && (
+          <button
+            type="button"
+            onClick={onTimer}
+            className="font-label bg-brand/10 text-brand mt-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold active:bg-brand/20"
+          >
+            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
+              <circle cx="10" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M10 8v3.2l2 1.4M8 2.5h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            Start timer
+          </button>
+        )}
         <div className="mt-1 flex items-center gap-4">
           <a href={watchUrl} target="_blank" rel="noreferrer" className="font-label text-brand text-sm font-semibold underline">
             Watch how
@@ -156,6 +174,7 @@ function ExerciseRow({
 export function FitScreen() {
   const [length, setLength] = useState(loadLength);
   const [saved, setSaved] = useState<Saved | null>(loadSaved);
+  const [timerId, setTimerId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -244,6 +263,7 @@ export function FitScreen() {
                       done={saved!.done.includes(item.id)}
                       onToggle={() => toggle(item.id)}
                       onSwap={canSwap(routine, item.id) ? () => swap(item.id) : undefined}
+                      onTimer={holdInfo(item) ? () => setTimerId(item.id) : undefined}
                     />
                   ))}
                 </div>
@@ -267,6 +287,23 @@ export function FitScreen() {
           </div>
         </>
       )}
+      {(() => {
+        const item = routine?.items.find((i) => i.id === timerId);
+        const info = item ? holdInfo(item) : null;
+        if (!item || !info) return null;
+        return (
+          <FitTimer
+            name={item.name}
+            sets={item.sets}
+            holdSeconds={info.seconds}
+            sides={info.sides}
+            onClose={() => setTimerId(null)}
+            onFinished={() => {
+              if (!saved?.done.includes(item.id)) toggle(item.id);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

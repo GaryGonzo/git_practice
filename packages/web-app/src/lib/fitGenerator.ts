@@ -325,6 +325,9 @@ export interface RoutineItem {
   cue: string;
   caution: string | null;
   seconds: number;
+  /** Timed exercises: seconds per hold and 1 or 2 sides (drives the timer). */
+  holdSeconds?: number;
+  sides?: number;
 }
 
 export interface Routine {
@@ -369,12 +372,14 @@ function buildItem(ex: Exercise, sets: number, rand: Rand, index: number): Routi
 
   let doseText: string;
   let workSec: number;
+  let holdSeconds: number | undefined;
   let note: string | null = null;
 
   if (dose.kind === "hold") {
     const sec = pickInRange(dose.min, dose.max, 5, rand);
     doseText = `${sec} sec${side}`;
     workSec = sec * sides;
+    holdSeconds = sec;
   } else if (dose.kind === "steps") {
     const steps = pickInRange(dose.min, dose.max, 1, rand);
     doseText = `${steps} steps each way`;
@@ -408,6 +413,7 @@ function buildItem(ex: Exercise, sets: number, rand: Rand, index: number): Routi
     cue: ex.cue,
     caution: ex.caution ?? null,
     seconds: sets * (workSec + REST_SEC) + TRANSITION_SEC,
+    ...(holdSeconds ? { holdSeconds, sides } : {}),
   };
 }
 
