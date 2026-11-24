@@ -3617,3 +3617,44 @@ export async function saveHandicapBand(userId: string, band: HandicapBand): Prom
   const { error } = await supabase.from("profiles").update({ handicap_band: band }).eq("id", userId);
   if (error) throw error;
 }
+
+// ---------------------------------------------------------------------------
+// Golfable Fit: completed routines (consistency tracking)
+
+export interface FitRoutineLog {
+  id: string;
+  completed_on: string;
+  minutes: number | null;
+  exercise_count: number;
+  exercises: { name: string; sets: number; dose: string }[];
+}
+
+export async function saveFitRoutineLog(
+  userId: string,
+  log: { completedOn: string; minutes: number; exercises: { name: string; sets: number; dose: string }[] }
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("fit_routine_logs")
+    .insert({
+      user_id: userId,
+      completed_on: log.completedOn,
+      minutes: log.minutes,
+      exercises: log.exercises,
+      exercise_count: log.exercises.length,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+export async function getFitRoutineLogs(userId: string, sinceDate: string): Promise<FitRoutineLog[]> {
+  const { data, error } = await supabase
+    .from("fit_routine_logs")
+    .select("id, completed_on, minutes, exercise_count, exercises")
+    .eq("user_id", userId)
+    .gte("completed_on", sinceDate)
+    .order("completed_on", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as FitRoutineLog[];
+}
