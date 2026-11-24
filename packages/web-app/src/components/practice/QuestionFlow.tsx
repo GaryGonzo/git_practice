@@ -70,22 +70,25 @@ function Option({ label, sub, selected, onClick }: { label: string; sub?: string
 export function QuestionFlow({
   library,
   savedBand,
+  initialAreas,
   onCancel,
   onDone,
 }: {
   library: Drill[];
   savedBand: HandicapBand | null;
+  /** Areas already chosen (e.g. "Work on your weakest area"): starts at the time question. */
+  initialAreas?: SkillCategory[];
   onCancel: () => void;
   onDone: (answers: SessionAnswers, newBand: HandicapBand | null) => void;
 }) {
-  const [areas, setAreas] = useState<SkillCategory[]>([]);
+  const [areas, setAreas] = useState<SkillCategory[]>(initialAreas ?? []);
   const [time, setTime] = useState<TimeBucket | null>(null);
   const [place, setPlace] = useState<Place | null>(null);
   const [extras, setExtras] = useState<Extra[]>([]);
   const [gear, setGear] = useState<Gear | null>(null);
   const [aids, setAids] = useState<(Aid | "other")[]>([]);
   const [band, setBand] = useState<HandicapBand | null>(savedBand);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(initialAreas?.length ? 1 : 0);
   // The option just tapped on a single-choice question, while it holds.
   const [picked, setPicked] = useState<string | null>(null);
   const holdTimer = useRef<number | null>(null);

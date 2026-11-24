@@ -301,6 +301,32 @@ const ROUTINES: Record<Pose, Routine> = {
       { t: 2.8 },
     ],
   },
+  // Missed it: shoulders up, palms up, eyes to the side. "Eh, next one."
+  shrug: {
+    dur: 2.2,
+    mode: "free",
+    still: 0.6,
+    keys: [
+      { t: 0, y: 0, lhx: 30, lhy: 104, rhx: 90, rhy: 104, lookX: 0, lookY: 0, lean: 0 },
+      { t: 0.45, y: -3, lhx: 14, lhy: 84, rhx: 106, rhy: 84, lookX: 1, lookY: -0.4, lean: -4, e: "out" },
+      { t: 1.2 },
+      { t: 1.6, y: 0, lhx: 30, lhy: 104, rhx: 90, rhy: 104, lookX: 0, lookY: 0, lean: 0 },
+      { t: 2.2 },
+    ],
+  },
+  // Personal best: a happy side-to-side shuffle, arms pumping in turn.
+  dance: {
+    dur: 1.2,
+    mode: "free",
+    still: 0.3,
+    keys: [
+      { t: 0, x: -5, lean: -8, jump: 0, lhx: 14, lhy: 30, rhx: 98, rhy: 92, lfx: 44, lfy: 124, rfx: 66, rfy: 120, rheel: 0.6, lheel: 0, smile: 1, lk: 4, rk: 4 },
+      { t: 0.3, x: 0, lean: 0, jump: -6, lhx: 20, lhy: 50, rhx: 100, rhy: 50, e: "out" },
+      { t: 0.6, x: 5, lean: 8, jump: 0, lhx: 22, lhy: 92, rhx: 106, rhy: 30, lfx: 54, lfy: 120, rfx: 76, rfy: 124, rheel: 0, lheel: 0.6, e: "in" },
+      { t: 0.9, x: 0, lean: 0, jump: -6, lhx: 20, lhy: 50, rhx: 100, rhy: 50, e: "out" },
+      { t: 1.2, x: -5, lean: -8, jump: 0, lhx: 14, lhy: 30, rhx: 98, rhy: 92, lfx: 44, lfy: 124, rfx: 66, rfy: 120, rheel: 0.6, lheel: 0, e: "in" },
+    ],
+  },
   // Celebrate: jump with both fists up.
   celebrate: {
     dur: 1.1,
@@ -465,7 +491,7 @@ function Figure({ pose, rig, limb }: { pose: Pose; rig: Rig; limb: string }) {
   } else {
     // Free hands are placed in figure space; poses where the hands move
     // with the chest (balance, think) follow its lean and shift.
-    const follow = pose === "balance" || pose === "think";
+    const follow = pose === "balance" || pose === "think" || pose === "shrug" || pose === "dance";
     hL = follow ? body([rig.lhx, rig.lhy]) : [rig.lhx, rig.lhy];
     hR = follow ? body([rig.rhx, rig.rhy]) : [rig.rhx, rig.rhy];
   }

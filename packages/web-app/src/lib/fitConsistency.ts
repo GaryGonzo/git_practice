@@ -37,7 +37,7 @@ export interface Consistency {
   weeks: { start: string; days: { date: string; count: number; future: boolean }[]; count: number }[];
 }
 
-export function consistency(dates: string[], today: string, weeksShown = 4): Consistency {
+export function consistency(dates: string[], today: string, weeksShown = 4, goal = WEEKLY_GOAL): Consistency {
   const perDay = new Map<string, number>();
   for (const d of dates) perDay.set(d, (perDay.get(d) ?? 0) + 1);
   const perWeek = new Map<string, number>();
@@ -48,9 +48,9 @@ export function consistency(dates: string[], today: string, weeksShown = 4): Con
 
   // This week counts toward the streak once the goal is hit; an unfinished
   // week doesn't break it.
-  let weekStreak = thisWeek >= WEEKLY_GOAL ? 1 : 0;
+  let weekStreak = thisWeek >= goal ? 1 : 0;
   let w = addDays(current, -7);
-  while ((perWeek.get(w) ?? 0) >= WEEKLY_GOAL) {
+  while ((perWeek.get(w) ?? 0) >= goal) {
     weekStreak++;
     w = addDays(w, -7);
   }

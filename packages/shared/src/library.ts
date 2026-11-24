@@ -57,7 +57,7 @@ export const AID_LABEL: Record<Aid, string> = {
 export type DrillKind = "warmup" | "skill" | "test";
 export type DrillLevel = "all" | "foundation" | "advanced";
 
-export type Pose = "putt" | "swing" | "chip" | "turn" | "hips" | "hinge" | "balance" | "think" | "finish" | "arms" | "grip" | "celebrate";
+export type Pose = "putt" | "swing" | "chip" | "turn" | "hips" | "hinge" | "balance" | "think" | "finish" | "arms" | "grip" | "celebrate" | "shrug" | "dance";
 
 export type SceneSet = "room" | "green" | "range" | "chip" | "garage" | "net" | "body";
 
