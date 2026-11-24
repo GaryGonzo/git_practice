@@ -411,6 +411,58 @@ function buildItem(ex: Exercise, sets: number, rand: Rand, index: number): Routi
   };
 }
 
+// Near-duplicates share a family, and a routine gets at most one from each
+// (no glute bridge AND single-leg glute bridge in the same session).
+const FAMILY: Record<string, string> = {
+  "Glute bridge": "bridge",
+  "Hip thrust": "bridge",
+  "Single-leg glute bridge": "bridge",
+  Clamshell: "abduction",
+  "Side-lying hip abduction": "abduction",
+  "Scissor kicks": "kicks",
+  "Flutter kicks": "kicks",
+  "Pallof hold": "pallof",
+  "Pallof press with rotation": "pallof",
+  "Half-kneeling band chop": "chop",
+  "Half-kneeling band lift": "chop",
+  "Band pull-apart": "rear-delt",
+  "Band face pull": "rear-delt",
+};
+
+// Within each group, easier activation moves come first and the hardest
+// last, so the early exercises warm you up for the later ones.
+const LEVEL: Record<string, number> = {
+  "Glute bridge": 1,
+  Clamshell: 1,
+  "Fire hydrant": 1,
+  "Donkey kick": 1,
+  "Bird dog": 1,
+  "Dead bug": 1,
+  "Band external rotation": 1,
+  "Band pull-apart": 1,
+  "Wall slide": 1,
+  "Open book": 1,
+  "Single-leg glute bridge": 3,
+  "Single-leg RDL": 3,
+  "Hollow body hold": 3,
+  "Bear hold": 3,
+  "Half Turkish get-up": 3,
+};
+
+export function familyOf(name: string): string {
+  return FAMILY[name] ?? name;
+}
+
+function levelOf(name: string): number {
+  return LEVEL[name] ?? 2;
+}
+
+function sortRoutine(items: RoutineItem[]): RoutineItem[] {
+  return [...items].sort(
+    (a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || levelOf(a.name) - levelOf(b.name)
+  );
+}
+
 /** Build a routine that fills roughly `minutes`, balanced across glutes, core and shoulders. */
 export function generateRoutine(minutes: number, date: string, rand: Rand = Math.random): Routine {
   const target = minutes * 60;
@@ -425,15 +477,15 @@ export function generateRoutine(minutes: number, date: string, rand: Rand = Math
   while (total < target - 60) {
     // The group furthest behind its share goes next.
     const group = (Object.keys(SHARE) as Group[])
-      .filter((g) => LIBRARY.some((e) => e.group === g && !used.has(e.name)))
+      .filter((g) => LIBRARY.some((e) => e.group === g && !used.has(familyOf(e.name))))
       .sort((a, b) => filled[a] / SHARE[a] - filled[b] / SHARE[b])[0];
     if (!group) break;
 
     const ex = pick(
-      LIBRARY.filter((e) => e.group === group && !used.has(e.name)),
+      LIBRARY.filter((e) => e.group === group && !used.has(familyOf(e.name))),
       rand
     );
-    used.add(ex.name);
+    used.add(familyOf(ex.name));
 
     let item = buildItem(ex, pick(setOptions, rand), rand, items.length);
     // Near the end, trim sets rather than blow well past the time asked for.
@@ -447,8 +499,35 @@ export function generateRoutine(minutes: number, date: string, rand: Rand = Math
     total += item.seconds;
   }
 
-  items.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group));
-  return { date, minutes, items, estimatedMinutes: Math.round(total / 60) };
+  return { date, minutes, items: sortRoutine(items), estimatedMinutes: Math.round(total / 60) };
+}
+
+/**
+ * Swap one exercise for a different one from the same group (glutes for
+ * glutes, core for core), keeping its number of sets and avoiding anything
+ * from a family already in the routine. Returns the routine unchanged if
+ * there's nothing left to swap in.
+ */
+export function swapExercise(routine: Routine, itemId: string, rand: Rand = Math.random): Routine {
+  const current = routine.items.find((i) => i.id === itemId);
+  if (!current) return routine;
+  const taken = new Set(routine.items.filter((i) => i.id !== itemId).map((i) => familyOf(i.name)));
+  taken.add(familyOf(current.name));
+  const options = LIBRARY.filter((e) => e.group === current.group && !taken.has(familyOf(e.name)));
+  if (options.length === 0) return routine;
+  const ex = pick(options, rand);
+  const next = buildItem(ex, current.sets, rand, routine.items.length);
+  const swapped = { ...next, id: `${next.id}-${Math.floor(rand() * 1e6)}` };
+  const items = sortRoutine(routine.items.map((i) => (i.id === itemId ? swapped : i)));
+  const seconds = items.reduce((t, i) => t + i.seconds, 0);
+  return { ...routine, items, estimatedMinutes: Math.round(seconds / 60) };
+}
+
+export function canSwap(routine: Routine, itemId: string): boolean {
+  const current = routine.items.find((i) => i.id === itemId);
+  if (!current) return false;
+  const taken = new Set(routine.items.map((i) => familyOf(i.name)));
+  return LIBRARY.some((e) => e.group === current.group && !taken.has(familyOf(e.name)));
 }
 
 export const DURATION_OPTIONS = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
