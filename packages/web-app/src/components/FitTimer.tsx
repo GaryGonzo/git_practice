@@ -12,8 +12,8 @@ import {
 } from "../lib/fitTimer";
 
 // Guided timer for a timed exercise: "Get ready", then each hold (left and
-// right side when it's per side), a short switch between sides and 30
-// seconds rest between sets. Beeps on 3-2-1 and at every change; the
+// right side when it's per side) back to back, with a short switch
+// between sides. Beeps on 3-2-1 and at every change; the
 // screen stays awake while it runs.
 
 function useWakeLock(active: boolean) {
@@ -39,7 +39,6 @@ const KIND_STYLE: Record<Segment["kind"], string> = {
   ready: "bg-neutral-800",
   work: "bg-brand",
   switch: "bg-amber-600",
-  rest: "bg-sky-700",
 };
 
 function fmt(sec: number): string {

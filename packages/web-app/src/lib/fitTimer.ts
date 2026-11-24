@@ -11,14 +11,13 @@
 //      time even if the page's JS timers get throttled.
 
 export interface Segment {
-  kind: "ready" | "work" | "switch" | "rest";
+  kind: "ready" | "work" | "switch";
   label: string;
   seconds: number;
 }
 
-const READY_SEC = 5;
+const READY_SEC = 3;
 const SWITCH_SEC = 5;
-const REST_SEC = 30;
 
 /** Hold length and sides for a timed item, from its fields or its dose text ("30 sec/side"). */
 export function holdInfo(item: { dose: string; holdSeconds?: number; sides?: number }): { seconds: number; sides: number } | null {
@@ -36,7 +35,6 @@ export function buildSegments(sets: number, holdSeconds: number, sides: number):
       out.push({ kind: "work", label: `Set ${s} of ${sets}${sideLabel}`, seconds: holdSeconds });
       if (side < sides) out.push({ kind: "switch", label: "Switch sides", seconds: SWITCH_SEC });
     }
-    if (s < sets) out.push({ kind: "rest", label: "Rest", seconds: REST_SEC });
   }
   return out;
 }

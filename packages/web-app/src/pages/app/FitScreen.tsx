@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
-import { todayISO } from "../../lib/golfableApi";
+import { useEffect, useRef, useState } from "react";
+import { todayISO, getFitRoutineLogs, saveFitRoutineLog, type FitRoutineLog } from "../../lib/golfableApi";
+import { useAuth } from "../../lib/AuthProvider";
+import { consistency, weekStart, WEEKLY_GOAL } from "../../lib/fitConsistency";
 import {
   canSwap,
   generateRoutine,
@@ -25,6 +27,8 @@ const LENGTH_KEY = "golfable-fit-length";
 interface Saved {
   routine: Routine;
   done: string[];
+  /** Set once the finished routine is saved to history. */
+  loggedId?: string;
 }
 
 function loadSaved(): Saved | null {
@@ -171,10 +175,85 @@ function ExerciseRow({
   );
 }
 
+function addDaysISO(date: string, n: number): string {
+  const d = new Date(`${date}T12:00:00`);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+const DOW = ["M", "T", "W", "T", "F", "S", "S"];
+
+function ConsistencyCard({ logs }: { logs: FitRoutineLog[] | null }) {
+  if (!logs) return <div className="mt-4 h-40 animate-pulse rounded-2xl bg-white ring-1 ring-black/[0.06]" />;
+  const today = todayISO();
+  const c = consistency(
+    logs.map((l) => l.completed_on),
+    today
+  );
+  return (
+    <section className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-black/[0.06]">
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-label text-lg font-semibold text-neutral-800">Consistency</h2>
+        <p className="font-label text-sm font-semibold text-neutral-500">Goal: {WEEKLY_GOAL}+ a week</p>
+      </div>
+      <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+        {[
+          { v: `${c.thisWeek}`, l: "this week", hot: c.thisWeek >= WEEKLY_GOAL },
+          { v: `${c.weekStreak}`, l: c.weekStreak === 1 ? "week streak" : "weeks streak", hot: c.weekStreak > 0 },
+          { v: `${c.total}`, l: "last 4 weeks", hot: false },
+        ].map((x) => (
+          <div key={x.l} className="rounded-xl bg-neutral-50 py-2">
+            <p className={`font-display text-3xl leading-none ${x.hot ? "text-brand" : "text-neutral-800"}`}>{x.v}</p>
+            <p className="font-label text-xs font-semibold text-neutral-500">{x.l}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 space-y-1.5" aria-label="Workouts over the last 4 weeks">
+        <div className="grid grid-cols-[3.2rem_repeat(7,1fr)] gap-1.5">
+          <span />
+          {DOW.map((d, i) => (
+            <span key={i} className="font-label text-center text-[0.7rem] font-semibold text-neutral-400">
+              {d}
+            </span>
+          ))}
+        </div>
+        {c.weeks.map((w) => (
+          <div key={w.start} className="grid grid-cols-[3.2rem_repeat(7,1fr)] items-center gap-1.5">
+            <span className={`font-label text-xs font-semibold ${w.start === weekStart(today) ? "text-neutral-800" : "text-neutral-400"}`}>
+              {w.start === weekStart(today) ? "This wk" : new Date(`${w.start}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            </span>
+            {w.days.map((d) => (
+              <span
+                key={d.date}
+                title={d.date}
+                className={`mx-auto h-6 w-full max-w-7 rounded-md ${
+                  d.count > 0 ? "bg-brand" : d.future ? "bg-neutral-50" : d.date === today ? "ring-brand/40 bg-neutral-100 ring-2" : "bg-neutral-100"
+                }`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function FitScreen() {
+  const { session } = useAuth();
+  const userId = session?.user.id ?? null;
+  const [logs, setLogs] = useState<FitRoutineLog[] | null>(null);
+  const [saveError, setSaveError] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [length, setLength] = useState(loadLength);
   const [saved, setSaved] = useState<Saved | null>(loadSaved);
   const [timerId, setTimerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    getFitRoutineLogs(userId, addDaysISO(weekStart(todayISO()), -21))
+      .then(setLogs)
+      .catch(() => setLogs([]));
+  }, [userId]);
 
   useEffect(() => {
     try {
@@ -215,6 +294,29 @@ export function FitScreen() {
   const doneCount = saved?.done.length ?? 0;
   const allDone = routine !== null && doneCount === routine.items.length;
 
+  // Finishing every exercise saves the workout to history, once.
+  const savingRef = useRef(false);
+  useEffect(() => {
+    if (!allDone || !saved || saved.loggedId || !userId || savingRef.current || saveError) return;
+    savingRef.current = true;
+    setSaveError(false);
+    saveFitRoutineLog(userId, {
+      completedOn: saved.routine.date,
+      minutes: saved.routine.minutes,
+      exercises: saved.routine.items.map((i) => ({ name: i.name, sets: i.sets, dose: i.dose })),
+    })
+      .then((id) => {
+        const next = { ...saved, loggedId: id };
+        setSaved(next);
+        save(next);
+        return getFitRoutineLogs(userId, addDaysISO(weekStart(todayISO()), -21)).then(setLogs);
+      })
+      .catch(() => setSaveError(true))
+      .finally(() => {
+        savingRef.current = false;
+      });
+  }, [allDone, saved, userId, retry]);
+
   return (
     <div className="mx-auto max-w-md px-4 pb-28">
       <PageHeader kicker="Golfable Fit" title={routine ? "Today's routine" : "Train today"} sub="Core, glutes and shoulders. Low impact, built for your swing." />
@@ -231,7 +333,9 @@ export function FitScreen() {
             Generate today's routine
           </button>
         </div>
-      ) : (
+      ) : null}
+      {!routine && <ConsistencyCard logs={logs} />}
+      {routine && (
         <>
           <div className="bg-brand-dark mt-5 flex items-center justify-between rounded-2xl px-5 py-4 text-white">
             <div>
@@ -244,9 +348,23 @@ export function FitScreen() {
               <p className={`font-display text-3xl leading-none ${allDone ? "text-gold" : ""}`}>
                 {doneCount}/{routine.items.length}
               </p>
-              <p className="font-body mt-1 text-sm text-white/70">{allDone ? "Done. Nice work." : "done"}</p>
+              <p className="font-body mt-1 text-sm text-white/70">
+                {allDone ? (saved?.loggedId ? "Done · saved" : saveError ? "Done · not saved" : "Done · saving…") : "done"}
+              </p>
             </div>
           </div>
+          {saveError && (
+            <button
+              type="button"
+              onClick={() => {
+                setSaveError(false);
+                setRetry((r) => r + 1);
+              }}
+              className="font-label mt-2 w-full rounded-xl bg-red-50 py-2 text-sm font-bold text-red-700"
+            >
+              Couldn't save this workout. Tap to try again.
+            </button>
+          )}
           <p className="font-body mt-3 text-sm text-neutral-500">Rest about 30 seconds between sets.</p>
 
           {GROUP_ORDER.map((group) => {
@@ -285,6 +403,7 @@ export function FitScreen() {
               Clear today's routine
             </button>
           </div>
+          <ConsistencyCard logs={logs} />
         </>
       )}
       {(() => {
