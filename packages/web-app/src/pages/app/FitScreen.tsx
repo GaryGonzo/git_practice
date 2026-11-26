@@ -246,7 +246,6 @@ export function FitScreen() {
   const userId = session?.user.id ?? null;
   const [logs, setLogs] = useState<FitRoutineLog[] | null>(null);
   const [saveError, setSaveError] = useState(false);
-  const [retry, setRetry] = useState(0);
   const [length, setLength] = useState(loadLength);
   const [saved, setSaved] = useState<Saved | null>(loadSaved);
   const [timerId, setTimerId] = useState<string | null>(null);
@@ -297,28 +296,39 @@ export function FitScreen() {
   const doneCount = saved?.done.length ?? 0;
   const allDone = routine !== null && doneCount === routine.items.length;
 
-  // Finishing every exercise saves the workout to history, once.
+  const isSaved = !!saved?.loggedId;
+
+  // "Finish & save": logs what was done today to history, once. Saving is
+  // always the player's call -- a routine with a skipped exercise still
+  // counts.
+  const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
-  useEffect(() => {
-    if (!allDone || !saved || saved.loggedId || !userId || savingRef.current || saveError) return;
+  async function finish() {
+    if (!saved || saved.loggedId || !userId || savingRef.current || saved.done.length === 0) return;
     savingRef.current = true;
+    setSaving(true);
     setSaveError(false);
-    saveFitRoutineLog(userId, {
-      completedOn: saved.routine.date,
-      minutes: saved.routine.minutes,
-      exercises: saved.routine.items.map((i) => ({ name: i.name, sets: i.sets, dose: i.dose })),
-    })
-      .then((id) => {
-        const next = { ...saved, loggedId: id };
-        setSaved(next);
-        save(next);
-        return getFitRoutineLogs(userId, addDaysISO(weekStart(todayISO()), -21)).then(setLogs);
-      })
-      .catch(() => setSaveError(true))
-      .finally(() => {
-        savingRef.current = false;
+    try {
+      const doneItems = saved.routine.items.filter((i) => saved.done.includes(i.id));
+      const id = await saveFitRoutineLog(userId, {
+        completedOn: saved.routine.date,
+        minutes: saved.routine.minutes,
+        exercises: doneItems.map((i) => ({ name: i.name, sets: i.sets, dose: i.dose })),
       });
-  }, [allDone, saved, userId, retry]);
+      const next = { ...saved, loggedId: id };
+      setSaved(next);
+      save(next);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      getFitRoutineLogs(userId, addDaysISO(weekStart(todayISO()), -21))
+        .then(setLogs)
+        .catch(() => {});
+    } catch {
+      setSaveError(true);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
 
   if (view === "welcome") {
     const c = logs ? consistency(logs.map((l) => l.completed_on), todayISO()) : null;
@@ -329,20 +339,24 @@ export function FitScreen() {
         : left === 0
           ? "Weekly goal hit. Keep it rolling."
           : `${left} more ${left === 1 ? "workout" : "workouts"} to hit this week's goal.`;
-    const cta = !routine ? "Today's routine" : allDone ? "See today's routine" : "Continue today's routine";
+    const cta = !routine ? "Today's routine" : isSaved ? "See today's routine" : "Continue today's routine";
     const name = profile?.first_name?.trim();
     return (
       <div className="mx-auto max-w-md px-4 pb-28">
         <PageHeader kicker="Golfable Fit" title={name ? `Welcome back, ${name}` : "Welcome back"} sub={status || "Core, glutes and shoulders, built for your swing."} />
         <ConsistencyCard logs={logs} />
         <div className="bg-brand-dark mt-4 flex items-center gap-3 overflow-hidden rounded-2xl py-3 pr-4 pl-2 text-white">
-          <Dimples pose={allDone ? "celebrate" : "balance"} onDark className="h-24 w-20 flex-none" />
+          <Dimples pose={isSaved ? "celebrate" : "balance"} onDark className="h-24 w-20 flex-none" />
           <div className="min-w-0 flex-1">
             <p className="font-display text-[1.7rem] leading-none tracking-wide">
-              {allDone ? "Today's done." : routine ? "Pick up where you left off." : "Ready to train?"}
+              {isSaved ? "Today's done." : routine ? "Pick up where you left off." : "Ready to train?"}
             </p>
             <p className="font-body mt-1 text-sm text-white/70">
-              {allDone ? "Saved to your history." : routine ? `${doneCount} of ${routine.items.length} exercises done` : "15 to 60 minutes. Low impact."}
+              {isSaved
+                ? "Saved to your history."
+                : routine
+                  ? `${doneCount} of ${routine.items.length} exercises done${doneCount > 0 ? " · tap Finish & save when you're through" : ""}`
+                  : "15 to 60 minutes. Low impact."}
             </p>
           </div>
         </div>
@@ -396,21 +410,18 @@ export function FitScreen() {
               </p>
             </div>
             <div className="text-right">
-              <p className={`font-display text-3xl leading-none ${allDone ? "text-gold" : ""}`}>
+              <p className={`font-display text-3xl leading-none ${isSaved || allDone ? "text-gold" : ""}`}>
                 {doneCount}/{routine.items.length}
               </p>
               <p className="font-body mt-1 text-sm text-white/70">
-                {allDone ? (saved?.loggedId ? "Done · saved" : saveError ? "Done · not saved" : "Done · saving…") : "done"}
+                {isSaved ? "Saved" : "done"}
               </p>
             </div>
           </div>
           {saveError && (
             <button
               type="button"
-              onClick={() => {
-                setSaveError(false);
-                setRetry((r) => r + 1);
-              }}
+              onClick={finish}
               className="font-label mt-2 w-full rounded-xl bg-red-50 py-2 text-sm font-bold text-red-700"
             >
               Couldn't save this workout. Tap to try again.
@@ -439,6 +450,39 @@ export function FitScreen() {
               </section>
             );
           })}
+
+          {isSaved ? (
+            <div className="bg-brand-dark mt-6 flex items-center gap-3 rounded-2xl py-3 pr-4 pl-2 text-white">
+              <Dimples pose="celebrate" onDark className="h-20 w-16 flex-none" />
+              <div>
+                <p className="font-display text-gold text-[1.7rem] leading-none tracking-wide">Workout saved.</p>
+                <p className="font-body mt-1 text-sm text-white/70">
+                  {saved!.done.length} {saved!.done.length === 1 ? "exercise" : "exercises"} logged to your history.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={finish}
+              disabled={doneCount === 0 || saving}
+              className={`font-label mt-6 flex w-full flex-col items-center justify-center rounded-xl px-4 py-4 text-lg font-bold shadow-lg shadow-black/10 active:scale-[0.99] disabled:opacity-40 ${
+                allDone ? "bg-gold text-brand-dark" : "bg-brand text-white"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <CheckIcon className="h-5 w-5" />
+                {saving ? "Saving…" : "Finish & save workout"}
+              </span>
+              <span className="font-body text-xs font-medium opacity-80">
+                {doneCount === 0
+                  ? "Check off an exercise first"
+                  : allDone
+                    ? `All ${routine.items.length} exercises done`
+                    : `${doneCount} of ${routine.items.length} done · saves what you did`}
+              </span>
+            </button>
+          )}
 
           <div className="mt-6 rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
             <LengthPicker value={length} onChange={setLength} />
